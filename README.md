@@ -1,6 +1,7 @@
 # BETA VERSION!!!
 Hello this is An early release of the latest cores of the klessydra family the T1x version.
 I am certain that you might encounter bugs during execution. Nevertheless updates will be followed shortly
+
 Extensions made to this version:
 
 -Four scratchpad memories of size 512-bytes, having dual read and write data ports of 128-bit bus width.The Scratchpads are nicknamed A,B,C,D and they are mapped for the following addresses respectively
@@ -36,10 +37,15 @@ For now, this version extends the riscv instruction set with four new instructio
  4) kdotp rd,rs1,rs2
  
 -kaddv and kdotp do arithmetic operations on the vectors in "rs1" and "rs2", and store the results in "rd". Operation are done in SIMD fashion were we can operate on four elements simultanously.
+
 -Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
+
 -If we have non scratchpad access, we raise an exception.
+
 -If we have same Scratchpad READ access we raise an exception.
+
 -If writing to the scratchpads might overflow it, we raise an exception.
+
 -However we don't raise an exception if a scratchpad is used simultanouly for read and write, because sc_memories were designed with dual ports for read and write.
 
 Currently there are no tests added for testing the new instructions, they will be included shortly in recent update. 
