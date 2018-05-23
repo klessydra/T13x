@@ -2,15 +2,20 @@
 Hello this is An early release of the latest cores of the klessydra family the T1x version.
 I am certain that you might encounter bugs during execution. Nevertheless updates will be followed shortly
 Extensions made to this version:
+
 -Four scratchpad memories of size 512-bytes, having dual read and write data ports of 128-bit bus width.The Scratchpads are nicknamed A,B,C,D and they are mapped for the following addresses respectively
+
   - 0x00109000 -> 0x001091FF (scA)
   - 0x00109200 -> 0x001093FF (scB)
   - 0x00109400 -> 0x001094FF (scC)
   - 0x00109600 -> 0x001096FF (scD)
+  
 -Three sperate execution Units that can work in parallel allowing superscalarability
+
   - DSP_Unit
   - IE_Unit
   - LSU_Unit
+  
 -DSP Unit does dot product and vector addition in SIMD fashion having a read and write bus width of 128-bits (4*32-bits).
 
 
