@@ -1,18 +1,14 @@
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
--- pipeline  pinout ----------------------
 entity WB_STAGE is
   port (
-	   -- clock, and reset active low
       clk_i, rst_ni              : in std_logic;
 	  LS_WB_EN                   : in std_logic;
 	  IE_WB_EN                   : in std_logic;
@@ -25,7 +21,7 @@ entity WB_STAGE is
 	  harc_IE_WB                 : in harc_range;
 	  regfile                    : out regfile_replicated_array
        );
-end entity; -------------------------------
+end entity;
 
 architecture WRITEBACK of WB_STAGE is
 
@@ -35,11 +31,6 @@ signal harc_WB          : harc_range;
 signal instr_word_WB    : std_logic_vector(31 downto 0);
 
 begin
------------------------------------------------------------------------------------------------------
--- Stage WB - (WRITEBACK)
------------------------------------------------------------------------------------------------------
--- Writes back on register file
------------------------------------------------------------------------------------------------------
 
   harc_WB <= harc_LS_WB when LS_WB_EN = '1' else harc_IE_WB when IE_WB_EN = '1';
   instr_word_WB <= instr_word_LS_WB when LS_WB_EN = '1' else instr_word_IE_WB when IE_WB_EN = '1';
@@ -59,7 +50,7 @@ begin
         end loop;
       end loop;
     elsif rising_edge(clk_i) then
-      if WB_EN = '1' then --instr_rvalid_WB = '1' and then
+      if WB_EN = '1' then
         regfile_wire(harc_WB)(rd(instr_word_WB)) := WB_RD;
       end if;
     end if;
@@ -67,6 +58,3 @@ begin
   end process;
 
 end WRITEBACK;
-----------------------------------------------------------------------------------------------------
--- stage IF -- (instruction fetch)
-----------------------------------------------------------------------------------------------------

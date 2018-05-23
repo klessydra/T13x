@@ -1,15 +1,12 @@
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
--- SCI  pinout --------------------
 entity Scratchpad_memory_interface is
   port (
     clk_i, rst_ni              : in std_logic;
@@ -32,7 +29,7 @@ entity Scratchpad_memory_interface is
     ls_data_gnt_i              : out std_logic_vector(Num_SCs-1 downto 0);
     sci_err                    : out std_logic
 	);
-end entity;  ------------------------------------------
+end entity;
 
 
 architecture SCI of Scratchpad_memory_interface is
@@ -56,8 +53,6 @@ component Scratchpad_memory
        sc_data_wr                            : in   array_2d(4*Num_SCs-1 downto 0)(31 downto 0)
        );
 end component;
---------------------------------------------------------------------------------------------------
--------------------------------- SCI BEGIN -------------------------------------------------------
 begin
 
   SC : Scratchpad_memory
@@ -70,7 +65,7 @@ begin
        sc_data_rd   => sc_data_rd
       );
   
-  SCI_Exec_Unit : process(clk_i, rst_ni)  -- single cycle unit, fully synchronous 
+  SCI_Exec_Unit : process(clk_i, rst_ni)
 
   begin
     if rst_ni = '0' then
@@ -84,7 +79,7 @@ begin
       sc_cycle <= "00";
       for i in 0 to 3 loop
         sc_cycle_lat <= sc_cycle;
-        if ls_sci_we(i) = '1' then            -- Sub-Scratchpad selector, loops within the four sub-sctachpads
+        if ls_sci_we(i) = '1' then
           if data_rvalid_i_lat = '1' then
             if sc_cycle /= "11" then
               sc_cycle <= std_logic_vector(unsigned(sc_cycle)+'1');
@@ -102,7 +97,7 @@ begin
           end if;
         end if;
           
-        if ls_sci_req(i) = '1' then      -- AAA remember to change to dsp_gnt_i
+        if ls_sci_req(i) = '1' then
           ls_data_gnt_i(i) <= '1';
         elsif ls_sci_req(i) = '0' then
           ls_data_gnt_i(i) <= '0';
@@ -133,9 +128,9 @@ begin
 	  sc_addr_wr            <= (others => (others => '0'));
           
     else      
-      for i in 0 to 3 loop	-- Loop through scratchpads A,B,C,D
+      for i in 0 to 3 loop
 		  
-        if data_rvalid_i_lat = '1' then        -- LS write port
+        if data_rvalid_i_lat = '1' then
           if ls_sci_req(i) = '1' then
             if ls_sci_we(i) = '1' then
               sc_we(4*i + to_integer(unsigned(sc_cycle))) <= '1';
@@ -145,8 +140,8 @@ begin
           end if;   
         end if;
 
-	      if dsp_sci_req(i) = '1' then         -- DSP write port;
-          for j in 0 to 3 loop        -- Loop through the sub-scratchpads
+	      if dsp_sci_req(i) = '1' then
+          for j in 0 to 3 loop
             if dsp_sci_we(i) = '1' then
 			        if to_integer(unsigned(dsp_parallel_write)) >= j then
                 sc_we(4*i+(to_integer(unsigned(dsp_parallel_write))-j)) <= '1';
@@ -158,15 +153,15 @@ begin
         end if;   
 
 
-        if ls_sci_req(i) = '1' then         -- LS read port
+        if ls_sci_req(i) = '1' then
           if ls_data_gnt_i(i) = '1' then
 	          ls_sc_data_read_wire <= sc_data_rd(4*i + to_integer(unsigned(sc_cycle_lat)));
           end if;
           sc_addr_rd(to_integer(unsigned(sc_cycle)) + 4*i) <= ls_sc_read_addr;
         end if;
 
-	      if dsp_sci_req(i) = '1' then         -- DSP read port
-          for j in 0 to 3 loop        -- Loop through the sub-scratchpads
+	      if dsp_sci_req(i) = '1' then
+          for j in 0 to 3 loop
             if to_integer(unsigned(dsp_parallel_read)) >= j then
               if dsp_data_gnt_i(i) = '1' then
                 dsp_sc_data_read_wire(i)((31+32*(to_integer(unsigned(dsp_parallel_read))-j)) downto 32*(to_integer(unsigned(dsp_parallel_read))-j)) <= sc_data_rd(4*i+(to_integer(unsigned(dsp_parallel_read))-j));
@@ -176,7 +171,7 @@ begin
 	        end loop;
         end if;
           
-        sci_err <= '1' when ls_sci_we(i) = '1' and dsp_sci_we(i) = '1' else '0';  -- simultaneous write access handler -- AAA remember to add this logic to DSP
+        sci_err <= '1' when ls_sci_we(i) = '1' and dsp_sci_we(i) = '1' else '0';  -- simultaneous write access handler
 			
       end loop;	
     end if;
@@ -186,6 +181,3 @@ begin
 
 			  
 end SCI;
---------------------------------------------------------------------------------------------------
--- END of SCI architecture -----------------------------------------------------------------------
---------------------------------------------------------------------------------------------------

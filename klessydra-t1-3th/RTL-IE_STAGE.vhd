@@ -1,18 +1,14 @@
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
--- pipeline  pinout --------------------
 entity IE_STAGE is
   port (
-	   -- clock, and reset active low
     clk_i, rst_ni          : in std_logic;
     irq_i                  : in std_logic;
 	pc_ID_lat              : in std_logic_vector(31 downto 0);
@@ -39,7 +35,7 @@ entity IE_STAGE is
 	dsp_taken_branch       : in std_logic;
 	harc_DSP               : in harc_range;
 	harc_EXEC              : in harc_range;
-    instr_rvalid_IE        : in std_logic;  -- validity bit at IE input
+    instr_rvalid_IE        : in std_logic;
 	decoded_instruction_IE : in std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
     csr_addr_i             : out std_logic_vector (11 downto 0);
     ie_except_data         : out std_logic_vector (31 downto 0);
@@ -73,39 +69,26 @@ entity IE_STAGE is
 	harc_IE_WB                : out harc_range;
 	pc_WB                  : out std_logic_vector(31 downto 0)
 	   );
-end entity;  ------------------------------------------
+end entity;
 
 
--- Klessydra T03x (4 stages) pipeline implementation -----------------------
 architecture EXECUTE of IE_STAGE is
 
   type fsm_IE_states is (sleep, reset, normal, csr_instr_wait_state, debug, first_boot);
 
   signal state_IE, nextstate_IE : fsm_IE_states;
 
-  -- signals for counting intructions
-  signal clock_cycle         : std_logic_vector(63 downto 0);  -- RDCYCLE
-  signal external_counter    : std_logic_vector(63 downto 0);  -- RDTIME
-  signal instruction_counter : std_logic_vector(63 downto 0);  -- RDINSTRET
-  signal flush_cycle_count   : replicated_positive_integer; -- delay slot counter to flush incoming instr. in IE stage
+  signal clock_cycle         : std_logic_vector(63 downto 0);
+  signal external_counter    : std_logic_vector(63 downto 0);
+  signal instruction_counter : std_logic_vector(63 downto 0);
+  signal flush_cycle_count   : replicated_positive_integer;
 
---------------------------------------------------------------------------------------------------
------------------------ ARCHITECTURE BEGIN -------------------------------------------------------
 begin
 
-----------------------------------------------------------------------------------------------------
--- stage IE -- (instruction decode/Execute)
-----------------------------------------------------------------------------------------------------
--- This stage is composed of an fsm unit fsm_IE that performs synchronous operations,
--- and drives the control signals for accessing data memory and stalling the pipeline if needed
--- fsm_IE may invoke separate units for handling specific instructions (exceptions, csrs)
-----------------------------------------------------------------------------------------------------	  
 	  
   fsm_IE_sync : process(clk_i, rst_ni)
 
-    -- pragma translate_off
-    variable row : line;  -- local variable for instruction tracing, not synthesizable
-    -- pragma translate_on
+    variable row : line;
 
   begin
     if rst_ni = '0' then
@@ -114,22 +97,15 @@ begin
       instruction_counter    <= std_logic_vector(to_unsigned(0, 64));
       csr_instr_req          <= '0';
       csr_wdata_en           <= '0';
---      dsp_instr_req          <= '0';
---      ld_word_count_internal <= (others => '0');
---      ld_word_count_lat      <= (others => '0');
       csr_op_i               <= (others => '0');
       ie_except_data         <= (others => '0');
       ie_csr_wdata_i         <= (others => '0');
       csr_addr_i             <= (others => '0');
---      dsp_op1                <= (others => '0');
---      dsp_op2                <= (others => '0');
---      dsp_op3                <= (others => '0');
---      KLESS_OP               <= (others => '0');
     elsif rising_edge(clk_i) then
 		
       csr_instr_req  <= '0';
 
-      case state_IE is                  -- stage state
+      case state_IE is
         when sleep =>
           null;
         when reset =>
@@ -139,19 +115,10 @@ begin
         when debug =>
           null;
         when normal =>
-          -- check if there is a valid instruction and the thread it belongs to is not in a delay slot: 
-          if  ie_instr_req = '0'  or flush_cycle_count(harc_EXEC) /=0 then --instr_rvalid_IE = '0' or flush_cycle_count(harc_EXEC) /=0 then
+          if  ie_instr_req = '0'  or flush_cycle_count(harc_EXEC) /=0 then
             IE_WB_EN       <= '0';
-            --instr_rvalid_WB <= '0'; -- do nothing and wait for valid instruction and finished delay slot
-            -- in a generic version we would have conditions on busy_WB 
-            -- in all states of the IE stage, and similarly in the comb process, just
-            -- like we did in the ID stage.
           elsif irq_pending(harc_EXEC) = '1' then
-            -- manage irq as an absolute branch to MTVEC, also defining mepc value properly in program counter unit
-            -- irq is served only if we are not in a delay slot for the interrupted harc
-            -- for simplicity presently only harc 0 is interrupted (decided in program counter unit)
-            -- the current valid instruction is discarded, only its pc value gets used for mepc
-            instr_rvalid_WB <= '0'; -- in the sync process we don't need to do anything here
+            instr_rvalid_WB <= '0';
           else
             instruction_counter <= std_logic_vector(unsigned(instruction_counter)+1);
             pc_WB               <= pc_IE;
@@ -159,16 +126,13 @@ begin
             instr_word_IE_WB    <= instr_word_IE;
             harc_IE_WB          <= harc_EXEC;
             csr_wdata_en        <= '0';
---            misaligned_err      <= '0';
             -- pragma translate_off
-            --write(row, OPCODE(instr_word_IE)); -- Writes OPCODE(instr_word_IE) value to line GGG
-            hwrite(row, pc_IE);  --GGG I write on file instruction machine code and its position on memory program (pc_IE)
-            write(row, '_');            --GGG
-            hwrite(row, instr_word_IE);     --GGG
-            write(row, "   " & to_string(now));  --Add a timestamp to line
-            writeline(file_handler, row);  -- Writes line to instr. trace file
+            hwrite(row, pc_IE);
+            write(row, '_');
+            hwrite(row, instr_word_IE);
+            write(row, "   " & to_string(now));
+            writeline(file_handler, row);
             -- pragma translate_on
-            -- EXECUTE OF INSTRUCTION -------------------------------------------
 
 
             if decoded_instruction_IE(ADDI_bit_position) = '1' then
@@ -241,7 +205,7 @@ begin
             if decoded_instruction_IE(AUIPC_bit_position) = '1' then
               IE_WB_EN <= '1';
               IE_WB <= std_logic_vector(signed(U_immediate(instr_word_IE))
-                                                             + signed(pc_IE));  --GGG before it was signed(pc)
+                                                             + signed(pc_IE));
             end if;
 
             if decoded_instruction_IE(ADD7_bit_position) = '1' then
@@ -316,7 +280,7 @@ begin
               if (rd(instr_word_IE) /= 0) then
                 IE_WB_EN                   <= '1';
                 IE_WB <= std_logic_vector(unsigned(pc_IE) + "100");
-              else                      -- plain unconditional jump
+              else
                 IE_WB_EN <= '0';
                 null;
               end if;
@@ -372,12 +336,12 @@ begin
 
             if decoded_instruction_IE(FENCE_bit_position) = '1' then
               IE_WB_EN <= '0';
-              null;                     -- WARNING: still not implemented
+              null;
             end if;
 
             if decoded_instruction_IE(FENCEI_bit_position) = '1' then
               IE_WB_EN <= '0';
-              null;                     -- WARNING: still not implemented
+              null;
             end if;
 
             if decoded_instruction_IE(ECALL_bit_position) = '1' then
@@ -389,12 +353,12 @@ begin
 
             if decoded_instruction_IE(EBREAK_bit_position) = '1' then
               IE_WB_EN <= '0';
-              null;                     -- WARNING: still not implemented
+              null;
             end if;
 
             if decoded_instruction_IE(MRET_bit_position) = '1' then
               IE_WB_EN <= '0';
-              null;                     -- managed by combinat. signal
+              null;
             end if;
 
             if decoded_instruction_IE(WFI_bit_position) = '1' then
@@ -454,8 +418,7 @@ begin
               null;
             end if;
 
-          -- EXECUTE OF INSTRUCTION (END) --------------------------
-          end if;  -- instr_rvalid_IE values
+          end if;
           
         when csr_instr_wait_state =>
           csr_instr_req <= '0';
@@ -467,16 +430,16 @@ begin
               IE_WB_EN <= '0';
               null;
             end if;
-          elsif (csr_instr_done = '1' and csr_access_denied_o = '1') then  -- ILLEGAL_INSTRUCTION
+          elsif (csr_instr_done = '1' and csr_access_denied_o = '1') then
             IE_WB_EN                             <= '0';
             csr_wdata_en                         <= '1';
             ie_except_data                       <= ILLEGAL_INSN_EXCEPT_CODE;
             pc_IE_except_value  (harc_EXEC) <= pc_IE;
           else
-            IE_WB_EN <= '0'; -- do nothing and wait
+            IE_WB_EN <= '0';
           end if;
-      end case;  -- fsm_IE state cases
-    end if;  -- reset, clk_i
+      end case;
+    end if;
   end process;
 
   fsm_IE_comb : process(all)
@@ -510,11 +473,7 @@ begin
     branch_instr_wires               := '0';
     ebreak_instr_wires               := '0';
     dbg_ack_i_wires                  := '0';
---    data_valid_waiting_counter_wires := '0';
     WFI_Instr_wires                  := '0';
---    amo_store                        <= '0';
---    amo_load_lat                     <= '0';
---    nextstate_IE_wires               := sleep;
     reset_state                      <= '0';
 
     if rst_ni = '0' then
@@ -523,10 +482,10 @@ begin
       else
         core_busy_IE_wires := '1';
       end if;
-      nextstate_IE_wires := normal;  -- ignored, but allows combinational synthesis
+      nextstate_IE_wires := normal;
     else
 
-      case state_IE is                  -- stage status
+      case state_IE is
         when sleep =>
           if dbg_req_o = '1' then
             dbg_ack_i_wires    := '1';
@@ -565,25 +524,17 @@ begin
           end if;
 
         when normal =>
-          -- in the 4 stage version we will have conditions on busy_WB 
-          -- in all states of the IE stage, and similarly in the comb process, just
-          -- like we did in the ID stage.
           if ie_instr_req = '0' or flush_cycle_count(harc_EXEC) /=0  then
-            nextstate_IE_wires := normal; -- does nothing and wait
+            nextstate_IE_wires := normal;
           elsif irq_pending(harc_EXEC)= '1' then
-            -- manage irq as an absolute branch to MTVEC, also defining mepc value properly in program counter unit
-            -- irq is served only if we are not in a delay slot for the interrupted harc
-            -- for simplicity presently only harc 0 is interrupted (decided in program counter unit)
-            -- the current valid instruction is discarded, only its pc value gets used for mepc
               nextstate_IE_wires         := normal;
               served_irq_wires(harc_EXEC) := '1';
               ie_taken_branch_wires     := '1';
-              if decoded_instruction_IE(WFI_bit_position) = '1' then -- Inform the CSR unit that the last instruction before we went to the subroutine was a WFI instruction.
+              if decoded_instruction_IE(WFI_bit_position) = '1' then
 				WFI_Instr_wires		 := '1';
 			  end if;
-          else                         -- process the instruction
+          else
  
-            -- EXECUTE OF INSTRUCTION ---------------------
  
             if decoded_instruction_IE(ADDI_bit_position) = '1' or decoded_instruction_IE(SLTI_bit_position) = '1'
               or decoded_instruction_IE(SLTIU_bit_position) = '1' or decoded_instruction_IE(ANDI_bit_position) = '1'
@@ -609,7 +560,7 @@ begin
               nextstate_IE_wires := normal;
             end if;
 
-            if decoded_instruction_IE(JAL_bit_position) = '1' then  -- JAL instruction
+            if decoded_instruction_IE(JAL_bit_position) = '1' then
               nextstate_IE_wires                   := normal;
               jump_instr_wires                     := '1';
               set_branch_condition_wires           := '1';
@@ -617,13 +568,13 @@ begin
               PC_offset_wires(harc_EXEC) := UJ_immediate(instr_word_IE);
             end if;
 
-            if decoded_instruction_IE(JALR_bit_position) = '1' then  --JALR instruction
+            if decoded_instruction_IE(JALR_bit_position) = '1' then
               nextstate_IE_wires         := normal;
               set_branch_condition_wires := '1';
               ie_taken_branch_wires      := '1';
               PC_offset_wires(harc_EXEC) := std_logic_vector(signed(RS1_Data_IE)
                                                                        + signed(I_immediate(instr_word_IE)))
-                                                      and X"FFFFFFFE";  -- bitwise and to set '0' the LSB
+                                                      and X"FFFFFFFE";
               jump_instr_wires    := '1';
               absolute_jump_wires := '1';
             end if;
@@ -707,7 +658,7 @@ begin
             end if;
 
             if decoded_instruction_IE(ECALL_bit_position) = '1' then
-              nextstate_IE_wires        := normal;  -- was except_wait_state;
+              nextstate_IE_wires        := normal;
               IE_except_condition_wires := '1';
               ie_taken_branch_wires     := '1';
             end if;
@@ -736,7 +687,7 @@ begin
               nextstate_IE_wires := normal;
             end if;
 
-            if decoded_instruction_IE(ILL_bit_position) = '1' then  -- ILLEGAL_INSTRUCTION
+            if decoded_instruction_IE(ILL_bit_position) = '1' then
               nextstate_IE_wires         := normal;
               IE_except_condition_wires := '1';
               ie_taken_branch_wires     := '1';
@@ -752,14 +703,13 @@ begin
               core_busy_IE_wires      := '1';
             end if;
 
-          -- EXECUTE OF INSTRUCTION (END)
-          end if;  -- instr_rvalid_IE values 
+          end if;
 
         when csr_instr_wait_state =>
           if csr_instr_done = '0' then
             nextstate_IE_wires := csr_instr_wait_state;
             core_busy_IE_wires      := '1';
-          elsif (csr_instr_done = '1' and csr_access_denied_o = '1') then  -- ILLEGAL_INSTRUCTION
+          elsif (csr_instr_done = '1' and csr_access_denied_o = '1') then
             nextstate_IE_wires         := normal;
             IE_except_condition_wires := '1';
             ie_taken_branch_wires     := '1';
@@ -767,8 +717,8 @@ begin
             nextstate_IE_wires := normal;
           end if;
 
-      end case;  -- fsm_IE state cases
-    end if;  -- refers to reset signal
+      end case;
+    end if;
 
     PC_offset                  <= PC_offset_wires;
     absolute_jump              <= absolute_jump_wires;
@@ -787,7 +737,7 @@ begin
     WFI_Instr		           <= WFI_Instr_wires;
   end process;
 
-  fsm_IE_state : process(clk_i, rst_ni) -- also implements the delay slot counters and some aux signals
+  fsm_IE_state : process(clk_i, rst_ni)
   begin
     
     if rst_ni = '0' then
@@ -812,10 +762,5 @@ begin
 
     end if;
   end process;
--------------------------------------------------------------------end of IE stage -----------------
-----------------------------------------------------------------------------------------------------
 
 end EXECUTE;
---------------------------------------------------------------------------------------------------
--- END of Processing-Pipeline architecture -------------------------------------------------------
---------------------------------------------------------------------------------------------------

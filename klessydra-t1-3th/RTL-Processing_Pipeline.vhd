@@ -1,15 +1,12 @@
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
--- pipeline  pinout --------------------
 entity Pipeline is
   port (
     pc_IF                      : in  std_logic_vector(31 downto 0);
@@ -26,7 +23,7 @@ entity Pipeline is
     WFI_Instr		           : out std_logic;
     reset_state                : out std_logic;
     misaligned_err             : out std_logic;
-    pc_IE                      : out std_logic_vector(31 downto 0);  -- pc_IE is pc entering stage IE
+    pc_IE                      : out std_logic_vector(31 downto 0);
     taken_branch               : out std_logic;
     set_branch_condition       : out std_logic;
     ie_except_condition        : out std_logic;
@@ -36,7 +33,7 @@ entity Pipeline is
     set_mret_condition         : out std_logic;
     set_wfi_condition          : out std_logic;
     csr_instr_req              : out std_logic;
-    instr_rvalid_IE            : out std_logic;  -- validity bit at IE input
+    instr_rvalid_IE            : out std_logic;
     csr_addr_i                 : out std_logic_vector (11 downto 0);
     csr_wdata_i                : out std_logic_vector (31 downto 0);
     csr_op_i                   : out std_logic_vector (2 downto 0);
@@ -58,16 +55,13 @@ entity Pipeline is
     data_addr_internal         : out std_logic_vector(31 downto 0);
     absolute_jump              : out std_logic;
     regfile                    : out regfile_replicated_array;
-    -- clock, reset active low, test enable
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic;
-    -- program memory interface
     instr_req_o                : out std_logic;
     instr_gnt_i                : in  std_logic;
     instr_rvalid_i             : in  std_logic;
     instr_addr_o               : out std_logic_vector(31 downto 0);
     instr_rdata_i              : in  std_logic_vector(31 downto 0);
-    -- data memory interface
     data_req_o                 : out std_logic;
     data_gnt_i                 : in  std_logic;
     data_rvalid_i              : in  std_logic;
@@ -77,18 +71,14 @@ entity Pipeline is
     data_wdata_o               : out std_logic_vector(31 downto 0);
     data_rdata_i               : in  std_logic_vector(31 downto 0);
     data_err_i                 : in  std_logic;
-    -- interrupt request interface
 	irq_i               	   : in  std_logic;
-    -- debug interface
     debug_halted_o             : out std_logic;
-    -- miscellanous control signals
     fetch_enable_i             : in  std_logic;
     core_busy_o                : out std_logic
     );
-end entity;  ------------------------------------------
+end entity;
 
 
--- Klessydra T03x (4 stages) pipeline implementation -----------------------
 architecture Pipe of Pipeline is
 
   signal instr_rvalid_state     : std_logic;
@@ -127,7 +117,6 @@ architecture Pipe of Pipeline is
   signal LS_except_condition_lat    : std_logic;
   signal DSP_except_condition_lat   : std_logic;
 
-  --ID_comnb stage signals
   signal pass_BEQ_ID   : std_logic;
   signal pass_BNE_ID   : std_logic;
   signal pass_BLT_ID   : std_logic;
@@ -139,33 +128,28 @@ architecture Pipe of Pipeline is
   signal pass_SLT_ID   : std_logic;
   signal pass_SLTU_ID  : std_logic;
 
-  -- program counters --
-  signal pc_WB     : std_logic_vector(31 downto 0);  -- pc_WB is pc entering stage WB
+  signal pc_WB     : std_logic_vector(31 downto 0);
   signal pc_ID     : std_logic_vector(31 downto 0);
-  signal pc_ID_lat : std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
+  signal pc_ID_lat : std_logic_vector(31 downto 0);
 
-  -- instruction register and instr. propagation registers --
-  signal instr_word_ID_lat       : std_logic_vector(31 downto 0);  -- latch needed for long-latency program memory
-  signal instr_rvalid_ID         : std_logic;  -- validity bit at ID input
+  signal instr_word_ID_lat       : std_logic_vector(31 downto 0);
+  signal instr_rvalid_ID         : std_logic;
   signal instr_word_LS_WB        : std_logic_vector(31 downto 0);
   signal instr_word_IE_WB        : std_logic_vector(31 downto 0);
-  signal instr_rvalid_WB         : std_logic;  -- idem
+  signal instr_rvalid_WB         : std_logic;
   signal decoded_instruction_DSP : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
   signal decoded_instruction_IE  : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
   signal decoded_instruction_LS  : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0);
 
-  --signal used by counters
   signal amo_load_skip : std_logic;
   signal amo_load      : std_logic;
   signal amo_store     : std_logic;
   signal sw_mip        : std_logic;
 
-  -- hardware context id at fetch, and propagated hardware context ids
   signal harc_ID_lat      : harc_range;
   signal harc_LS_WB       : harc_range;
   signal harc_IE_WB       : harc_range;
 
-  -- DSP Unit Signals
   signal ls_sc_data_write_wire  : std_logic_vector(Data_Width/4 -1 downto 0);
   signal ls_sc_data_read_wire   : std_logic_vector(Data_Width/4 -1 downto 0);
   signal dsp_sc_data_read_wire  :  array_2d(NUM_SCs -1 downto 0)(Data_Width -1 downto 0);
@@ -185,17 +169,16 @@ architecture Pipe of Pipeline is
   signal dsp_sci_req            : std_logic_vector(Num_SCs-1 downto 0);
   signal dsp_sci_we             : std_logic_vector(Num_SCs-1 downto 0);
 
-  -- instruction operands
-  signal S_Imm_IE           : std_logic_vector(11 downto 0);  -- unused
-  signal I_Imm_IE           : std_logic_vector(11 downto 0);  -- unused
-  signal SB_Imm_IE          : std_logic_vector(11 downto 0);  -- unused
-  signal CSR_ADDR_IE        : std_logic_vector(11 downto 0);  -- unused
-  signal RS1_Addr_IE        : std_logic_vector(4 downto 0);   -- unused
-  signal RS2_Addr_IE        : std_logic_vector(4 downto 0);   -- unused
-  signal RD_Addr_IE         : std_logic_vector(4 downto 0);   -- unused
+  signal S_Imm_IE           : std_logic_vector(11 downto 0);
+  signal I_Imm_IE           : std_logic_vector(11 downto 0);
+  signal SB_Imm_IE          : std_logic_vector(11 downto 0);
+  signal CSR_ADDR_IE        : std_logic_vector(11 downto 0);
+  signal RS1_Addr_IE        : std_logic_vector(4 downto 0);
+  signal RS2_Addr_IE        : std_logic_vector(4 downto 0);
+  signal RD_Addr_IE         : std_logic_vector(4 downto 0);
   signal RS1_Data_IE        : std_logic_vector(31 downto 0);
   signal RS2_Data_IE        : std_logic_vector(31 downto 0);
-  signal RD_Data_IE         : std_logic_vector(31 downto 0);  -- unused
+  signal RD_Data_IE         : std_logic_vector(31 downto 0);
 
 
   component IF_STAGE is
@@ -206,26 +189,22 @@ architecture Pipe of Pipeline is
 	busy_ID                    : in  std_logic;  
 	instr_rvalid_i             : in std_logic;
 	harc_ID                    : out harc_range;
-    pc_ID_lat                  : out std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
+    pc_ID_lat                  : out std_logic_vector(31 downto 0);
     instr_rvalid_ID            : out std_logic; 
 	instr_word_ID_lat          : out std_logic_vector(31 downto 0);
 	harc_ID_lat                : out harc_range;
-    -- clock, reset active low
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic;
-    -- program memory interface
     instr_req_o                : out std_logic;
     instr_gnt_i                : in  std_logic;
     instr_addr_o               : out std_logic_vector(31 downto 0);
     instr_rdata_i              : in  std_logic_vector(31 downto 0);
-    -- debug interface
     debug_halted_o             : out std_logic
     );
-  end component; --------------------------------------------------
+  end component;
 
   component ID_STAGE is
   port (
-	-- Branch Control Signals
     pass_BEQ_ID                : out std_logic;
     pass_BNE_ID                : out std_logic;
     pass_BLT_ID                : out std_logic;
@@ -247,21 +226,20 @@ architecture Pipe of Pipeline is
 	amo_load_skip              : out std_logic;
     instr_word_IE              : out std_logic_vector(31 downto 0);
 	harc_ID_lat                : in harc_range;
-    pc_ID_lat                  : in std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
+    pc_ID_lat                  : in std_logic_vector(31 downto 0);
 	core_busy_IE               : in std_logic;
 	core_busy_LS               : in std_logic;
 	busy_LS                    : in std_logic;
 	busy_DSP                   : in std_logic;
     busy_ID                    : out std_logic;
-    pc_IE                      : out std_logic_vector(31 downto 0);  -- pc_IE is pc entering stage IE ***
+    pc_IE                      : out std_logic_vector(31 downto 0);
     instr_rvalid_ID            : in  std_logic; 
-    instr_rvalid_IE            : out std_logic;  -- validity bit at IE input
+    instr_rvalid_IE            : out std_logic;
 	instr_word_ID_lat          : in std_logic_vector(31 downto 0); 
     sw_mip                     : out std_logic;
     harc_EXEC                  : out harc_range;
     data_addr_internal_IE      : out std_logic_vector(31 downto 0);
     regfile                    : in regfile_replicated_array;
-    -- clock, reset active low
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic
     );
@@ -269,21 +247,18 @@ architecture Pipe of Pipeline is
 
   component Load_Store_Unit is
   port (
-    -- clock, and reset active low
     clk_i, rst_ni              : in std_logic;
-    -- ID_Stage Signals
 	RS1_Data_IE                : in std_logic_vector(31 downto 0);
 	RS2_Data_IE                : in std_logic_vector(31 downto 0);
 	RD_Data_IE                 : in std_logic_vector(31 downto 0);
     instr_word_IE              : in std_logic_vector(31 downto 0);
 	pc_IE                      : in std_logic_vector(31 downto 0);
 	decoded_instruction_LS     : in std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0);
-	data_be_ID                 : in std_logic_vector(3 downto 0);  -- AAA Check if needed
+	data_be_ID                 : in std_logic_vector(3 downto 0);
 	harc_EXEC                  : in harc_range;
 	LS_instr_req               : in std_logic;
 	core_busy_LS               : out std_logic;
 	busy_LS                    : out std_logic;
-    -- Processing Pipeline Signals
     rs1_to_sc                  : in std_logic_vector(2 downto 0);
     rs2_to_sc                  : in std_logic_vector(2 downto 0);
     rd_to_sc                   : in std_logic_vector(2 downto 0);
@@ -295,9 +270,7 @@ architecture Pipe of Pipeline is
 	amo_load                   : in std_logic;
 	amo_load_skip              : in std_logic;
 	amo_store                  : out std_logic;
-    -- CSR Signals
 	misaligned_err             : out std_logic;
-	-- Scratchpad Interface Signals
 	sci_err                    : in std_logic;
     ls_data_gnt_i              : in std_logic_vector(Num_SCs-1 downto 0);
     ls_sc_data_read_wire       : in std_logic_vector(31 downto 0);
@@ -306,12 +279,10 @@ architecture Pipe of Pipeline is
     ls_sc_read_addr            : out std_logic_vector(Addr_Width -1 downto 0);
     ls_sc_write_addr           : out std_logic_vector(Addr_Width -1 downto 0);
     ls_sc_data_write_wire      : out std_logic_vector(31 downto 0);
-	-- WB_Stage Signals
 	LS_WB_EN                   : out std_logic;
 	harc_LS_WB                 : out harc_range;
 	instr_word_LS_WB           : out std_logic_vector(31 downto 0);
 	LS_WB                      : out std_logic_vector(31 downto 0);
-    -- Data memory interface
     data_req_o                 : out std_logic;
     data_gnt_i                 : in  std_logic;
     data_rvalid_i              : in  std_logic;
@@ -322,11 +293,10 @@ architecture Pipe of Pipeline is
     data_rdata_i               : in  std_logic_vector(31 downto 0);
     data_err_i                 : in  std_logic
 	);
-  end component;  ------------------------------------------  
+  end component;
 
   component IE_STAGE is
   port (
-	   -- clock, and reset active low
     clk_i, rst_ni          : in std_logic;
     irq_i                  : in std_logic;
 	pc_ID_lat              : in std_logic_vector(31 downto 0);
@@ -353,7 +323,7 @@ architecture Pipe of Pipeline is
 	dsp_taken_branch       : in std_logic;
 	harc_DSP               : in harc_range;
 	harc_EXEC              : in harc_range;
-    instr_rvalid_IE        : in std_logic;  -- validity bit at IE input
+    instr_rvalid_IE        : in std_logic;
 	decoded_instruction_IE : in std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
     csr_addr_i             : out std_logic_vector (11 downto 0);
     ie_except_data         : out std_logic_vector (31 downto 0);
@@ -387,25 +357,20 @@ architecture Pipe of Pipeline is
 	harc_IE_WB             : out harc_range;
 	pc_WB                  : out std_logic_vector(31 downto 0)
 	   );
-  end component;  ------------------------------------------
+  end component;
 
   component DSP_Unit is
   port (
-	-- Core Signals
     clk_i, rst_ni              : in std_logic;
-    -- Processing Pipeline Signals
     rs1_to_sc                  : in  std_logic_vector(2 downto 0);
     rs2_to_sc                  : in  std_logic_vector(2 downto 0);
     rd_to_sc                   : in  std_logic_vector(2 downto 0);
-	-- CSR Signals
     MVSIZE                     : in  replicated_32b_reg;
     dsp_except_data            : out std_logic_vector(31 downto 0);
-	-- Program Counter Signals
 	pc_DSP_except_value        : out replicated_32b_reg;
 	dsp_taken_branch           : out std_logic;
 	dsp_except_condition       : out std_logic;
     harc_DSP                   : out harc_range;
-    -- ID_Stage Signals
 	decoded_instruction_DSP    : in  std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
 	harc_EXEC                  : in  harc_range;
 	pc_IE                      : in  std_logic_vector(31 downto 0);
@@ -415,7 +380,6 @@ architecture Pipe of Pipeline is
     dsp_instr_req              : in  std_logic;
     dsp_instr_done             : out std_logic;
     busy_dsp                   : out std_logic;
-	-- Scratchpad Interface Signals
     dsp_data_gnt_i             : in  std_logic_vector(Num_SCs-1 downto 0);
 	dsp_sc_data_read_wire      : in  array_2d(NUM_SCs -1 downto 0)(Data_Width -1 downto 0);
     dsp_sc_read_addr           : out std_logic_vector(Addr_Width -1 downto 0);
@@ -426,7 +390,7 @@ architecture Pipe of Pipeline is
     dsp_parallel_read          : out std_logic_vector(1 downto 0);
     dsp_parallel_write         : out std_logic_vector(1 downto 0)
 	);
-  end component;  ------------------------------------------
+  end component;
 
   component Scratchpad_memory_interface is
   port (
@@ -450,11 +414,10 @@ architecture Pipe of Pipeline is
     ls_data_gnt_i              : out std_logic_vector(Num_SCs-1 downto 0);
     sci_err                    : out std_logic
 	);
-  end component;  ------------------------------------------
+  end component;
 	  
   component WB_STAGE is
   port (
-	   -- clock, and reset active low
    clk_i, rst_ni              : in std_logic;
    LS_WB_EN                   : in std_logic;
    IE_WB_EN                   : in std_logic;
@@ -467,13 +430,10 @@ architecture Pipe of Pipeline is
    harc_IE_WB                 : in harc_range;
    regfile                    : out regfile_replicated_array
        );
-  end component; -------------------------------  
+  end component;
 	  
---------------------------------------------------------------------------------------------------
------------------------ ARCHITECTURE BEGIN -------------------------------------------------------
 begin
 
-  -- check for microarchitecture configuration limit, up to 16 thread support.
   assert THREAD_POOL_SIZE < 2**THREAD_ID_SIZE
     report "threading configuration not supported"
   severity error;
@@ -494,7 +454,6 @@ begin
                 else dsp_except_data when DSP_except_condition_lat = '1'
                 else ie_to_csr when csr_wdata_en = '1';
 
-  --Decode what scratchpads operands rs1, rs2 and, rd refer to
   rs1_to_sc <= "000" when RS1_DATA_IE(31 downto 9) >= x"00109" & "000" and RS1_DATA_IE(31 downto 9) < x"00109" & "001"
           else "001" when RS1_DATA_IE(31 downto 9) >= x"00109" & "001" and RS1_DATA_IE(31 downto 9) < x"00109" & "010"
           else "010" when RS1_DATA_IE(31 downto 9) >= x"00109" & "010" and RS1_DATA_IE(31 downto 9) < x"00109" & "011"
@@ -513,7 +472,7 @@ begin
 		  else "011" when RD_DATA_IE(31 downto 9)  >= x"00109" & "011" and RD_DATA_IE(31 downto 9)  < x"00109" & "100"
 		  else "100";
 			  
-  fsm_IE_state : process(clk_i, rst_ni) -- also implements the delay slot counters and some aux signals
+  fsm_IE_state : process(clk_i, rst_ni)
   begin
     
     if rst_ni = '0' then
@@ -527,16 +486,9 @@ begin
     end if;
   end process;
 	  
-------------------------------------------------------------------------------------------------------------------------------------
--- Core_busy_o
-------------------------------------------------------------------------------------------------------------------------------------
 
   core_busy_o <= '1' when (instr_rvalid_i or instr_rvalid_ID or instr_rvalid_IE or instr_rvalid_WB) = '1' and rst_ni = '1' else '0';
-------------------------------------------------------------------------------------------------------------------------------------
 
-------------------------------------------------------------------------------------------------------------------------------------
--- Mapping of the pipeline stages
-------------------------------------------------------------------------------------------------------------------------------------
 
 
   FETCH : IF_STAGE
@@ -789,6 +741,3 @@ begin
   );
   
 end Pipe;
---------------------------------------------------------------------------------------------------
--- END of Processing-Pipeline architecture -------------------------------------------------------
---------------------------------------------------------------------------------------------------

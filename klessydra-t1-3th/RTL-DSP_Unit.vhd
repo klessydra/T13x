@@ -1,32 +1,24 @@
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
--- DSP  pinout --------------------
 entity DSP_Unit is
   port (
-	-- Core Signals
     clk_i, rst_ni              : in std_logic;
-    -- Processing Pipeline Signals
     rs1_to_sc                  : in  std_logic_vector(2 downto 0);
     rs2_to_sc                  : in  std_logic_vector(2 downto 0);
     rd_to_sc                   : in  std_logic_vector(2 downto 0);
-	-- CSR Signals
     MVSIZE                     : in  replicated_32b_reg;
     dsp_except_data            : out std_logic_vector(31 downto 0);
-	-- Program Counter Signals
 	pc_DSP_except_value        : out replicated_32b_reg;
 	dsp_taken_branch           : out std_logic;
 	dsp_except_condition       : out std_logic;
     harc_DSP                   : out harc_range;
-    -- ID_Stage Signals
 	decoded_instruction_DSP    : in  std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
 	harc_EXEC                  : in  harc_range;
 	pc_IE                      : in  std_logic_vector(31 downto 0);
@@ -36,7 +28,6 @@ entity DSP_Unit is
     dsp_instr_req              : in  std_logic;
     dsp_instr_done             : out std_logic;
     busy_dsp                   : out std_logic;
-	-- Scratchpad Interface Signals
     dsp_data_gnt_i             : in  std_logic_vector(Num_SCs-1 downto 0);
 	dsp_sc_data_read_wire      : in  array_2d(NUM_SCs -1 downto 0)(Data_Width -1 downto 0);
     dsp_sc_read_addr           : out std_logic_vector(Addr_Width -1 downto 0);
@@ -47,7 +38,7 @@ entity DSP_Unit is
     dsp_parallel_read          : out std_logic_vector(1 downto 0);
     dsp_parallel_write         : out std_logic_vector(1 downto 0)
 	);
-end entity;  ------------------------------------------
+end entity;
 
 
 architecture DSP of DSP_Unit is
@@ -75,22 +66,19 @@ architecture DSP of DSP_Unit is
   signal RS1_Data_IE_lat                : std_logic_vector(31 downto 0);
   signal RS2_Data_IE_lat                : std_logic_vector(31 downto 0);
   signal RD_Data_IE_lat                 : std_logic_vector(31 downto 0);
-  signal MVSIZE_READ                    : std_logic_vector(8 downto 0);  -- Bytes left to read
-  signal MVSIZE_WRITE                   : std_logic_vector(8 downto 0);  -- Bytes left to write
+  signal MVSIZE_READ                    : std_logic_vector(8 downto 0);
+  signal MVSIZE_WRITE                   : std_logic_vector(8 downto 0);
   signal busy_dsp_internal              : std_logic;
   signal busy_DSP_internal_lat          : std_logic;
   signal DOTP_CYCLE                     : std_logic;
-  --signal sc_addr_carry                : std_logic;
 
---------------------------------------------------------------------------------------------------
--------------------------------- DSP BEGIN -------------------------------------------------------
 begin
 	
   busy_dsp           <= busy_dsp_internal;
   dsp_parallel_read  <= dsp_parallel_read_internal;
   dsp_parallel_write <= dsp_parallel_write_internal;
 
-  DSP_Exec_Unit : process(clk_i, rst_ni)  -- single cycle unit, fully synchronous 
+  DSP_Exec_Unit : process(clk_i, rst_ni)
 
   begin
     if rst_ni = '0' then
@@ -102,7 +90,6 @@ begin
 	  MVSIZE_READ     <= (others =>'0');
 	  MVSIZE_WRITE    <= (others =>'0');
 	  MULT_ACCUM      <= (others =>'0');
-      -- sc_addr_carry <= '0'; -- AAA remember to implement later
       dsp_except_data <= (others =>'0');
       RS1_Data_IE_lat <= (others =>'0');
       RS2_Data_IE_lat <= (others =>'0');
@@ -121,7 +108,6 @@ begin
 		  when dsp_init =>
 			
 	        if decoded_instruction_DSP(KADDV_bit_position) = '1' or decoded_instruction_DSP(KDOTP_bit_position) = '1' then
-		      -- We latch the old values because they get updated with parallel execution ---
               MVSIZE_READ <= MVSIZE(harc_EXEC)(8 downto 0);
               MVSIZE_WRITE <= MVSIZE(harc_EXEC)(8 downto 0);
               dsp_rs1_to_sc <= rs1_to_sc;
@@ -132,18 +118,16 @@ begin
               RD_Data_IE_lat <= RD_Data_IE;
               pc_DSP <= pc_IE;
               EN_NXT_STAGE <= '0';
-                -------------------------------------------------------------------------------
             end if;
 	
 		  when dsp_exec =>
 			
 	        if decoded_instruction_DSP(KADDV_bit_position) = '1' or decoded_instruction_DSP(KDOTP_bit_position) = '1' then
-              -- Increment the address, and decrement the remaining bytes
 			
               if MVSIZE_READ >= '0' & "00" then
                 if to_integer(unsigned(MVSIZE_READ)) mod 4 /= 0 then
                     pc_DSP_except_value(harc_DSP) <= pc_DSP;
-                    dsp_except_data              <= ILLEGAL_BYTE_TRANSFER_EXCEPT_CODE;  -- DSP instructions work only with on 32-bit values
+                    dsp_except_data              <= ILLEGAL_BYTE_TRANSFER_EXCEPT_CODE;
 			    elsif dsp_rs1_to_sc = "100" or dsp_rs2_to_sc = "100" or dsp_rd_to_sc = "100" then
                     pc_DSP_except_value(harc_DSP) <= pc_DSP;
                     dsp_except_data              <= ILLEGAL_ADDRESS_EXCEPT_CODE;
@@ -154,15 +138,15 @@ begin
                     pc_DSP_except_value(harc_DSP) <= pc_IE;
                     dsp_except_data              <= ILLEGAL_ADDRESS_EXCEPT_CODE;
 				else
-			      RS1_Data_IE_lat <= std_logic_vector(unsigned(RS1_Data_IE_lat) + "1"); -- source 1 address increment
-			      RS2_Data_IE_lat <= std_logic_vector(unsigned(RS2_Data_IE_lat) + "1"); -- source 2 address increment
+			      RS1_Data_IE_lat <= std_logic_vector(unsigned(RS1_Data_IE_lat) + "1");
+			      RS2_Data_IE_lat <= std_logic_vector(unsigned(RS2_Data_IE_lat) + "1");
                   if dsp_data_gnt_i(to_integer(unsigned(dsp_rs1_to_sc))) = '1' and dsp_data_gnt_i(to_integer(unsigned(dsp_rs2_to_sc))) = '1' then
 				    MVSIZE_WRITE <= MVSIZE_READ;
 				    if std_logic_vector(unsigned(RD_Data_IE_lat)  + "1") > x"1FF" then
                         pc_DSP_except_value(harc_DSP) <= pc_IE;
                         dsp_except_data              <= SCRATCHPAD_OVERFLOW_EXCEPT_CODE;
                     else
-			        RD_Data_IE_lat  <= std_logic_vector(unsigned(RD_Data_IE_lat)  + "1"); -- destination address increment
+			        RD_Data_IE_lat  <= std_logic_vector(unsigned(RD_Data_IE_lat)  + "1");
 				    end if;
 				  end if;
 			    end if;
@@ -170,23 +154,23 @@ begin
 
               if dsp_except_condition = '0' then
                 if MVSIZE_READ >= '0' & x"10" then
-  	              MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "10000");         -- decrement 16 bytes
+  	              MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "10000");
                   ADD_MASK <= ONE_MASK(127 downto 0);
                   MULT_ACCUM_MASK <= ONE_MASK;
 		        elsif MVSIZE_READ = '0' & x"0c" then
-                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "1100");          -- decrement 12 bytes
+                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "1100");
                   ADD_MASK(95 downto 0) <= ONE_MASK(95 downto 0);
                   ADD_MASK(127 downto 96) <= ZERO_MASK(127 downto 96);
                   MULT_ACCUM_MASK(191 downto 0) <= ONE_MASK(191 downto 0);
                   MULT_ACCUM_MASK(255 downto 192) <= ZERO_MASK(255 downto 192);
 		        elsif MVSIZE_READ = '0' & x"08" then
-                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "1000");          -- decrement 8 bytes
+                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "1000");
                   ADD_MASK(63 downto 0) <= ONE_MASK(63 downto 0);
                   ADD_MASK(127 downto 64) <= ZERO_MASK(127 downto 64);
                   MULT_ACCUM_MASK(127 downto 0) <= ONE_MASK(127 downto 0);
                   MULT_ACCUM_MASK(255 downto 128) <= ZERO_MASK(255 downto 128);
 		        elsif MVSIZE_READ = '0' & x"04" then
-                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "100");           -- decrement 4 bytes
+                  MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - "100");
                   ADD_MASK(31 downto 0) <= ONE_MASK(31 downto 0);
                   ADD_MASK(127 downto 32) <= ZERO_MASK(127 downto 32);
                   MULT_ACCUM_MASK(63 downto 0) <= ONE_MASK(63 downto 0);
@@ -260,19 +244,19 @@ begin
                   dsp_except_condition_wires := '1';
                   dsp_taken_branch_wires     := '1';    
                   nextstate_DSP <= dsp_init;
-			  elsif dsp_rs1_to_sc = "100" or dsp_rs2_to_sc = "100" or dsp_rd_to_sc = "100" then  -- Error for non scratchpad address
+			  elsif dsp_rs1_to_sc = "100" or dsp_rs2_to_sc = "100" or dsp_rd_to_sc = "100" then
  		          busy_DSP_internal_wires    := '0';
                   dsp_except_condition_wires := '1';
                   dsp_taken_branch_wires     := '1';    
                   nextstate_DSP <= dsp_init;
-              elsif dsp_rs1_to_sc = dsp_rs2_to_sc then  -- Error for same read access
+              elsif dsp_rs1_to_sc = dsp_rs2_to_sc then
  		          busy_DSP_internal_wires    := '0';
                   dsp_except_condition_wires := '1';
                   dsp_taken_branch_wires     := '1';    
                   nextstate_DSP <= dsp_init;			  
               elsif std_logic_vector(unsigned(RD_Data_IE_lat)   + unsigned(MVSIZE_READ)) > x"1FF" or 
 				    std_logic_vector(unsigned(RS1_Data_IE_lat)  + unsigned(MVSIZE_READ)) > x"1FF" or 
-				    std_logic_vector(unsigned(RS2_Data_IE_lat)  + unsigned(MVSIZE_WRITE)) > x"1FF" then  -- Error if reading or writing is requested from addresses outisde the scratchpad memeory region
+				    std_logic_vector(unsigned(RS2_Data_IE_lat)  + unsigned(MVSIZE_WRITE)) > x"1FF" then
  		          busy_DSP_internal_wires    := '0';
                   dsp_except_condition_wires := '1';
                   dsp_taken_branch_wires     := '1';    
@@ -366,7 +350,7 @@ begin
 		  
   end process;
   
-  fsm_DSP_state : process(clk_i, rst_ni) -- also implements the delay slot counters and some aux signals
+  fsm_DSP_state : process(clk_i, rst_ni)
   begin
     if rst_ni = '0' then
       state_DSP <= dsp_init;
@@ -404,6 +388,3 @@ begin
     end if;
   end process;
 end DSP;
---------------------------------------------------------------------------------------------------
--- END of DSP architecture -----------------------------------------------------------------------
---------------------------------------------------------------------------------------------------

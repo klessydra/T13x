@@ -1,22 +1,17 @@
--- ieee packages
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages
 use work.thread_parameters_klessydra.all;
 
 package riscv_klessydra is
 
-  -- instruction trace file
   file file_handler : text open write_mode is "execution_trace.txt";
 
-  -- riscv 32x32bit register file for single thread cores
   type regfile_behavioral_array is array (31 downto 0) of std_logic_vector(31 downto 0);
 
-  -- scratchpad replicated arrays
   type array_2d is array (integer range<>) of std_logic_vector;
   type array_3d is array(integer range<>) of array_2d;
   type sc_repl_128b_reg is array(2 downto 0) of std_logic_vector(127 downto 0);
@@ -28,19 +23,16 @@ package riscv_klessydra is
   constant Addr_Width : integer := 9;
   constant Data_Width : integer := 128;
 						 
-  -- array type for replicas of hardware context of each thread. 
   type replicated_32b_reg is array (harc_range) of std_logic_vector(31 downto 0);
   type replicated_bit is array (harc_range) of std_logic;
   type replicated_positive_integer is array (harc_range) of natural;
 
-  -- riscv 32x32bit register file for multi-threaded cores
   type regfile_replicated_array is array (harc_range) of regfile_behavioral_array;
 
-  constant EXEC_UNIT_INSTR_SET_SIZE : natural := 44;  -- total number of instructions in the exec unit
-  constant LS_UNIT_INSTR_SET_SIZE   : natural := 11;  -- total number of instructions in the ld-str unit
-  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 2;   -- total number of instructions in the dsp unit
+  constant EXEC_UNIT_INSTR_SET_SIZE : natural := 44;
+  constant LS_UNIT_INSTR_SET_SIZE   : natural := 11;
+  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 2;
 
-  -- EXEC UNIT INSTR SET ------------------------------------------------------------------------------------------------------------
   constant ADDI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000000000000000000000000000000001";
   constant SLTI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000000000000000000000000000000010";
   constant SLTIU_pattern   : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000000000000000000000000000000100";
@@ -85,9 +77,7 @@ package riscv_klessydra is
   constant SW_MIP_pattern  : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00100000000000000000000000000000000000000000";
   constant ILL_pattern     : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "01000000000000000000000000000000000000000000";
   constant NOP_pattern     : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "10000000000000000000000000000000000000000000";
-  -----------------------------------------------------------------------------------------------------------------------------------
 
-  -- LOAD STORE UNIT INSTR SET ------------------------------------------------------------------
   constant LW_pattern      : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000001";
   constant LH_pattern      : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000010";
   constant LHU_pattern     : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000100";
@@ -99,12 +89,9 @@ package riscv_klessydra is
   constant AMOSWAP_pattern : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "00100000000";
   constant KMEMLD_pattern  : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "01000000000";
   constant KMEMSTR_pattern : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "10000000000";
-  -----------------------------------------------------------------------------------------------
 
-  -- DSP UNIT INSTR SET-------------------------------------------------------------------		
   constant KADDV_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "01";
   constant KDOTP_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "10";
-  ----------------------------------------------------------------------------------------
 
   constant ADDI_bit_position    : natural := 0;
   constant SLTI_bit_position    : natural := 1;
@@ -167,26 +154,21 @@ package riscv_klessydra is
   constant KADDV_bit_position   : natural := 0;
   constant KDOTP_bit_position   : natural := 1;
 
-  --constant cluster_id_i         : std_logic_vector(5 downto 0) := "001011";
-  -- CSRs addresses
   constant MSTATUS_addr : std_logic_vector (11 downto 0) := "001100000000";
   constant MEPC_addr    : std_logic_vector (11 downto 0) := "001101000001";
   constant MCAUSE_addr  : std_logic_vector (11 downto 0) := "001101000010";
-  constant PCCRs_addr   : std_logic_vector (11 downto 0) := "000000000000";  -- still not implem.
-  constant PCMR_addr    : std_logic_vector (11 downto 0) := "011110100001";  -- still not implem.
+  constant PCCRs_addr   : std_logic_vector (11 downto 0) := "000000000000";
+  constant PCMR_addr    : std_logic_vector (11 downto 0) := "011110100001";
   constant MTVEC_addr   : std_logic_vector (11 downto 0) := x"305";
   constant MIP_addr     : std_logic_vector (11 downto 0) := x"344";
 
-  --constant PCCRs_addr    : std_logic_vector (11 downto 0) := "000000000000";  
   constant PCER_addr          : std_logic_vector (11 downto 0) := "011110100000";
-  --constant PCMR_addr     : std_logic_vector (11 downto 0) := "011110100001";  -- still not implem.
   constant MESTATUS_addr      : std_logic_vector (11 downto 0) := "011110111000";
   constant MCPUID_addr        : std_logic_vector (11 downto 0) := "111100000000";
   constant MIMPID_addr        : std_logic_vector (11 downto 0) := "111100000001";
   constant MHARTID_addr       : std_logic_vector (11 downto 0) := "111100010000";
   constant BADADDR_addr       : std_logic_vector (11 downto 0) := "001101000011";
   constant MIRQ_addr          : std_logic_vector (11 downto 0) := "111111000000";
-  --performance counters CSR
   constant MCYCLE_addr        : std_logic_vector (11 downto 0) := x"B00";
   constant MINSTRET_addr      : std_logic_vector (11 downto 0) := x"B02";
   constant MHPMCOUNTER3_addr  : std_logic_vector (11 downto 0) := x"B03";
@@ -249,9 +231,8 @@ package riscv_klessydra is
   constant MHPMEVENT29_addr   : std_logic_vector (11 downto 0) := x"33D";
   constant MHPMEVENT30_addr   : std_logic_vector (11 downto 0) := x"33E";
   constant MHPMEVENT31_addr   : std_logic_vector (11 downto 0) := x"33F";
-  constant MVSIZE_addr        : std_logic_vector (11 downto 0) := x"FF0"; -- CCC
+  constant MVSIZE_addr        : std_logic_vector (11 downto 0) := x"FF0";
 
-  -- opcodes
   constant OP_IMM   : std_logic_vector(6 downto 0) := "0010011";
   constant LUI      : std_logic_vector(6 downto 0) := "0110111";
   constant AUIPC    : std_logic_vector(6 downto 0) := "0010111";
@@ -267,7 +248,6 @@ package riscv_klessydra is
   constant KMEM     : std_logic_vector(6 downto 0) := "0001011";
   constant KDSP     : std_logic_vector(6 downto 0) := "0101011";
 
-  -- funct3 bits of OP_IMM opcode
   constant ADDI      : std_logic_vector(2 downto 0) := "000";
   constant SLTI      : std_logic_vector(2 downto 0) := "010";
   constant SLTIU     : std_logic_vector(2 downto 0) := "011";
@@ -277,7 +257,6 @@ package riscv_klessydra is
   constant SLLI      : std_logic_vector(2 downto 0) := "001";
   constant SRLI_SRAI : std_logic_vector(2 downto 0) := "101";
 
-  -- funct3 bits of OP opcode -- chiedere conferma su xorr-orr-andd ecc ecc
   constant ADD_SUB   : std_logic_vector(2 downto 0) := "000";
   constant SLT       : std_logic_vector(2 downto 0) := "010";
   constant SLTU      : std_logic_vector(2 downto 0) := "011";
@@ -287,7 +266,6 @@ package riscv_klessydra is
   constant SLLL      : std_logic_vector(2 downto 0) := "001";
   constant SRLL_SRAA : std_logic_vector(2 downto 0) := "101";
 
-  -- funct3 bits of BRANCH opcode
   constant BEQ  : std_logic_vector(2 downto 0) := "000";
   constant BNE  : std_logic_vector(2 downto 0) := "001";
   constant BLT  : std_logic_vector(2 downto 0) := "100";
@@ -295,31 +273,22 @@ package riscv_klessydra is
   constant BLTU : std_logic_vector(2 downto 0) := "110";
   constant BGEU : std_logic_vector(2 downto 0) := "111";
 
-  -- funct3 bits of LOAD opcode
   constant LW  : std_logic_vector(2 downto 0) := "010";
   constant LH  : std_logic_vector(2 downto 0) := "001";
   constant LHU : std_logic_vector(2 downto 0) := "101";
   constant LB  : std_logic_vector(2 downto 0) := "000";
   constant LBU : std_logic_vector(2 downto 0) := "100";
 
-  -- funct3 bits of STORE opcode
   constant SW : std_logic_vector(2 downto 0) := "010";
   constant SH : std_logic_vector(2 downto 0) := "001";
   constant SB : std_logic_vector(2 downto 0) := "000";
 
-  -- funct3 bits of MISC_MEM opcode
   constant FENCE  : std_logic_vector(2 downto 0) := "000";
   constant FENCEI : std_logic_vector(2 downto 0) := "001";
 
-  -- funct3 bits of AMO opcode
   constant SINGLE : std_logic_vector(2 downto 0) := "010";
 
---  -- funct3 birs of KLESS opcode
---  constant KMEM   : std_logic_vector(2 downto 0) := "000";
---  constant KREG   : std_logic_vector(2 downto 0) := "001";
 
-  -- instructions to access CSRs
-  -- funct3 bits of SYSTEM opcode:
   constant PRIV   : std_logic_vector(2 downto 0) := "000";
   constant CSRRW  : std_logic_vector(2 downto 0) := "001";
   constant CSRRS  : std_logic_vector(2 downto 0) := "010";
@@ -328,7 +297,6 @@ package riscv_klessydra is
   constant CSRRSI : std_logic_vector(2 downto 0) := "110";
   constant CSRRCI : std_logic_vector(2 downto 0) := "111";
 
-  --funct5 bits of AMO opcode
   constant LRW     : std_logic_vector(4 downto 0) := "00010";
   constant SCW     : std_logic_vector(4 downto 0) := "00011";
   constant AMOSWAP : std_logic_vector(4 downto 0) := "00001";
@@ -341,7 +309,6 @@ package riscv_klessydra is
   constant AMOMINU : std_logic_vector(4 downto 0) := "11000";
   constant AMOMAXU : std_logic_vector(4 downto 0) := "11100";
 
-  -- funct7 bits
   constant SRLI7 : std_logic_vector(6 downto 0) := "0000000";
   constant SRAI7 : std_logic_vector(6 downto 0) := "0100000";
   constant ADD7  : std_logic_vector(6 downto 0) := "0000000";
@@ -349,22 +316,17 @@ package riscv_klessydra is
   constant SRLL7 : std_logic_vector(6 downto 0) := "0000000";
   constant SRAA7 : std_logic_vector(6 downto 0) := "0100000";
 
-  --funct7 bits for KMEM Instr
   constant KMEMLD  : std_logic_vector(6 downto 0) := "0000000";
   constant KMEMSTR : std_logic_vector(6 downto 0) := "0000001";
 
-  --funct7 bits for KREG Instr
   constant KADDV : std_logic_vector(6 downto 0) := "0000001";
   constant KDOTP : std_logic_vector(6 downto 0) := "0000010";
 
-  -- instr. to change privilege level & interrupt-management instruction
-  -- funct12 bits for instructions SYSTEM -> PRIV:
   constant ECALL  : std_logic_vector(11 downto 0) := "000000000000";
   constant EBREAK : std_logic_vector(11 downto 0) := "000000000001";
   constant MRET   : std_logic_vector(11 downto 0) := "001100000010";
   constant WFI    : std_logic_vector(11 downto 0) := "000100000101";
 
-  -- csr bits for instructions SYSTEM -> CSRRS
   constant RDCYCLE    : std_logic_vector(11 downto 0) := "110000000000";
   constant RDCYCLEH   : std_logic_vector(11 downto 0) := "110010000000";
   constant RDTIME     : std_logic_vector(11 downto 0) := "110000000001";
@@ -372,31 +334,28 @@ package riscv_klessydra is
   constant RDINSTRET  : std_logic_vector(11 downto 0) := "110000000010";
   constant RDINSTRETH : std_logic_vector(11 downto 0) := "110010000010";
 
-  -- exception codes (riscv mcause register priv isa 1.10)
   constant ILLEGAL_INSN_EXCEPT_CODE          : std_logic_vector(31 downto 0) := x"00000002";
   constant LOAD_ERROR_EXCEPT_CODE            : std_logic_vector(31 downto 0) := x"00000005";
   constant STORE_ERROR_EXCEPT_CODE           : std_logic_vector(31 downto 0) := x"00000007";
   constant ECALL_EXCEPT_CODE                 : std_logic_vector(31 downto 0) := x"0000000B";
   constant LOAD_MISALIGNED_EXCEPT_CODE       : std_logic_vector(31 downto 0) := x"00000004";
   constant STORE_MISALIGNED_EXCEPT_CODE      : std_logic_vector(31 downto 0) := x"00000006";
-  constant ILLEGAL_OPERAND_EXCEPT_CODE       : std_logic_vector(31 downto 0) := x"00000100"; -- CCC
-  constant ILLEGAL_BYTE_TRANSFER_EXCEPT_CODE : std_logic_vector(31 downto 0) := x"00000101"; -- CCC
-  constant ILLEGAL_ADDRESS_EXCEPT_CODE       : std_logic_vector(31 downto 0) := x"00000102"; -- CCC
-  constant SCRATCHPAD_OVERFLOW_EXCEPT_CODE   : std_logic_vector(31 downto 0) := x"00000103"; -- CCC
-  constant READ_SAME_SCARTCHPAD_EXCEPT_CODE  : std_logic_vector(31 downto 0) := x"00000104"; -- CCC
-  constant WRITE_ACCESS_EXCEPT_CODE          : std_logic_vector(31 downto 0) := x"00000105"; -- CCC
+  constant ILLEGAL_OPERAND_EXCEPT_CODE       : std_logic_vector(31 downto 0) := x"00000100";
+  constant ILLEGAL_BYTE_TRANSFER_EXCEPT_CODE : std_logic_vector(31 downto 0) := x"00000101";
+  constant ILLEGAL_ADDRESS_EXCEPT_CODE       : std_logic_vector(31 downto 0) := x"00000102";
+  constant SCRATCHPAD_OVERFLOW_EXCEPT_CODE   : std_logic_vector(31 downto 0) := x"00000103";
+  constant READ_SAME_SCARTCHPAD_EXCEPT_CODE  : std_logic_vector(31 downto 0) := x"00000104";
+  constant WRITE_ACCESS_EXCEPT_CODE          : std_logic_vector(31 downto 0) := x"00000105";
 
-  -- reset values 
   constant MTVEC_RESET_VALUE    : replicated_32b_reg            := (others => x"00000094");
   constant PCER_RESET_VALUE     : replicated_32b_reg            := (others => x"00000000");
   constant MSTATUS_RESET_VALUE  : std_logic_vector(31 downto 0) := x"00001800";
   constant MESTATUS_RESET_VALUE : std_logic_vector(31 downto 0) := x"00001800";
-  constant MEPC_RESET_VALUE     : std_logic_vector(31 downto 0) := x"00000000";  -- label to decode the kind of misaligned access
+  constant MEPC_RESET_VALUE     : std_logic_vector(31 downto 0) := x"00000000";
   constant MCAUSE_RESET_VALUE   : std_logic_vector(31 downto 0) := x"00000000";
   constant MIP_RESET_VALUE      : std_logic_vector(31 downto 0) := x"00000000";
   constant MVSIZE_RESET_VALUE   : std_logic_vector(31 downto 0) := x"00000004";
 
-  -- functions
   function aq(signal instr : in std_logic_vector(31 downto 0)) return std_logic;
   function rl(signal instr : in std_logic_vector(31 downto 0)) return std_logic;
 

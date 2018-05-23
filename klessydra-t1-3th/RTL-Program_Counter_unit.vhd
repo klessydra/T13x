@@ -1,15 +1,9 @@
------------------- PC Managing Unit(s) -----------------------------------------------------------
---------------------------------------------------------------------------------------------------
-
-
--- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
@@ -61,15 +55,8 @@ end entity;
 
 
 
-----------------------------------------------------------------------------------------------------
--- Program Counter Managing Units -- synchronous process, one cycle
--- Note: in the present version, gives priority to branching over trapping, 
--- i.e. branch instructions are not interruptible. This can be changed but may be unsafe.
--- Implements as many hw units as the max number of threads supported
-----------------------------------------------------------------------------------------------------
 architecture PC of Program_counter is
 
-  -- pc updater signals
   signal served_except_condition_lat     : std_logic;
   signal pc_update_enable                : replicated_bit;
   signal wfi_condition_pending           : replicated_bit;
@@ -96,9 +83,6 @@ architecture PC of Program_counter is
   signal except_condition_pending_internal : replicated_bit;
   signal irq_pending_internal              : replicated_bit;
 
-  ---------------------------------------------------------------------------------------------------
-  -- Subroutine implementing pc updating combinat. logic, to be replicated for max threads supported
-  ---------------------------------------------------------------------------------------------------
   procedure pc_update(
     signal MTVEC                     : in    std_logic_vector(31 downto 0);
     signal instr_gnt_i, taken_branch : in    std_logic;
@@ -118,25 +102,20 @@ architecture PC of Program_counter is
   begin
     if pc_update_enable = '1' then
 
-      -- interrupt service launched in the previous instr. cycle
-      -- this is done for a second instr. cycle for proper synchronization of flushing
-      -- nothing pending    
       if not taken_branch = '1' and not taken_branch_pending = '1'
       then
         pc                      <= incremented_pc;
         served_except_condition <= '0';
         served_mret_condition   <= '0';
-      -- taken_branch pending 
       elsif taken_branch = '1' or taken_branch_pending = '1' then
         pc                      <= taken_branch_pc_lat;
         taken_branch_pending    <= '0';
-        served_except_condition <= '1' when set_except_condition = '1' else '0'; -- for CS units;
-        served_mret_condition   <= '1' when set_mret_condition = '1' else '0'; -- for CS units;
+        served_except_condition <= '1' when set_except_condition = '1' else '0';
+        served_mret_condition   <= '1' when set_mret_condition = '1' else '0';
       else
-        pc <= boot_pc;                  -- default, should never occur
+        pc <= boot_pc;
       end if;
-      -- end of pc value update ---    
-    else                                -- sets registers to record pending requests
+    else
       served_except_condition <= '0';
       served_mret_condition   <= '0';
       if taken_branch = '1' then
@@ -149,11 +128,10 @@ architecture PC of Program_counter is
         served_mret_condition <= '1';
       end if;
       if set_wfi_condition = '1' then
-         wfi_condition_pending <= '1';  -- xxxxx ??????
+         wfi_condition_pending <= '1';
       end if;
     end if;
   end pc_update;
-  --------------------------------------------------------------------------------------
 
 begin
 
@@ -178,15 +156,11 @@ begin
     end if;
   end process hardware_context_counter;
 
-  -- this is the multiplexer on the PC_IF
   pc_IF <= pc(harc_IF_internal);
 
-  -- fixed connections, not replicated 
   boot_pc                                 <= boot_addr_i(31 downto 8) & std_logic_vector(to_unsigned(128, 8));
   mepc_incremented_pc_internal(harc_EXEC) <= MEPC(harc_EXEC);
   mepc_interrupt_pc_internal(harc_EXEC)   <= MEPC(harc_EXEC) when MCAUSE(harc_EXEC)(30) = '0' else std_logic_vector(unsigned(MEPC(harc_EXEC)) + 4);
-  ----------------------------------------------------------------------------------------------
-  -- this part of logic and registers is replicated as many times as the supported threads:   --
   pc_update_logic : for h in harc_range generate
 
     relative_to_PC(h) <= std_logic_vector(to_unsigned(0, 32)) when (absolute_jump = '1')
@@ -196,7 +170,7 @@ begin
 
     set_wfi_condition_replicated(h) <= '1' when set_wfi_condition = '1' and (harc_EXEC = h)
                                   else '0';
-    taken_branch_replicated(h) <=      '1' when dsp_except_condition = '1' and (harc_DSP = h) -- AAA maybe use dsp_taken_branch signal instead
+    taken_branch_replicated(h) <=      '1' when dsp_except_condition = '1' and (harc_DSP = h)
 	                              else '1' when taken_branch = '1' and (harc_EXEC = h)
                                   else '0';
     set_branch_condition_replicated(h) <= '1' when set_branch_condition = '1' and (harc_EXEC = h)
@@ -212,16 +186,15 @@ begin
     set_mret_condition_replicated(h)   <= '1' when set_mret_condition = '1' and (harc_EXEC = h)
                                      else '0';
 
-    -- latch on the branch address, possibly useless but may be needed in future situations
 
     taken_branch_pc_lat_internal(h) <=
-      MTVEC(h)                                                         when dsp_except_condition_replicated(h) = '1'                       else  -- sets MTVEC address for exception trap
-      std_logic_vector(signed(relative_to_PC(h))+signed(PC_offset(h))) when set_branch_condition_replicated(h) = '1'                       else  -- sets a jump or a branch address
-      std_logic_vector(signed(relative_to_PC(h)))                      when set_wfi_condition_replicated(h) = '1'                          else  -- sets a wfi address (spin lock)
-      MTVEC(h)                                                         when ie_except_condition_replicated(h) = '1'                       else  -- sets MTVEC address for exception trap
-      mepc_incremented_pc_internal(h)                                  when set_mret_condition_replicated(h) = '1' and MCAUSE(h)(31) = '0' else  -- sets return address from exception subroutine
-      mepc_interrupt_pc_internal(h)                                    when set_mret_condition_replicated(h) = '1' and MCAUSE(h)(31) = '1' else  -- sets return address from interrupt subroutine
-      MTVEC(h)                                                         when served_irq(h);                                                       -- sets MTVEC address for exception trap
+      MTVEC(h)                                                         when dsp_except_condition_replicated(h) = '1'                       else
+      std_logic_vector(signed(relative_to_PC(h))+signed(PC_offset(h))) when set_branch_condition_replicated(h) = '1'                       else
+      std_logic_vector(signed(relative_to_PC(h)))                      when set_wfi_condition_replicated(h) = '1'                          else
+      MTVEC(h)                                                         when ie_except_condition_replicated(h) = '1'                       else
+      mepc_incremented_pc_internal(h)                                  when set_mret_condition_replicated(h) = '1' and MCAUSE(h)(31) = '0' else
+      mepc_interrupt_pc_internal(h)                                    when set_mret_condition_replicated(h) = '1' and MCAUSE(h)(31) = '1' else
+      MTVEC(h)                                                         when served_irq(h);
 
 
     pc_update_enable(h) <= '1' when instr_gnt_i = '1'
@@ -235,16 +208,13 @@ begin
     pc_updater : process(clk_i, rst_ni, boot_pc)
     begin
       if rst_ni = '0' then
-        pc(h)                            <= (others => '0');  -- better to put 0 to ensure clear synthesis
+        pc(h)                            <= (others => '0');
         taken_branch_pending_internal(h) <= '0';
         wfi_condition_pending(h)         <= '0';
         served_except_condition(h)       <= '0';
         served_mret_condition(h)         <= '0';
         served_except_condition_lat      <= '0';
       elsif rising_edge(clk_i) then
-        -- synch.ly updates pc with new value depending on conditions pending 
-        -- synch.ly raises "served" signal for the condition that is being served 
-        -- synch.ly lowers "served" signal for other conditions
         served_except_condition_lat <= served_except_condition(h);
         if reset_state = '1' then
           pc(h) <= boot_pc;
@@ -254,16 +224,12 @@ begin
                     taken_branch_pc_lat_internal(h), incremented_pc_internal(h), boot_pc, pc_update_enable(h), served_except_condition(h),
                     served_mret_condition(h));
         end if;
-      end if;  --rst , clk
+      end if;
     end process;
 
 
   end generate pc_update_logic;
-  -- end of replicated logic --   
-  --------------------------------------------------------------------------------------------
 
 
 
---------------------------------------------------------------------- end of PC Managing Units ---
---------------------------------------------------------------------------------------------------  
 end PC;
