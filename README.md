@@ -23,8 +23,8 @@ For now, this version extends the riscv instruction set with four new instructio
 -Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
 -Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
 
-3-4) kaddv rd,rs1,rs2 and kdotp rd,rs1,rs2
-
+ 3) kaddv rd,rs1,rs2
+ 4) kdotp rd,rs1,rs2
 -They do the arithmetic operations on the vectors in "rs1" and "rs2", and store the results in "rd". Operation are done in SIMD fashion were we can operate on four elements simultanously.
 -Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
 -If we have non scratchpad access, we raise an exception.
