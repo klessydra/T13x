@@ -4,7 +4,7 @@ I am certain that you might encounter bugs during execution. Nevertheless update
 
 Extensions made to this version:
 
--Four scratchpad memories of size 512-bytes, having dual read and write data ports of 128-bit bus width.The Scratchpads are nicknamed A,B,C,D and they are mapped for the following addresses respectively
+-Four scratchpad memories of size 512-bytes, having dual data ports for read and write bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
 
   - 0x00109000 -> 0x001091FF (scA)
   - 0x00109200 -> 0x001093FF (scB)
@@ -20,7 +20,7 @@ Extensions made to this version:
 -DSP Unit does dot product and vector addition in SIMD fashion having a read and write bus width of 128-bits (4*32-bits).
 
 
-For now, this version extends the riscv instruction set with four new instructions:
+For now, T1x extends the riscv instruction set with four new instructions:
 
 1) Kmemld rd,rs1,rs2
 
@@ -42,11 +42,11 @@ For now, this version extends the riscv instruction set with four new instructio
 
 -If we have non scratchpad access, we raise an exception.
 
--If we have same Scratchpad READ access we raise an exception.
+-If we have same scratchpad READ access we raise an exception.
 
 -If writing to the scratchpads might overflow it, we raise an exception.
 
--However we don't raise an exception if a scratchpad is used simultanouly for read and write, because sc_memories were designed with dual ports for read and write.
+-However we don't raise an exception if a scratchpad is used simultanously for read and write, because sc_memories were designed with dual ports for read and write.
 
 Currently there are no tests added for testing the new instructions, they will be included shortly in recent update. 
 
