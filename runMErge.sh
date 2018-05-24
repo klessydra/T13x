@@ -61,7 +61,6 @@ then
 
 	# COPY COMPILE SCRIPTS
 	cp $KLESS_PATH/patched_files/t13x_patched_files/vcompile_klessydra-t1-3th.csh $PULP_PATH/vsim/vcompile
-	cp $KLESS_PATH/patched_files/common_patched_files/build_rtl_sim.csh $PULP_PATH/vsim/vcompile
 	cp $KLESS_PATH/patched_files/common_patched_files/vcompile_ips.csh $PULP_PATH/vsim/vcompile
 	cp $KLESS_PATH/patched_files/common_patched_files/vcompileIPS/vcompile_klessydra-t0-2th.csh $PULP_PATH/vsim/vcompile/ips
 	cp $KLESS_PATH/patched_files/common_patched_files/vcompileIPS/vcompile_klessydra-t0-3th.csh $PULP_PATH/vsim/vcompile/ips
