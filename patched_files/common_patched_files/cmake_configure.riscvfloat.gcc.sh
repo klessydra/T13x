@@ -2,22 +2,11 @@
 
 #export PATH=/compilerpath/:${PATH}
 
-OBJDUMP=`which riscv32-unknown-elf-objdump`
-OBJCOPY=`which riscv32-unknown-elf-objcopy`
+# Set this to one if you want to run klessydra tests
+USE_KLESSYDRA_TEST=0
 
-COMPILER=`which riscv32-unknown-elf-gcc`
-RANLIB=`which riscv32-unknown-elf-ranlib`
-
-VSIM=`which vsim`
-
-TARGET_C_FLAGS="-O3 -m32 -g"
-#TARGET_C_FLAGS="-O2 -g -falign-functions=16  -funroll-all-loops"
-
-# if you want to have compressed instructions, set this to 1
-RVC=0
-
-# if you are using zero-riscy, set this to 1
-USE_ZERO_RISCY=0
+# Set this to one if you are using a klessydra core
+USE_KLESSYDRA=0
 
 # if you are using klessydra-t0-2th (The three pipeline version of klessydra t0), set this to 1
 USE_KLESSYDRA_T0_2TH=0
@@ -25,8 +14,37 @@ USE_KLESSYDRA_T0_2TH=0
 # if you are using klessydra-t0-3th (The four pipeline version of klessydra t0), set this to 1
 USE_KLESSYDRA_T0_3TH=0
 
-# if you are using klessydra-t1-3th (The four pipeline version of klessydra t0), set this to 1
+# if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1
 USE_KLESSYDRA_T1_3TH=0
+
+
+if [ $USE_KLESSYDRA_TEST -eq 0 ]
+then
+	OBJDUMP=`which riscv32-unknown-elf-objdump`
+	OBJCOPY=`which riscv32-unknown-elf-objcopy`
+	COMPILER=`which riscv32-unknown-elf-gcc`
+	RANLIB=`which riscv32-unknown-elf-ranlib`
+	TARGET_C_FLAGS="-O3 -m32 -g"
+	#TARGET_C_FLAGS="-O2 -g -falign-functions=16  -funroll-all-loops"
+	# riscy with PULPextensions, it is assumed you use the ETH GCC Compiler
+	GCC_MARCH="IMFDXpulpv2"
+else
+	OBJDUMP=`which klessydra-unknown-elf-objdump`
+	OBJCOPY=`which klessydra-unknown-elf-objcopy`
+	COMPILER=`which klessydra-unknown-elf-gcc`
+	RANLIB=`which klessydra-unknown-elf-ranlib`
+	TARGET_C_FLAGS="-O3 -g"
+	GCC_MARCH="rv32ia"
+fi
+
+
+VSIM=`which vsim`
+
+# if you want to have compressed instructions, set this to 1
+RVC=0
+
+# if you are using zero-riscy, set this to 1
+USE_ZERO_RISCY=0
 
 # set this to 1 if you are using the Floating Point extensions for riscy only
 RISCY_RV32F=1
@@ -36,8 +54,6 @@ ZERO_RV32M=0
 # zeroriscy with only 16 registers
 ZERO_RV32E=0
 
-# riscy with PULPextensions, it is assumed you use the ETH GCC Compiler
-GCC_MARCH="IMFDXpulpv2"
 #compile arduino lib
 ARDUINO_LIB=1
 
@@ -52,6 +68,8 @@ cmake "$PULP_GIT_DIRECTORY"/sw/ \
     -DVSIM="$VSIM" \
     -DRVC="$RVC" \
     -DRISCY_RV32F="$RISCY_RV32F" \
+    -DUSE_KLESSYDRA="$USE_KLESSYDRA" \
+    -DUSE_KLESSYDRA_TEST="$USE_KLESSYDRA_TEST" \
     -DUSE_KLESSYDRA_T0_2TH="$USE_KLESSYDRA_T0_2TH" \
     -DUSE_KLESSYDRA_T0_3TH="$USE_KLESSYDRA_T0_3TH" \
     -DUSE_KLESSYDRA_T1_3TH="$USE_KLESSYDRA_T1_3TH" \

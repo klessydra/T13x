@@ -3,16 +3,16 @@
 #export PATH=/compilerpath/:${PATH}
 
 # Set this to one if you want to run klessydra tests
-USE_KLESSYDRA_TEST=0
+USE_KLESSYDRA_TEST=1
 
 # Set this to one if you are using a klessydra core
-USE_KLESSYDRA=0
+USE_KLESSYDRA=1
 
 # if you are using klessydra-t0-2th (The three pipeline version of klessydra t0), set this to 1
 USE_KLESSYDRA_T0_2TH=0
 
 # if you are using klessydra-t0-3th (The four pipeline version of klessydra t0), set this to 1
-USE_KLESSYDRA_T0_3TH=0
+USE_KLESSYDRA_T0_3TH=1
 
 # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1
 USE_KLESSYDRA_T1_3TH=0
@@ -27,7 +27,7 @@ then
 	TARGET_C_FLAGS="-O3 -m32 -g"
 	#TARGET_C_FLAGS="-O2 -g -falign-functions=16  -funroll-all-loops"
 	# riscy with PULPextensions, it is assumed you use the ETH GCC Compiler
-	GCC_MARCH="RV32IM"
+	GCC_MARCH="RV32I"
 else
 	OBJDUMP=`which klessydra-unknown-elf-objdump`
 	OBJCOPY=`which klessydra-unknown-elf-objcopy`
@@ -44,13 +44,13 @@ VSIM=`which vsim`
 RVC=0
 
 # if you are using zero-riscy, set this to 1
-USE_ZERO_RISCY=1
+USE_ZERO_RISCY=0
 
 # set this to 1 if you are using the Floating Point extensions for riscy only
 RISCY_RV32F=0
 
 # zeroriscy with the multiplier
-ZERO_RV32M=1
+ZERO_RV32M=0
 # zeroriscy with only 16 registers
 ZERO_RV32E=0
 
