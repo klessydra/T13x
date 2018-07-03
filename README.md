@@ -1,23 +1,21 @@
-# BETA VERSION!!!
-Hello this is An early release of the latest cores of the klessydra family the T1x version.
-I am certain that you might encounter bugs during execution. Nevertheless updates will be followed shortly
+# T13x Extensions illustration
 
-Extensions made to this version:
+Extensions made to this core:
 
--Four scratchpad memories of size 512-bytes, having dual data ports for read and write bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
+-Four scratchpad memories of size 512-bytes, having dual data ports for read and write of bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
 
   - 0x00109000 -> 0x001091FF (scA)
   - 0x00109200 -> 0x001093FF (scB)
   - 0x00109400 -> 0x001094FF (scC)
   - 0x00109600 -> 0x001096FF (scD)
   
--Three sperate execution Units that can work in parallel allowing superscalarability
+-Three sperate execution Units that can work in parallel allowing superscalarity
 
   - DSP_Unit
   - IE_Unit
   - LSU_Unit
   
--DSP Unit does dot product and vector addition in SIMD fashion having a read and write bus width of 128-bits (4*32-bits).
+-DSP Unit does dot product and vector addition in SIMD fashion, but only works on 32-bit integers. 128-bits (4*32-bits).
 
 
 For now, T1x extends the riscv instruction set with four new instructions:
@@ -36,29 +34,31 @@ For now, T1x extends the riscv instruction set with four new instructions:
  
  4) kdotp rd,rs1,rs2
  
--kaddv and kdotp do arithmetic operations on the vectors in "rs1" and "rs2", and store the results in "rd". Operation are done in SIMD fashion were we can operate on four elements simultanously.
+- kaddv and kdotp do arithmetic operations on the vectors in "rs1" and "rs2", and store the results in "rd". Operations are done in SIMD fashion by which four elements are operated on simultanously.
 
--Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
+- Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
 
--If we have non scratchpad access, we raise an exception.
+- If we have non scratchpad access, we raise an exception.
 
--If we have same scratchpad READ access we raise an exception.
+- If we have same scratchpad READ access we raise an exception.
 
--If writing to the scratchpads might overflow it, we raise an exception.
+- If writing to the scratchpads might overflow it, we raise an exception.
 
--However we don't raise an exception if a scratchpad is used simultanously for read and write, because sc_memories were designed with dual ports for read and write.
+- However we don't raise an exception if a scratchpad is used simultanously for read and write, because as mentioned sc_memories were designed with dual ports for read and write.
 
-Currently there are no tests added for testing the new instructions, they will be included shortly in recent update. 
+Basic tests for vector addition and dot-product have been added, after you merge the Klessydra with PULPino, you will find the tests inside <pulp_path>/sw/apps/klessydra_dsp_tests/. 
 
 Hope you like it :D
 
 # Merging T13x User Guide
 
-Intro: The Klessydra processing core family is is a set of processors featuring full compliance with the RISC-V. Klessydra cores fully support the RV32I Base Integer Instruction set in M-mode and one instruction from the RV32A extension.
+Intro: The Klessydra processing core family is a set of processors featuring full compliance with the RISC-V, and pin-to-pin compatible with the PULPino riscy cores. Klessydra cores fully support the RV32I Base Integer Instruction set, and one instruction from the RV32A extension. 'T1' further extends the instruction set with four instructions as described above. The only privilege level supported in klessydra is Machine mode "M".
 
-This guide explains how one can download and install Pulpino, and 
-it's modified version of the riscv-gnu toolchain. And then it shows how 
-you can easily merge the Klessydra-Core in the Pulpino project.
+This guide explains how one can download and install Pulpino, and it's 
+modified version of the riscv-gnu toolchain. It also demonstrates
+how to patch the offcial riscv-toolchain in order to add the klessydra 
+extensions. And then it shows how you can easily merge the Klessydra-Core 
+in the Pulpino project.
 
 ###########################################################################################
 - Prerequisites as indicated by the pulpino group
@@ -80,15 +80,15 @@ you can easily merge the Klessydra-Core in the Pulpino project.
 	
 ###########################################################################################
 
-- IF you already have pulpino and their toolchain, than skip ahead to step.4
+- IF you already have pulpino and their own version of the riscv-toolchain, then skip ahead to step.4
 
 
 PROCEDURE:
 1.	Install the following packeges:
+		
+		sudo apt-get install git cmake python-yaml tcsh autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
 
-		sudo apt-get install git cmake tcsh python-yaml autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
-
-2.	Download the toolchain, execute the following commands in the folder where you want to download the pulpino version of the riscv-gnu toolchain
+2.	Download and build the "ri5cy-toolchain"
 
 		a) git clone https://github.com/pulp-platform/ri5cy-gnu-toolchain.git
 		
@@ -96,17 +96,21 @@ PROCEDURE:
 		
 		c) make ZERORISCY=1
 		
-	at the end of compilation, add the path **_<path_to_toolchain>/ri5cy_gnu_toolchain/install/bin_** to the environmental variables
+	When the build is done, add the path **_<path_to_toolchain>/ri5cy_gnu_toolchain/install/bin_** to the environmental variables
 
-3.	Download PULPino suite:
+3.	Download the PULPino suite:
 
 		a) git clone https://github.com/pulp-platform/pulpino.git
 		
 		b) cd pulpino
 		
 		c) ./update-ips.py	
-	
-4.	To merge the Klessydra core:
+
+
+4.	If you want to run the klessydra specific tests, you have to download and patch the official riscv-toolchain, and then build it. Instructions for doing so are included in the README.md file
+	inside the folder called toolchain_files.
+
+5.	To merge the Klessydra core, and tests:
 
 		a) git clone https://github.com/klessydra/T13x.git
 		
@@ -114,8 +118,8 @@ PROCEDURE:
 		
 		c) ./runMErge.sh <pulpino_path>
 
-5.	OPTIONAL: After merging is done, this is how you will be able to test Klessydra-t1-3th.
-		-Open the terminal and navigate to "sw" folder inside pulpino and execute the following commands
+6.	OPTIONAL: After merging is done, this is how you will be able to test Klessydra-t1-3th.
+		-Open a terminal and navigate to "sw" folder inside pulpino and execute the following commands
 
 		a) e.g. mkdir build
 		
@@ -126,17 +130,16 @@ PROCEDURE:
 		d) ./cmake_configure.klessydra-t1-3th.gcc.sh
 		
 		e) make vcompile
+
+		For running Klessydra tests; the variable "USE_KLESSYDRA_TEST" in the shell file is set to '1' by default. You only need to build and run your test
+		f) (e.g. make barrier_test.vsimc)
 		
-		EXAMPLE TEST:
-		f) make testALU.vsimc
+		For running a PULPino test, set the variable "USE_KLESSYDRA_TEST" inside the shell file to 0, and re-execute the shell file again, and then run
+		g) (e.g. make testALU.vsimc)
 			
 	IT"S DONE!!!!!!
 
-	Extra options: You can modify the cmake-configure file:
-	for example, if you want to run zero-riscy without multiplication extensions change the variable "ZERO_RV32M" from '1' to '0' inside cmake_configure.zeroriscy.gcc.sh .
-	save file and run
+EXTRA:
 
-6.	In order to run tests in Modelsim, go to the build folder and do the following:
+7.	In order to run tests in Modelsim, go to the build folder and do the following:
 		make nameofthetest.vsim (or .vsimc to run a test without modelsim GUI)
-
-7.	The list of the tests that passed on Klessydra are available in the file SIMUL_TEST_REULTS.pdf
