@@ -1,3 +1,5 @@
+
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
@@ -9,24 +11,28 @@ use work.thread_parameters_klessydra.all;
 
 entity klessydra_t1_3th_core is
   generic (
-    N_EXT_PERF_COUNTERS : integer := 0;
-    INSTR_RDATA_WIDTH   : integer := 32;
-    N_HWLP              : integer := 2;
-    N_HWLP_BITS         : integer := 4
+    N_EXT_PERF_COUNTERS : integer := 0;   
+    INSTR_RDATA_WIDTH   : integer := 32;  
+    N_HWLP              : integer := 2;   
+    N_HWLP_BITS         : integer := 4    
     );
   port (
+    
     clk_i               : in  std_logic;
     clock_en_i          : in  std_logic;
     rst_ni              : in  std_logic;
     test_en_i           : in  std_logic;
+    
     boot_addr_i         : in  std_logic_vector(31 downto 0);
     core_id_i           : in  std_logic_vector(3 downto 0);
     cluster_id_i        : in  std_logic_vector(5 downto 0);
+    
     instr_req_o         : out std_logic;
     instr_gnt_i         : in  std_logic;
     instr_rvalid_i      : in  std_logic;
     instr_addr_o        : out std_logic_vector(31 downto 0);
     instr_rdata_i       : in  std_logic_vector(31 downto 0);
+    
     data_req_o          : out std_logic;
     data_gnt_i          : in  std_logic;
     data_rvalid_i       : in  std_logic;
@@ -36,12 +42,14 @@ entity klessydra_t1_3th_core is
     data_wdata_o        : out std_logic_vector(31 downto 0);
     data_rdata_i        : in  std_logic_vector(31 downto 0);
     data_err_i          : in  std_logic;
+    
     irq_i               : in  std_logic;
     irq_id_i            : in  std_logic_vector(4 downto 0);
     irq_ack_o           : out std_logic;
     irq_id_o            : out std_logic_vector(4 downto 0);
-    irq_sec_i           : in  std_logic;
-    sec_lvl_o           : out std_logic;
+    irq_sec_i           : in  std_logic;  
+    sec_lvl_o           : out std_logic;  
+    
     debug_req_i         : in  std_logic;
     debug_gnt_o         : out std_logic;
     debug_rvalid_o      : out std_logic;
@@ -52,6 +60,7 @@ entity klessydra_t1_3th_core is
     debug_halted_o      : out std_logic;
     debug_halt_i        : in  std_logic;
     debug_resume_i      : in  std_logic;
+    
     fetch_enable_i      : in  std_logic;
     core_busy_o         : out std_logic;
     ext_perf_counters_i : in  std_logic_vector(N_EXT_PERF_COUNTERS to 1)
@@ -63,6 +72,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
 
   signal reset_state            : std_logic;
 
+  
   signal MVSIZE      : replicated_32b_reg;
   signal MSTATUS     : replicated_32b_reg;
   signal MEPC        : replicated_32b_reg;
@@ -74,8 +84,10 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal WFI_Instr		 : std_logic;
   signal except_pc_vec_o : std_logic_vector(31 downto 0);
 
+  
   signal load_err, store_err : std_logic;
 
+  
   signal csr_instr_req       : std_logic;
   signal csr_instr_done      : std_logic;
   signal csr_access_denied_o : std_logic;
@@ -84,33 +96,46 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal csr_rdata_o         : std_logic_vector (31 downto 0);
   signal csr_addr_i          : std_logic_vector (11 downto 0);
 
+  
   signal csr_instr_req_replicated       : replicated_bit;
   signal csr_instr_done_replicated      : replicated_bit;
   signal csr_access_denied_o_replicated : replicated_bit;
   signal csr_rdata_o_replicated         : replicated_32b_reg;
 
+  
   signal pc        : replicated_32b_reg;
-  signal pc_IE     : std_logic_vector(31 downto 0);
+  signal pc_IE     : std_logic_vector(31 downto 0);  
   signal pc_ID     : std_logic_vector(31 downto 0);
-  signal pc_IF     : std_logic_vector(31 downto 0);
+  signal pc_IF     : std_logic_vector(31 downto 0);  
 
-  signal instr_word_ID_lat      : std_logic_vector(31 downto 0);
-  signal instr_rvalid_ID        : std_logic;
+  
+  signal instr_word_ID_lat      : std_logic_vector(31 downto 0);  
+  signal instr_rvalid_ID        : std_logic;  
   signal instr_word_IE          : std_logic_vector(31 downto 0);
-  signal instr_rvalid_IE        : std_logic;
+  signal instr_rvalid_IE        : std_logic;  
   signal instr_word_WB          : std_logic_vector(31 downto 0);
-  signal instr_rvalid_WB        : std_logic;
+  signal instr_rvalid_WB        : std_logic;  
 
+  
   signal pc_update_enable                : replicated_bit;
   signal branch_condition_pending        : replicated_bit;
   signal except_condition_pending        : replicated_bit;
   signal mret_condition_pending          : replicated_bit;
   signal wfi_condition_pending           : replicated_bit;
+  signal served_ie_except_condition      : replicated_bit;
+  signal served_ls_except_condition      : replicated_bit;
+  signal served_dsp_except_condition     : replicated_bit;
   signal served_except_condition         : replicated_bit;
   signal served_mret_condition           : replicated_bit;
   signal served_irq                      : replicated_bit;
   signal taken_branch_pending            : replicated_bit;
+  signal ie_except_data                  : std_logic_vector(31 downto 0);
+  signal ls_except_data                  : std_logic_vector(31 downto 0);
+  signal dsp_except_data                 : std_logic_vector(31 downto 0);
   signal taken_branch                    : std_logic;
+  signal ie_taken_branch                 : std_logic;
+  signal ls_taken_branch                 : std_logic;
+  signal dsp_taken_branch                : std_logic;
   signal set_branch_condition            : std_logic;
   signal ie_except_condition             : std_logic;
   signal ls_except_condition             : std_logic;
@@ -132,11 +157,20 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal data_we_o_lat                   : std_logic;
   signal misaligned_err                  : std_logic;
 
+  
+  
   signal boot_pc : std_logic_vector(31 downto 0);
 
+  
+  
+  
+  
+  
 
+  
   signal regfile   : regfile_replicated_array;
 
+  
   signal set_wfi_condition          : std_logic;
   signal harc_to_csr                : harc_range;
   signal jump_instr                 : std_logic;
@@ -145,14 +179,18 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal branch_instr_lat           : std_logic;
   signal data_valid_waiting_counter : std_logic;
 
+  
   signal data_addr_internal     : std_logic_vector(31 downto 0);
   signal data_be_internal       : std_logic_vector(3 downto 0);
 
+  
   signal dbg_req_o       : std_logic;
   signal dbg_halted_o    : std_logic;
   signal dbg_ack_i       : std_logic;
   signal ebreak_instr    : std_logic;
 
+  
+  
   signal harc_IF         : harc_range;
   signal harc_ID         : harc_range;
   signal harc_LS         : harc_range;
@@ -165,6 +203,9 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     data_we_o_lat                     : in  std_logic;
     PC_offset                         : in  replicated_32b_reg;
     taken_branch                      : in  std_logic;
+    ie_taken_branch                   : in  std_logic;
+    ls_taken_branch                   : in  std_logic;
+    dsp_taken_branch                  : in  std_logic;
     set_branch_condition              : in  std_logic;
     ie_except_condition               : in  std_logic;
     ls_except_condition               : in  std_logic;
@@ -183,6 +224,9 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     reset_state                       : in  std_logic;
     pc_IF                             : out std_logic_vector(31 downto 0);
     harc_IF                           : out harc_range;
+    served_ie_except_condition        : out replicated_bit;
+    served_ls_except_condition        : out replicated_bit;
+    served_dsp_except_condition       : out replicated_bit;
     served_except_condition           : out replicated_bit;
     served_mret_condition             : out replicated_bit;
     served_irq                        : in  replicated_bit;
@@ -206,47 +250,53 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
 
   component CSR_Unit
   port (
-    pc_IE                      : in  std_logic_vector(31 downto 0);
-    harc_EXEC                  : in  harc_range;
-    harc_to_csr                : in  harc_range;
-    instr_word_IE              : in  std_logic_vector(31 downto 0);
-    served_except_condition    : in  replicated_bit;
-    served_mret_condition      : in  replicated_bit;
-    served_irq                 : in  replicated_bit;
-    pc_except_value            : in  replicated_32b_reg;
-    dbg_req_o                  : in  std_logic;
-    data_addr_internal         : in  std_logic_vector(31 downto 0);
-    jump_instr                 : in  std_logic;
-    branch_instr               : in  std_logic;
-    data_valid_waiting_counter : in  std_logic;
-    set_branch_condition       : in  std_logic;
-    csr_instr_req              : in  std_logic;
-    misaligned_err             : in  std_logic;
-    WFI_Instr  		           : in  std_logic;
-    csr_wdata_i                : in  std_logic_vector(31 downto 0);
-    csr_op_i                   : in  std_logic_vector(2 downto 0);
-    csr_addr_i                 : in  std_logic_vector(11 downto 0);
-    csr_instr_done             : out std_logic;
-    csr_access_denied_o        : out std_logic;
-    csr_rdata_o                : out std_logic_vector (31 downto 0);
-    MVSIZE                     : out replicated_32b_reg;
-    MSTATUS                    : out replicated_32b_reg;
-    MEPC                       : out replicated_32b_reg;
-    MCAUSE                     : out replicated_32b_reg;
-    MIP                        : out replicated_32b_reg;
-    MTVEC                      : out replicated_32b_reg;
-    fetch_enable_i             : in  std_logic;
-    clk_i                      : in  std_logic;
-    rst_ni                     : in  std_logic;
-    cluster_id_i               : in  std_logic_vector(5 downto 0);
-    instr_rvalid_i             : in  std_logic;
-    data_we_o                  : in  std_logic;
-    data_req_o                 : in  std_logic;
-    data_gnt_i                 : in  std_logic;
-    irq_i                      : in  std_logic;
-    irq_id_i                   : in  std_logic_vector(4 downto 0);
-    irq_id_o                   : out std_logic_vector(4 downto 0);
-    irq_ack_o                  : out std_logic
+    pc_IE                       : in  std_logic_vector(31 downto 0);
+    ie_except_data              : in  std_logic_vector(31 downto 0);
+    ls_except_data              : in  std_logic_vector(31 downto 0);
+    dsp_except_data             : in  std_logic_vector(31 downto 0);
+    served_ie_except_condition  : in  replicated_bit;
+    served_ls_except_condition  : in  replicated_bit;
+    served_dsp_except_condition : in  replicated_bit;
+    harc_EXEC                   : in  harc_range;
+    harc_to_csr                 : in  harc_range;
+    instr_word_IE               : in  std_logic_vector(31 downto 0);
+    served_except_condition     : in  replicated_bit;
+    served_mret_condition       : in  replicated_bit;
+    served_irq                  : in  replicated_bit;
+    pc_except_value             : in  replicated_32b_reg;
+    dbg_req_o                   : in  std_logic;
+    data_addr_internal          : in  std_logic_vector(31 downto 0);
+    jump_instr                  : in  std_logic;
+    branch_instr                : in  std_logic;
+    data_valid_waiting_counter  : in  std_logic;
+    set_branch_condition        : in  std_logic;
+    csr_instr_req               : in  std_logic;
+    misaligned_err              : in  std_logic;
+    WFI_Instr  		            : in  std_logic;
+    csr_wdata_i                 : in  std_logic_vector(31 downto 0);
+    csr_op_i                    : in  std_logic_vector(2 downto 0);
+    csr_addr_i                  : in  std_logic_vector(11 downto 0);
+    csr_instr_done              : out std_logic;
+    csr_access_denied_o         : out std_logic;
+    csr_rdata_o                 : out std_logic_vector (31 downto 0);
+    MVSIZE                      : out replicated_32b_reg;
+    MSTATUS                     : out replicated_32b_reg;
+    MEPC                        : out replicated_32b_reg;
+    MCAUSE                      : out replicated_32b_reg;
+    MIP                         : out replicated_32b_reg;
+    MTVEC                       : out replicated_32b_reg;
+    fetch_enable_i              : in  std_logic;
+    clk_i                       : in  std_logic;
+    rst_ni                      : in  std_logic;
+    cluster_id_i                : in  std_logic_vector(5 downto 0);
+    instr_rvalid_i              : in  std_logic;
+    data_we_o                   : in  std_logic;
+    data_req_o                  : in  std_logic;
+    data_gnt_i                  : in  std_logic;
+    irq_i                       : in  std_logic;
+    irq_id_i                    : in  std_logic_vector(4 downto 0);
+    irq_id_o                    : out std_logic_vector(4 downto 0);
+    irq_ack_o                   : out std_logic
     );
   end component;
 
@@ -308,8 +358,14 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     WFI_Instr                  : out std_logic;
     reset_state                : out std_logic;
     misaligned_err             : out std_logic;
-    pc_IE                      : out std_logic_vector(31 downto 0);
+    pc_IE                      : out std_logic_vector(31 downto 0);  
+    ie_except_data             : out std_logic_vector(31 downto 0);
+    ls_except_data             : out std_logic_vector(31 downto 0);
+    dsp_except_data            : out std_logic_vector(31 downto 0);
     taken_branch               : out std_logic;
+    ie_taken_branch            : out std_logic;
+    ls_taken_branch            : out std_logic;
+    dsp_taken_branch           : out std_logic;
     set_branch_condition       : out std_logic;
     ie_except_condition        : out std_logic;
     ls_except_condition        : out std_logic;
@@ -318,7 +374,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     set_mret_condition         : out std_logic;
     set_wfi_condition          : out std_logic;
     csr_instr_req              : out std_logic;
-    instr_rvalid_IE            : out std_logic;
+    instr_rvalid_IE            : out std_logic;  
     csr_addr_i                 : out std_logic_vector (11 downto 0);
     csr_wdata_i                : out std_logic_vector (31 downto 0);
     csr_op_i                   : out std_logic_vector (2 downto 0);
@@ -340,13 +396,16 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     data_addr_internal         : out std_logic_vector(31 downto 0);
     absolute_jump              : out std_logic;
     regfile                    : out regfile_replicated_array;
+    
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic;
+    
     instr_req_o                : out std_logic;
     instr_gnt_i                : in  std_logic;
     instr_rvalid_i             : in  std_logic;
     instr_addr_o               : out std_logic_vector(31 downto 0);
     instr_rdata_i              : in  std_logic_vector(31 downto 0);
+    
     data_req_o                 : out std_logic;
     data_gnt_i                 : in  std_logic;
     data_rvalid_i              : in  std_logic;
@@ -356,8 +415,11 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     data_wdata_o               : out std_logic_vector(31 downto 0);
     data_rdata_i               : in  std_logic_vector(31 downto 0);
     data_err_i                 : in  std_logic;
+    
 	irq_i               	   : in  std_logic;
+    
     debug_halted_o             : out std_logic;
+    
     fetch_enable_i             : in  std_logic;
     core_busy_o                : out std_logic
     );
@@ -365,58 +427,72 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
 
 begin
 
+  
+  
 
   Prg_Ctr : Program_Counter
     port map(
-      absolute_jump            => absolute_jump,
-      data_we_o_lat            => data_we_o_lat,
-      PC_offset                => PC_offset,
-      taken_branch             => taken_branch,
-      set_branch_condition     => set_branch_condition,
-      ie_except_condition      => ie_except_condition,
-      ls_except_condition      => ls_except_condition,
-      dsp_except_condition     => dsp_except_condition, 
-      set_except_condition     => set_except_condition,
-      set_mret_condition       => set_mret_condition,
-      set_wfi_condition        => set_wfi_condition,
-      harc_ID                  => harc_ID,
-      harc_LS                  => harc_LS,
-      harc_DSP                 => harc_DSP,
-      harc_EXEC                => harc_EXEC,
-      instr_rvalid_IE          => instr_rvalid_IE,
-      pc_IE                    => pc_IE,
-      MIP                      => MIP,
-      MEPC                     => MEPC,
-      MSTATUS                  => MSTATUS,
-      MCAUSE                   => MCAUSE,
-      MTVEC                    => MTVEC,
-      instr_word_IE            => instr_word_IE,
-      reset_state              => reset_state,
-      pc_IF                    => pc_IF,
-      harc_IF                  => harc_IF,
-      served_except_condition  => served_except_condition,
-      served_mret_condition    => served_mret_condition,
-      served_irq               => served_irq,
-      taken_branch_pending     => taken_branch_pending,
-      taken_branch_pc_lat      => taken_branch_pc_lat,
-      incremented_pc           => incremented_pc,
-      mepc_incremented_pc      => mepc_incremented_pc,
-      mepc_interrupt_pc        => mepc_interrupt_pc,
-      irq_pending              => irq_pending,
-      branch_condition_pending => branch_condition_pending,
-      except_condition_pending => except_condition_pending,
-      mret_condition_pending   => mret_condition_pending,
-      clk_i                    => clk_i,
-      rst_ni                   => rst_ni,
-      irq_i                    => irq_i,
-      fetch_enable_i           => fetch_enable_i,
-      boot_addr_i              => boot_addr_i,
-      instr_gnt_i              => instr_gnt_i
+      absolute_jump                => absolute_jump,
+      data_we_o_lat                => data_we_o_lat,
+      PC_offset                    => PC_offset,
+      taken_branch                 => taken_branch,
+      ie_taken_branch              => ie_taken_branch,
+      ls_taken_branch              => ls_taken_branch,
+      dsp_taken_branch             => dsp_taken_branch,
+      set_branch_condition         => set_branch_condition,
+      ie_except_condition          => ie_except_condition,
+      ls_except_condition          => ls_except_condition,
+      dsp_except_condition         => dsp_except_condition, 
+      set_except_condition         => set_except_condition,
+      set_mret_condition           => set_mret_condition,
+      set_wfi_condition            => set_wfi_condition,
+      harc_ID                      => harc_ID,
+      harc_LS                      => harc_LS,
+      harc_DSP                     => harc_DSP,
+      harc_EXEC                    => harc_EXEC,
+      instr_rvalid_IE              => instr_rvalid_IE,
+      pc_IE                        => pc_IE,
+      MIP                          => MIP,
+      MEPC                         => MEPC,
+      MSTATUS                      => MSTATUS,
+      MCAUSE                       => MCAUSE,
+      MTVEC                        => MTVEC,
+      instr_word_IE                => instr_word_IE,
+      reset_state                  => reset_state,
+      pc_IF                        => pc_IF,
+      harc_IF                      => harc_IF,
+      served_ie_except_condition   => served_ie_except_condition,
+      served_ls_except_condition   => served_ls_except_condition,
+      served_dsp_except_condition  => served_dsp_except_condition,
+      served_except_condition      => served_except_condition,
+      served_mret_condition        => served_mret_condition,
+      served_irq                   => served_irq,
+      taken_branch_pending         => taken_branch_pending,
+      taken_branch_pc_lat          => taken_branch_pc_lat,
+      incremented_pc               => incremented_pc,
+      mepc_incremented_pc          => mepc_incremented_pc,
+      mepc_interrupt_pc            => mepc_interrupt_pc,
+      irq_pending                  => irq_pending,
+      branch_condition_pending     => branch_condition_pending,
+      except_condition_pending     => except_condition_pending,
+      mret_condition_pending       => mret_condition_pending,
+      clk_i                        => clk_i,
+      rst_ni                       => rst_ni,
+      irq_i                        => irq_i,
+      fetch_enable_i               => fetch_enable_i,
+      boot_addr_i                  => boot_addr_i,
+      instr_gnt_i                  => instr_gnt_i
       );
 
   CSR : CSR_Unit
     port map(
       pc_IE                      => pc_IE,
+      ie_except_data             => ie_except_data,
+      ls_except_data             => ls_except_data,
+      dsp_except_data            => dsp_except_data,
+      served_ie_except_condition   => served_ie_except_condition,
+      served_ls_except_condition   => served_ls_except_condition,
+      served_dsp_except_condition  => served_dsp_except_condition,
       harc_EXEC                  => harc_EXEC,
       harc_to_csr                => harc_to_csr,
       instr_word_IE              => instr_word_IE,
@@ -511,6 +587,9 @@ begin
       dbg_req_o                  => dbg_req_o,
       dbg_halted_o               => dbg_halted_o,
       pc_IE                      => pc_IE,
+      ie_except_data             => ie_except_data,
+      ls_except_data             => ls_except_data,
+      dsp_except_data            => dsp_except_data,
       MVSIZE                     => MVSIZE,
       MSTATUS                    => MSTATUS,
       served_irq                 => served_irq,	
@@ -518,6 +597,9 @@ begin
       reset_state                => reset_state,
       misaligned_err             => misaligned_err,
       taken_branch               => taken_branch,
+      ie_taken_branch            => ie_taken_branch,
+      ls_taken_branch            => ls_taken_branch,
+      dsp_taken_branch           => dsp_taken_branch,
       set_branch_condition       => set_branch_condition,
       ie_except_condition        => ie_except_condition,
       ls_except_condition        => ls_except_condition,
