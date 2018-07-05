@@ -5,8 +5,8 @@ Attached are the files used to build the riscv toolchain with the klessydra inst
 
    https://github.com/riscv/riscv-gnu-toolchain
 
-2) replace the patched file riscv-opc.c in <path_to_toolchain>/riscv-binutils-gdb/opcode/
-   replace the patched file riscv-opc.h in <path_to_toolchain>/riscv-binutils-gdb/include/opcode/
+2) - replace the patched file riscv-opc.c in <path_to_toolchain>/riscv-binutils-gdb/opcode/
+   - replace the patched file riscv-opc.h in <path_to_toolchain>/riscv-binutils-gdb/include/opcode/
 
 3) Build the toolchain using the following commands
     
