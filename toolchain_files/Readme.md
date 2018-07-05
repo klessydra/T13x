@@ -13,7 +13,7 @@ Attached are the files used to build the riscv toolchain with the klessydra inst
   - ./configure --prefix=<path_to_build> --with-arch=rv32g --with-abi=ilp32
   -  make
 
-4) After the build, in order to use both pulpino ri5cy toolchain and klessydra toolchain simultaneusly. Execute the "make_links.sh" which creates symbolic links of the official pointers.
+4) After the build, in order to use both pulpino ri5cy toolchain and klessydra toolchain simultaneusly, execute the "make_links.sh" which creates symbolic links of the official pointers.
    -	copy the "make_links.sh" into <path_to_klessydra_toolchain>/bin using "sudo cp"
    -	sudo chmod +x make_links.sh
    -	sudo ./make_links.sh
