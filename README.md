@@ -88,9 +88,9 @@ PROCEDURE:
 		
 		sudo apt-get install git cmake python-yaml tcsh autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
 
-2.	Download and build the "ri5cy-toolchain"
+2.	Download and build the "ri5cy_gnu_toolchain"
 
-		a) git clone https://github.com/pulp-platform/ri5cy-gnu-toolchain.git
+		a) git clone https://github.com/pulp-platform/ri5cy_gnu_toolchain.git
 		
 		b) cd ri5cy-gnu-toolchain
 		
