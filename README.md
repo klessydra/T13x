@@ -92,7 +92,7 @@ PROCEDURE:
 
 		a) git clone https://github.com/pulp-platform/ri5cy_gnu_toolchain.git
 		
-		b) cd ri5cy-gnu-toolchain
+		b) cd ri5cy_gnu_toolchain
 		
 		c) make ZERORISCY=1
 		
