@@ -6,7 +6,7 @@ ln -s riscv32-unknown-elf-cpp          klessydra-unknown-elf-cpp
 ln -s riscv32-unknown-elf-elfedit      klessydra-unknown-elf-elfedit
 ln -s riscv32-unknown-elf-g++          klessydra-unknown-elf-g++
 ln -s riscv32-unknown-elf-gcc          klessydra-unknown-elf-gcc
-ln -s riscv32-unknown-elf-gcc-7.2.0    klessydra-unknown-elf-gcc-7.2.0
+ln -s riscv32-unknown-elf-gcc-8.1.0    klessydra-unknown-elf-gcc-8.1.0
 ln -s riscv32-unknown-elf-gcc-ar       klessydra-unknown-elf-gcc-ar
 ln -s riscv32-unknown-elf-gcc-nm       klessydra-unknown-elf-gcc-nm
 ln -s riscv32-unknown-elf-gcc-ranlib   klessydra-unknown-elf-gcc-ranlib
