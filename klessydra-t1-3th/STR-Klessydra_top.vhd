@@ -1,38 +1,52 @@
 
+---------------------------------------------------------------------------------------------------
+-- "Klessydra" T03x core: 
+-- Zeroriscy pinout, RISC-V core, RV32I Base Integer Instruction Set + AMOSWAP, 
+-- 4 pipeline stages F/D/E/W, in order execution, supports variable latency program memory. 
+-- Supports interleaved multithreading, with maximum configurable thread pool size = 16 threads.
+-- Pure RISCV exception and interrupt handling. Only thread 0 can be interrupted.
+-- Pulpino irq/exception table fully supported by SW runtime system.
+-- Contributors: Gianmarco Cerutti, Abdallah Cheikh, Ivan Matraxia, Stefano Sordillo, 
+--               Francesco Vigli, olly.
+-- last update: 2018-01-11
+---------------------------------------------------------------------------------------------------
 
+-- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
+-- local packages ------------
 use work.riscv_klessydra.all;
 use work.thread_parameters_klessydra.all;
 
+-- core entity declaration, the name zeroriscy is maintained for compatibility with the Pulpino SoC Verilog files --
 entity klessydra_t1_3th_core is
   generic (
-    N_EXT_PERF_COUNTERS : integer := 0;   
-    INSTR_RDATA_WIDTH   : integer := 32;  
-    N_HWLP              : integer := 2;   
-    N_HWLP_BITS         : integer := 4    
+    N_EXT_PERF_COUNTERS : integer := 0;   -- ignored in Klessydra
+    INSTR_RDATA_WIDTH   : integer := 32;  -- ignored in Klessydra
+    N_HWLP              : integer := 2;   -- ignored in Klessydra
+    N_HWLP_BITS         : integer := 4    -- ignored in Klessydra
     );
   port (
-    
+    -- clock, reset active low, test enable
     clk_i               : in  std_logic;
     clock_en_i          : in  std_logic;
     rst_ni              : in  std_logic;
     test_en_i           : in  std_logic;
-    
+    -- initialization signals 
     boot_addr_i         : in  std_logic_vector(31 downto 0);
     core_id_i           : in  std_logic_vector(3 downto 0);
     cluster_id_i        : in  std_logic_vector(5 downto 0);
-    
+    -- program memory interface
     instr_req_o         : out std_logic;
     instr_gnt_i         : in  std_logic;
     instr_rvalid_i      : in  std_logic;
     instr_addr_o        : out std_logic_vector(31 downto 0);
     instr_rdata_i       : in  std_logic_vector(31 downto 0);
-    
+    -- data memory interface
     data_req_o          : out std_logic;
     data_gnt_i          : in  std_logic;
     data_rvalid_i       : in  std_logic;
@@ -42,14 +56,14 @@ entity klessydra_t1_3th_core is
     data_wdata_o        : out std_logic_vector(31 downto 0);
     data_rdata_i        : in  std_logic_vector(31 downto 0);
     data_err_i          : in  std_logic;
-    
+    -- interrupt request interface
     irq_i               : in  std_logic;
     irq_id_i            : in  std_logic_vector(4 downto 0);
     irq_ack_o           : out std_logic;
     irq_id_o            : out std_logic_vector(4 downto 0);
-    irq_sec_i           : in  std_logic;  
-    sec_lvl_o           : out std_logic;  
-    
+    irq_sec_i           : in  std_logic;  -- unused in Pulpino
+    sec_lvl_o           : out std_logic;  -- unused in Pulpino
+    -- debug interface
     debug_req_i         : in  std_logic;
     debug_gnt_o         : out std_logic;
     debug_rvalid_o      : out std_logic;
@@ -60,7 +74,7 @@ entity klessydra_t1_3th_core is
     debug_halted_o      : out std_logic;
     debug_halt_i        : in  std_logic;
     debug_resume_i      : in  std_logic;
-    
+    -- miscellanous control signals
     fetch_enable_i      : in  std_logic;
     core_busy_o         : out std_logic;
     ext_perf_counters_i : in  std_logic_vector(N_EXT_PERF_COUNTERS to 1)
@@ -72,7 +86,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
 
   signal reset_state            : std_logic;
 
-  
+  -- Control Status Register (CSR) signals
   signal MVSIZE      : replicated_32b_reg;
   signal MSTATUS     : replicated_32b_reg;
   signal MEPC        : replicated_32b_reg;
@@ -84,10 +98,10 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal WFI_Instr		 : std_logic;
   signal except_pc_vec_o : std_logic_vector(31 downto 0);
 
-  
+  -- Memory fault signals
   signal load_err, store_err : std_logic;
 
-  
+  -- Interface signals from EXEC unit to CSR management unit
   signal csr_instr_req       : std_logic;
   signal csr_instr_done      : std_logic;
   signal csr_access_denied_o : std_logic;
@@ -96,31 +110,28 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal csr_rdata_o         : std_logic_vector (31 downto 0);
   signal csr_addr_i          : std_logic_vector (11 downto 0);
 
-  
+  -- CSR management unit internal signal
   signal csr_instr_req_replicated       : replicated_bit;
   signal csr_instr_done_replicated      : replicated_bit;
   signal csr_access_denied_o_replicated : replicated_bit;
   signal csr_rdata_o_replicated         : replicated_32b_reg;
 
-  
+  -- program counters --
   signal pc        : replicated_32b_reg;
-  signal pc_IE     : std_logic_vector(31 downto 0);  
+  signal pc_IE     : std_logic_vector(31 downto 0);  -- pc_IE is pc entering stage IE
   signal pc_ID     : std_logic_vector(31 downto 0);
-  signal pc_IF     : std_logic_vector(31 downto 0);  
+  signal pc_IF     : std_logic_vector(31 downto 0);  -- pc_IF is the actual pc
 
-  
-  signal instr_word_ID_lat      : std_logic_vector(31 downto 0);  
-  signal instr_rvalid_ID        : std_logic;  
+  -- instruction register and instr. propagation registers --
+  signal instr_word_ID_lat      : std_logic_vector(31 downto 0);  -- latch needed for long-latency program memory
+  signal instr_rvalid_ID        : std_logic;  -- validity bit at ID input
   signal instr_word_IE          : std_logic_vector(31 downto 0);
-  signal instr_rvalid_IE        : std_logic;  
+  signal instr_rvalid_IE        : std_logic;  -- validity bit at IE input
   signal instr_word_WB          : std_logic_vector(31 downto 0);
-  signal instr_rvalid_WB        : std_logic;  
+  signal instr_rvalid_WB        : std_logic;  -- idem
 
-  
+  -- pc updater signals
   signal pc_update_enable                : replicated_bit;
-  signal branch_condition_pending        : replicated_bit;
-  signal except_condition_pending        : replicated_bit;
-  signal mret_condition_pending          : replicated_bit;
   signal wfi_condition_pending           : replicated_bit;
   signal served_ie_except_condition      : replicated_bit;
   signal served_ls_except_condition      : replicated_bit;
@@ -142,10 +153,6 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal dsp_except_condition            : std_logic;
   signal set_except_condition            : std_logic;
   signal set_mret_condition              : std_logic;
-  signal set_branch_condition_replicated : replicated_bit;
-  signal set_wfi_condition_replicated    : replicated_bit;
-  signal set_except_condition_replicated : replicated_bit;
-  signal set_mret_condition_replicated   : replicated_bit;
   signal PC_offset                       : replicated_32b_reg;
   signal pc_except_value                 : replicated_32b_reg;
   signal taken_branch_pc_lat             : replicated_32b_reg;
@@ -157,20 +164,20 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal data_we_o_lat                   : std_logic;
   signal misaligned_err                  : std_logic;
 
-  
-  
+  -- abs jump used to select the relative PC or absolute PC in jump/branch instruction
+  -- only JALR does an absolute jump
   signal boot_pc : std_logic_vector(31 downto 0);
 
-  
-  
-  
-  
-  
+  --//parte probabilmente da eliminare
+  -- signals for counting intructions
+  --signal clock_cycle         : std_logic_vector(63 downto 0);  -- RDCYCLE
+  --signal external_counter    : std_logic_vector(63 downto 0);  -- RDTIME
+  --signal instruction_counter : std_logic_vector(63 downto 0);  -- RDINSTRET
 
-  
+  -- regfile replicated array
   signal regfile   : regfile_replicated_array;
 
-  
+  --signal used by counters
   signal set_wfi_condition          : std_logic;
   signal harc_to_csr                : harc_range;
   signal jump_instr                 : std_logic;
@@ -179,18 +186,18 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal branch_instr_lat           : std_logic;
   signal data_valid_waiting_counter : std_logic;
 
-  
+  -- auxiliary data memory interface signals
   signal data_addr_internal     : std_logic_vector(31 downto 0);
   signal data_be_internal       : std_logic_vector(3 downto 0);
 
-  
+  --DeBug Unit signal and state
   signal dbg_req_o       : std_logic;
   signal dbg_halted_o    : std_logic;
   signal dbg_ack_i       : std_logic;
   signal ebreak_instr    : std_logic;
 
-  
-  
+  -- hardware context id at fetch, and propagated hardware context ids
+  --signal harc_count            : harc_min_range;
   signal harc_IF         : harc_range;
   signal harc_ID         : harc_range;
   signal harc_LS         : harc_range;
@@ -236,9 +243,6 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     mepc_incremented_pc               : out replicated_32b_reg;
     mepc_interrupt_pc                 : out replicated_32b_reg;
     irq_pending                       : out replicated_bit;
-    branch_condition_pending          : out replicated_bit;
-    except_condition_pending          : out replicated_bit;
-    mret_condition_pending            : out replicated_bit;
     clk_i                             : in  std_logic;
     rst_ni                            : in  std_logic;
     irq_i                             : in  std_logic;
@@ -303,11 +307,11 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   component Debug_Unit
   port(
       set_branch_condition     : in  std_logic;
+      ie_except_condition      : in  std_logic;
+      ls_except_condition      : in  std_logic;
+      dsp_except_condition     : in  std_logic;
       set_except_condition     : in  std_logic;
       set_mret_condition       : in  std_logic;
-      branch_condition_pending : in  replicated_bit;
-      except_condition_pending : in  replicated_bit;
-      mret_condition_pending   : in  replicated_bit;
       served_irq               : in  replicated_bit;
       irq_pending              : in  replicated_bit;
       taken_branch_pc_lat      : in  replicated_32b_reg;
@@ -358,7 +362,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     WFI_Instr                  : out std_logic;
     reset_state                : out std_logic;
     misaligned_err             : out std_logic;
-    pc_IE                      : out std_logic_vector(31 downto 0);  
+    pc_IE                      : out std_logic_vector(31 downto 0);  -- pc_IE is pc entering stage IE
     ie_except_data             : out std_logic_vector(31 downto 0);
     ls_except_data             : out std_logic_vector(31 downto 0);
     dsp_except_data            : out std_logic_vector(31 downto 0);
@@ -374,7 +378,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     set_mret_condition         : out std_logic;
     set_wfi_condition          : out std_logic;
     csr_instr_req              : out std_logic;
-    instr_rvalid_IE            : out std_logic;  
+    instr_rvalid_IE            : out std_logic;  -- validity bit at IE input
     csr_addr_i                 : out std_logic_vector (11 downto 0);
     csr_wdata_i                : out std_logic_vector (31 downto 0);
     csr_op_i                   : out std_logic_vector (2 downto 0);
@@ -396,16 +400,16 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     data_addr_internal         : out std_logic_vector(31 downto 0);
     absolute_jump              : out std_logic;
     regfile                    : out regfile_replicated_array;
-    
+    -- clock, reset active low, test enable
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic;
-    
+    -- program memory interface
     instr_req_o                : out std_logic;
     instr_gnt_i                : in  std_logic;
     instr_rvalid_i             : in  std_logic;
     instr_addr_o               : out std_logic_vector(31 downto 0);
     instr_rdata_i              : in  std_logic_vector(31 downto 0);
-    
+    -- data memory interface
     data_req_o                 : out std_logic;
     data_gnt_i                 : in  std_logic;
     data_rvalid_i              : in  std_logic;
@@ -415,20 +419,22 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     data_wdata_o               : out std_logic_vector(31 downto 0);
     data_rdata_i               : in  std_logic_vector(31 downto 0);
     data_err_i                 : in  std_logic;
-    
+    -- interrupt request interface
 	irq_i               	   : in  std_logic;
-    
+    -- debug interface
     debug_halted_o             : out std_logic;
-    
+    -- miscellanous control signals
     fetch_enable_i             : in  std_logic;
     core_busy_o                : out std_logic
     );
   end component;
 
+--------------------------------------------------------------------------------------------------
+----------------------- ARCHITECTURE BEGIN -------------------------------------------------------              
 begin
 
-  
-  
+  --data_we_o  <= data_we_o_wire_top;
+  --data_req_o <= data_req_o_wire_top;
 
   Prg_Ctr : Program_Counter
     port map(
@@ -473,9 +479,6 @@ begin
       mepc_incremented_pc          => mepc_incremented_pc,
       mepc_interrupt_pc            => mepc_interrupt_pc,
       irq_pending                  => irq_pending,
-      branch_condition_pending     => branch_condition_pending,
-      except_condition_pending     => except_condition_pending,
-      mret_condition_pending       => mret_condition_pending,
       clk_i                        => clk_i,
       rst_ni                       => rst_ni,
       irq_i                        => irq_i,
@@ -538,11 +541,11 @@ begin
   DBG : Debug_Unit
     port map(
       set_branch_condition     => set_branch_condition,
+      ie_except_condition      => ie_except_condition,
+      ls_except_condition      => ls_except_condition,
+      dsp_except_condition     => dsp_except_condition,
       set_except_condition     => set_except_condition,
       set_mret_condition       => set_mret_condition,
-      branch_condition_pending => branch_condition_pending,
-      except_condition_pending => except_condition_pending,
-      mret_condition_pending   => mret_condition_pending,
       served_irq               => served_irq,
       irq_pending              => irq_pending,
       taken_branch_pc_lat      => taken_branch_pc_lat,
@@ -653,3 +656,6 @@ begin
       );
 
 end Klessydra_T1;
+--------------------------------------------------------------------------------------------------
+-- END of Klessydra T1 core architecture ---------------------------------------------------------
+--------------------------------------------------------------------------------------------------

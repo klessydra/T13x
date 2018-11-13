@@ -7,8 +7,7 @@
 reset_handler:
 
   li t4, 0x94
-  csrrw t4, mtvec, x0 			
-
+  csrrw x0, mtvec, t4 			
   mv  x1, x0
   mv  x2, x1
   mv  x3, x1
@@ -42,16 +41,16 @@ reset_handler:
   mv x31, x1
 
 reset:
-	li ra,0x008000; 		#initialize return address
-	csrr tp, k_mhartid;		#load mhartID value's in thread pointer tp 
-	andi tp,tp,0x07;		#estraggo il valore del core nel cluster (contenuto nei 4 bit meno significativi)
-	li t3,0;			#counter and coreID
-	li t4,0x108000;			#load in t4 gp value
-	li t5,16;			#max coreID number
+	li ra,0x020000; 			#initialize return address
+	csrr tp, k_mhartid;			#load mhartID value's in thread pointer tp 
+	andi tp,tp,0x07;			#estraggo il valore del core nel cluster (contenuto nei 4 bit meno significativi)
+	li t3,0;					#counter and coreID
+	li t4,0x140000;				#load in t4 gp value
+	li t5,16;					#max coreID number
 	li t6,-thread_stack_size;	#stack size for each thread
-	
+
 init_sp_loop:
-	bne tp,t3,not_assigned_sp;	#compare coreID with counter if are not the same take the brach
+	bne tp,t3,not_assigned_sp;	#compare coreID with counter if they are not equal take the branch
 	mv sp,t4;			#else initialize stack pointer
 	
 	not_assigned_sp:
@@ -61,7 +60,6 @@ init_sp_loop:
 
 end_sp_loop:
 	mv gp,t4;			#initialize global pointer
-	la   x2, _stack_start	
 	
 _start:
   .global _start
@@ -107,8 +105,10 @@ mtvec_routine:
 	jr t4;
 
 	no_ext_interrupt:
-	li t6, SW_INTERRUPT_CODE;             		                      
-	beq t5, t6, sofware_insn_handler;		
+	li t6, SW_INTERRUPT_CODE_WFI;   //In klessydra, if we have a WFI, we write a "1" to the bit mcause(30), hence there are no sw_interrupt codes       		                      
+	beq t5, t6, sofware_insn_handler;
+	li t6, SW_INTERRUPT_CODE_NO_WFI;
+	beq t5, t6, sofware_insn_handler;
 	li t6, TIMER_INTERRUPT_CODE;          		                      
 	bne t5, t6, exception_trap;
 	lw t5, 0x04(sp);

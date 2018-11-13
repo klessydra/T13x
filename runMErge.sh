@@ -84,6 +84,10 @@ then
 	cp $KLESS_PATH/patched_files/common_patched_files/vsim.tcl $PULP_PATH/vsim/tcl_files/config
 	cp $KLESS_PATH/patched_files/common_patched_files/vsim_ips.tcl $PULP_PATH/vsim/tcl_files/config
 
+
+	# COPY KLessydra-t1 wave script
+	cp $KLESS_PATH/patched_files/common_patched_files/klessydra_t13x_core.tcl $PULP_PATH/vsim/waves/klessydra_t13x_core.tcl
+	
 	# COPY PATCHED SYSTEMVERILOG FILES
 	cp $KLESS_PATH/patched_files/common_patched_files/tb.sv $PULP_PATH/tb
 	cp $KLESS_PATH/patched_files/common_patched_files/pulpino_top.sv $PULP_PATH/rtl

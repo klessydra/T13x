@@ -75,12 +75,12 @@ macro(add_application NAME SOURCE_FILES)
   # link libraries
   if(${USE_KLESSYDRA_TEST})
     if (${USE_KLESSYDRA_T1_3TH})
-      target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} kless_dsp_libs kless_libs bench ${MATH_FNS_LIB} string sys m)
+      target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME}  kless_dsp_libs kless_libs bench ${MATH_FNS_LIB} string sys m)
     else()
-      target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} kless_libs bench ${MATH_FNS_LIB} string sys m)
+      target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME}  kless_libs bench ${MATH_FNS_LIB} string sys m)
     endif()
   else()
-    target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} bench ${MATH_FNS_LIB} string sys m)
+    target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} kless_vgg_libs bench ${MATH_FNS_LIB} string sys m)
   endif()
 
   # this specifies the testbench to use for simulation

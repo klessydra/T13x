@@ -114,7 +114,7 @@ set(VSIM "vsim" CACHE FILEPATH "Path to the vsim executable")
  endif()
 
  include_directories(libs/klessydra_lib/general_libs/inc)
-
+ include_directories(libs/klessydra_lib/vgg_libs/inc)
  if (${USE_KLESSYDRA_T1_3TH})
    include_directories(libs/klessydra_lib/dsp_libs/inc) 
  endif()
@@ -184,6 +184,7 @@ add_custom_target(vcompile.core.zero
 ################################################################################
 
 add_subdirectory(libs/klessydra_lib/general_libs)
+add_subdirectory(libs/klessydra_lib/vgg_libs)
 
 if (${USE_KLESSYDRA_T1_3TH})
   add_subdirectory(libs/klessydra_lib/dsp_libs)

@@ -8,7 +8,7 @@ int main()
 	
 	if(Klessydra_get_coreID() == 0) // thread number 0 sends a sw_irq to thread number 3
 	{
-		send_sw_irq(3);
+		send_sw_irq(1);
 	}
 	
 	int a = 0;

@@ -1,1 +1,0 @@
-add_application(dot_product_single_funct_call_test_perf dot_product_single_funct_call_test_perf.c LABELS "klessydra_tests")

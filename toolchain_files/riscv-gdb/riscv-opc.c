@@ -730,15 +730,20 @@ const struct riscv_opcode riscv_opcodes[] =
 {"sfence.vma","I",   "s,t",  MATCH_SFENCE_VMA, MASK_SFENCE_VMA, match_opcode, 0 },
 {"wfi",       "I",   "",     MATCH_WFI, MASK_WFI, match_opcode, 0 },
 
-
 /* Klessydra Extensions */
 
 /* Vector Extensions */
-
-{"kmemld",   "I",   "d,s,t",	MATCH_K_MEMLD, MASK_K_MEMLD, match_opcode, 0 },
-{"kmemstr",  "I",   "d,s,t",	MATCH_K_MEMSTR, MASK_K_MEMSTR, match_opcode, 0 },
-{"kaddv",    "I",   "d,s,t",	MATCH_K_ADDV, MASK_K_ADDV, match_opcode, 0 },
-{"kdotp",    "I",   "d,s,t",	MATCH_K_DOTP, MASK_K_DOTP, match_opcode, 0 },
+{"kmemld",      "I",   "d,s,t",	MATCH_K_MEMLD , MASK_K_MEMLD , match_opcode, 0 },
+{"kmemstr",     "I",   "d,s,t",	MATCH_K_MEMSTR, MASK_K_MEMSTR, match_opcode, 0 },
+{"kaddv32",     "I",   "d,s,t",	MATCH_K_ADDV32, MASK_K_ADDV, match_opcode, 0 },
+{"kaddv16",     "I",   "d,s,t",	MATCH_K_ADDV16, MASK_K_ADDV, match_opcode, 0 },
+{"kaddv8",      "I",   "d,s,t",	MATCH_K_ADDV8 , MASK_K_ADDV, match_opcode, 0 },
+{"kdotp32",     "I",   "d,s,t",	MATCH_K_DOTP32 , MASK_K_DOTP, match_opcode, 0 },
+{"kdotp16",     "I",   "d,s,t",	MATCH_K_DOTP16 , MASK_K_DOTP, match_opcode, 0 },
+{"kdotp8",      "I",   "d,s,t",	MATCH_K_DOTP8  , MASK_K_DOTP, match_opcode, 0 },
+{"ksvmul32",    "I",   "d,s,t",	MATCH_K_SVMUL32, MASK_K_SVMUL, match_opcode, 0 },
+{"ksvmul16",    "I",   "d,s,t",	MATCH_K_SVMUL16, MASK_K_SVMUL, match_opcode, 0 },
+{"ksvmul8",     "I",   "d,s,t",	MATCH_K_SVMUL8 , MASK_K_SVMUL, match_opcode, 0 },
 
 /* Terminate the list.  */
 {0, 0, 0, 0, 0, 0, 0}

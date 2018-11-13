@@ -1,11 +1,11 @@
 set(SOURCES
     src/CSR_MVSIZE.c
     src/kaddv.c
-    src/kaddv2.c
     src/kdotp.c
-    src/kdotp2.c
+    src/ksvmul.c
     src/kless_dot_product.c
     src/kless_vector_addition.c
+    src/kless_scalar_vect_mult.c
     src/kmemld.c
     src/kmemstr.c
     )

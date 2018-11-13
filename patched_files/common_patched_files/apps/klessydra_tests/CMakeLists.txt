@@ -5,4 +5,6 @@ include_directories(
 #add_subdirectory(klessydra_dsp_tests)
 add_subdirectory(klessydra_general_tests)
 add_subdirectory(klessydra_dsp_tests)
+add_subdirectory(klessydra_vgg_tests)
+add_subdirectory(klessydra_mem_tests)
 

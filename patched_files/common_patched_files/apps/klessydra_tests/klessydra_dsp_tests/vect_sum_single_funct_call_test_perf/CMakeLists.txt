@@ -1,1 +1,0 @@
-add_application(vect_sum_single_funct_call_test_perf vect_sum_single_funct_call_test_perf.c LABELS "klessydra_tests")

@@ -1,0 +1,1 @@
+add_application(vgg_cifar_iter_data_test Vgg_16_CIFAR_iter_data_test.c LABELS "klessydra_tests")
