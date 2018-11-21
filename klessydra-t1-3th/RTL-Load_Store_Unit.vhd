@@ -201,7 +201,7 @@ begin
 		      if rd_to_sc = "100" then                               --  Not a scratchpad destination address
                 pc_LS_except_value(harc_EXEC) <= pc_IE;
                 ls_except_data              <= ILLEGAL_ADDRESS_EXCEPT_CODE;
-		      elsif data_addr_internal(1 downto 0) /= "00" then
+		      elsif RS1_Data_IE(1 downto 0) /= "00" then
                 pc_LS_except_value(harc_EXEC) <= pc_IE;
                 ls_except_data              <= LOAD_MISALIGNED_EXCEPT_CODE;
                 misaligned_err              <= '1';
@@ -214,8 +214,8 @@ begin
 			  else
                   RS1_Data_IE_lat <= RS1_Data_IE;
                   RS2_Data_IE_lat <= RS2_Data_IE;
-				  RD_Data_IE_lat <= RD_Data_IE;
-                  sc_word_count  <= "000000000";
+				  RD_Data_IE_lat  <= RD_Data_IE;
+                  sc_word_count   <= "000000000";
 				  address_increment_enable <= "00";
 				  ls_rd_to_sc <= rd_to_sc;
 			  end if;
@@ -226,7 +226,7 @@ begin
 		      if rs1_to_sc = "100" then                              --  Not a scratchpad source address
                 pc_LS_except_value(harc_EXEC) <= pc_IE;
                 ls_except_data              <= ILLEGAL_ADDRESS_EXCEPT_CODE;
-		      elsif data_addr_internal(1 downto 0) /= "00" then
+		      elsif RD_Data_IE(1 downto 0) /= "00" then
                 pc_LS_except_value(harc_EXEC) <= pc_IE;
                 ls_except_data              <= STORE_MISALIGNED_EXCEPT_CODE;
                 misaligned_err              <= '1';  
@@ -534,13 +534,12 @@ begin
             end if;
 
 	        if decoded_instruction_LS(KMEMLD_bit_position) = '1' then
-              data_addr_internal_wires := RS1_Data_IE;
               overflow_rd_sc           <= std_logic_vector('0' & unsigned(RD_Data_IE(8 downto 0)) + unsigned(RS2_Data_IE(8 downto 0))); -- If storing data to SC overflows it's address space
               if rd_to_sc = "100" then
                 nextstate_LS               <= normal;
                 ls_except_condition_wires  := '1';
                 ls_taken_branch_wires      := '1';
-              elsif(data_addr_internal_wires(1 downto 0) /= "00") then
+              elsif(RS1_Data_IE(1 downto 0) /= "00") then
                 ls_except_condition_wires  := '1';
                 ls_taken_branch_wires      := '1';
                 busy_LS_wires              := '1';
@@ -559,13 +558,12 @@ begin
             end if;
 
 		    if decoded_instruction_LS(KMEMSTR_bit_position) = '1' then
-              data_addr_internal_wires := RD_Data_IE;
               overflow_rs1_sc  <= std_logic_vector('0' & unsigned(RS1_Data_IE(8 downto 0)) + unsigned(RS2_Data_IE(8 downto 0))); -- If loading data from SC overflows it's address space
               if rs1_to_sc = "100" then
                 nextstate_LS               <= normal;
                 ls_except_condition_wires  := '1';
                 ls_taken_branch_wires      := '1';
-              elsif(data_addr_internal_wires(1 downto 0) /= "00") then
+              elsif(RD_Data_IE(1 downto 0) /= "00") then
                 ls_except_condition_wires  := '1';
                 ls_taken_branch_wires      := '1';
                 busy_LS_wires              := '1';

@@ -440,6 +440,7 @@ architecture Pipe of Pipeline is
   port (
     clk_i, rst_ni              : in  std_logic;
 	data_rvalid_i              : in  std_logic;
+    vec_read_rs2_ID            : in  std_logic;
     ls_sc_data_write_wire      : in  std_logic_vector(31 downto 0);
     dsp_sc_data_write_wire     : in  std_logic_vector(127 downto 0);
     ls_sc_read_addr            : in  std_logic_vector(Addr_Width -1 downto 0);
@@ -761,6 +762,7 @@ begin
     clk_i                      => clk_i,
     rst_ni                     => rst_ni,
 	data_rvalid_i              => data_rvalid_i,
+	vec_read_rs2_ID	           => vec_read_rs2_ID,
     ls_sc_data_write_wire      => ls_sc_data_write_wire,
     dsp_sc_data_write_wire     => dsp_sc_data_write_wire,
     ls_sc_read_addr            => ls_sc_read_addr,

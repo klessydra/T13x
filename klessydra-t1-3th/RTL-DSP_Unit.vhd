@@ -297,26 +297,23 @@ begin
             -- Decrement the vector elements that have already been operated on
             if dsp_data_gnt_i = '1' and sci_req_en = '1' then
               if to_integer(unsigned(MVSIZE_READ)) >= SIMD_RD_BYTES then
-                MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - SIMD_RD_BYTES);       -- decrement by SIMD_BYTE Execution Capability 
-              --  dsp_sc_data_read_mask <= ONE_MASK;
+                MVSIZE_READ <= std_logic_vector(unsigned(MVSIZE_READ) - SIMD_RD_BYTES);       -- decrement by SIMD_BYTE Execution Capability
                 ADD_MASK <= ONE_MASK;
               elsif to_integer(unsigned(MVSIZE_READ)) < SIMD_RD_BYTES then
                 MVSIZE_READ <= (others => '0');                                            -- decrement the remaining bytes
                 ADD_MASK(to_integer(unsigned(MVSIZE_READ))*8-1 downto 0) <= ONE_MASK(to_integer(unsigned(MVSIZE_READ))*8-1 downto 0);
                 ADD_MASK(127 downto to_integer(unsigned(MVSIZE_READ))*8) <= ZERO_MASK(127 downto to_integer(unsigned(MVSIZE_READ))*8);
-            --   	dsp_sc_data_read_mask(to_integer(unsigned(MVSIZE_READ))*8 - 1 downto 0) <= ONE_MASK(to_integer(unsigned(MVSIZE_READ))*8 - 1 downto 0);
-              --  dsp_sc_data_read_mask(127 downto to_integer(unsigned(MVSIZE_READ))*8)   <= ZERO_MASK(127 downto to_integer(unsigned(MVSIZE_READ))*8);
               end if;
             end if;
             if dsp_data_gnt_i = '1' or (dsp_data_gnt_i_lat = '1' and decoded_instruction_DSP(KDOTP8_bit_position)   = '1') then
-            if to_integer(unsigned(MVSIZE_READ_MASK)) >= SIMD_BYTES then
-              dsp_sc_data_read_mask <= ONE_MASK;
-              MVSIZE_READ_MASK <= std_logic_vector(unsigned(MVSIZE_READ_MASK) - SIMD_BYTES);       -- decrement by SIMD_BYTE Execution Capability 
-            elsif to_integer(unsigned(MVSIZE_READ_MASK)) < SIMD_BYTES then
-              MVSIZE_READ_MASK <= (others => '0');
-              dsp_sc_data_read_mask(to_integer(unsigned(MVSIZE_READ_MASK))*8 - 1 downto 0) <= ONE_MASK(to_integer(unsigned(MVSIZE_READ_MASK))*8 - 1 downto 0);
-              dsp_sc_data_read_mask(127 downto to_integer(unsigned(MVSIZE_READ_MASK))*8)   <= ZERO_MASK(127 downto to_integer(unsigned(MVSIZE_READ_MASK))*8);
-            end if;
+              if to_integer(unsigned(MVSIZE_READ_MASK)) >= SIMD_BYTES then
+                dsp_sc_data_read_mask <= ONE_MASK;
+                MVSIZE_READ_MASK <= std_logic_vector(unsigned(MVSIZE_READ_MASK) - SIMD_BYTES);       -- decrement by SIMD_BYTE Execution Capability 
+              elsif to_integer(unsigned(MVSIZE_READ_MASK)) < SIMD_BYTES then
+                MVSIZE_READ_MASK <= (others => '0');
+                dsp_sc_data_read_mask(to_integer(unsigned(MVSIZE_READ_MASK))*8 - 1 downto 0) <= ONE_MASK(to_integer(unsigned(MVSIZE_READ_MASK))*8 - 1 downto 0);
+                dsp_sc_data_read_mask(127 downto to_integer(unsigned(MVSIZE_READ_MASK))*8)   <= ZERO_MASK(127 downto to_integer(unsigned(MVSIZE_READ_MASK))*8);
+              end if;
             end if;
 
             -------------------------------------------------------------------
@@ -355,7 +352,7 @@ begin
                 -- (3) Partial Multiplication 
                     -- (a) "dsp_mul_a" <= Ahigh*Bhigh 
                     -- (b) "dsp_mul_b" <= Ahigh*Blow
-                   -- (c) "dsp_mul_c" <= Alow*Bhigh
+                    -- (c) "dsp_mul_c" <= Alow*Bhigh
                     -- (d) "dsp_mul_d" <= Alow*Blow
                 -- (4) "dsp_mul_a" is shifted by 32 bits to the left, "dsp_mul_b" and "dsp_mul_c" are shifted by 16-bits to the left, "dsp_mul_d" is not shifted
                 -- (5) For 16-bit and 8-bit muls, the FUNCT_SELCET_MASK is set to x"00000000" blocking the terms in "dsp_mul_b" and "dsp_mul_c". For executing 32-bit muls , we set the mask to x"FFFFFFFF"

@@ -1,52 +1,66 @@
 # T13x Extensions illustration
 
-Extensions made to this core:
+Extensions of T13x core
 
--Four scratchpad memories of size 512-bytes, having dual data ports for read and write of bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
+- Four scratchpad memories of size 512-bytes, having dual data ports for read and write of bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
 
   - 0x00109000 -> 0x001091FF (scA)
   - 0x00109200 -> 0x001093FF (scB)
   - 0x00109400 -> 0x001094FF (scC)
   - 0x00109600 -> 0x001096FF (scD)
   
--Three sperate execution Units that can work in parallel allowing superscalarity
+- Three sperate execution Units that can work in parallel allowing superscalarity
 
   - DSP_Unit
   - IE_Unit
   - LSU_Unit
   
--DSP Unit does dot product and vector addition in SIMD fashion, but only works on 32-bit integers. 128-bits (4*32-bits).
+- DSP Unit does dot product and vector addition in SIMD fashion, it executes arithmetic instructions on different data width sizes, mainly, 8-bit, 16-bit, 32-bit. Operations are done using partial addition, multiplication. 
 
+- Partial adders allowed us to do 16*8-bit additions in one cycle, or 8*16-bit additions in one cycle or 4*32-bit additions in one cycle.
+- Partial multipliers allowed us to do 8*8-bit multiplication in one cycle, or 8*16-bit additions in one cycle or 4*32-bit additions in one cycle. The reason we do only 8-bit multiplication in once cylce, is because the partial multipliers are 16-bit multipliers, and not 8-bit. It is a far less complex impelmentation that way.
 
-For now, T1x extends the riscv instruction set with four new instructions:
+1) T1x extends the riscv instruction set with two custom memory instructions:
 
-1) Kmemld rd,rs1,rs2
+a) Kmemld rd,rs1,rs2
 
--Loads the number of BYTES in "rs2" from the address in "rs1" in main memory to the internal scratchpad memory at address in "rd".
--Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
+- Loads the number of BYTES in "rs2" from the address in "rs1" in main memory to the internal scratchpad memory at address in "rd".
+- The bytes that are not multiples of four are masked.
 
-2) kmemstr rd,rs1,rs2
+b) kmemstr rd,rs1,rs2
 
--Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
--Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
-
- 3) kaddv rd,rs1,rs2
- 
- 4) kdotp rd,rs1,rs2
- 
-- kaddv and kdotp do arithmetic operations on the vectors in "rs1" and "rs2", and store the results in "rd". Operations are done in SIMD fashion by which four elements are operated on simultanously.
+- Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
+- The number of bytes to be loaded are masked.
 
 - Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
 
 - If we have non scratchpad access, we raise an exception.
 
-- If we have same scratchpad READ access we raise an exception.
+- If we have dual scratchpad WRITE access we raise an exception.
 
-- If writing to the scratchpads might overflow it, we raise an exception.
+- If writing to the scratchpads will cause an overflow, we raise an exception.
 
 - However we don't raise an exception if a scratchpad is used simultanously for read and write, because as mentioned sc_memories were designed with dual ports for read and write.
 
-Basic tests for vector addition and dot-product have been added, after you merge the Klessydra with PULPino, you will find the tests inside <pulp_path>/sw/apps/klessydra_dsp_tests/. 
+2) T1x has three arithmetic instructions that work on different data widths 8,16,32.
+
+a) kaddv rd,rs1,rs2
+ 
+b) kdotp rd,rs1,rs2
+ 
+c) ksvmul rd,rs1,rs2
+
+- The above arithmetic operations operate on the  the data in "rs1" and "rs2", and store the results in "rd". Operations are done in SIMD fashion 128-bit wide data bus.
+- For KADDV and KDOTP, rs1 and rs2 are indecies to vectors in the scratchpad memory. while for ksvmul only rs1 is a vector index while is the scalar to be multiplied by the vector referenced in rs1
+
+
+DSP-Unit TESTS:
+
+- Tests for the above operations have been added, after you merge the Klessydra with PULPino, you will find the tests inside <pulp_path>/sw/apps/klessydra_tests/klessydra_dsp_tests. 
+
+- The tests can show the performance of the DSP_Unit compared to vector operations being executed by a normal execution units.
+
+- the tests are
 
 Hope you like it :D
 
@@ -131,11 +145,13 @@ PROCEDURE:
 		
 		e) make vcompile
 
-		For running Klessydra tests; the variable "USE_KLESSYDRA_TEST" in the shell file is set to '1' by default. You only need to build and run your test
-		f) (e.g. make barrier_test.vsimc)
+		For running Klessydra tests; the variable "USE_KLESSYDRA_TEST" in the above shell file is set to '1' by default. You only need to build and run your test
+		f) (e.g.  make vect_sum_single_funct_call_all_test_perf.vsimc) FOR KLESSYDRA T1x ONLY!!!
+		General tests for all "Txx" versions of Klessydra are also available
+		g) (e.g.  make barrier_test.vsimc)
 		
 		For running a PULPino test, set the variable "USE_KLESSYDRA_TEST" inside the shell file to 0, and re-execute the shell file again, and then run
-		g) (e.g. make testALU.vsimc)
+		h) (e.g. make testALU.vsimc)
 			
 	IT"S DONE!!!!!!
 

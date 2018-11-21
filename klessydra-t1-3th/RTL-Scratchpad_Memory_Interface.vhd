@@ -14,6 +14,7 @@ entity Scratchpad_memory_interface is
   port (
     clk_i, rst_ni              : in std_logic;
     data_rvalid_i              : in std_logic;
+    vec_read_rs2_ID            : in std_logic;
     ls_sc_data_write_wire      : in std_logic_vector(Data_Width/4 -1 downto 0);
     dsp_sc_data_write_wire     : in std_logic_vector(Data_Width -1 downto 0);
     ls_sc_read_addr            : in std_logic_vector(Addr_Width -1 downto 0);
@@ -171,13 +172,13 @@ begin
             end loop;			  
           end if;
 
-        if dsp_sci_req(i) = '1' and ls_sci_we(i) = '1' then  -- A handler for when the DSP unit tries to read a vector that is still being loaded in the scratchpad memory
-          if dsp_sc_read_addr(0) = ls_sc_write_addr  or  dsp_sc_read_addr(1) = ls_sc_write_addr  then  -- AAA resolve for KSVMUL
+        if (dsp_sci_req(i) = '1' and dsp_sci_we(i) = '0') and ls_sci_we(i) = '1' then  -- A handler for when the DSP unit tries to read a vector that is still being loaded in the scratchpad memory
+          if dsp_sc_read_addr(0) = ls_sc_write_addr  or  (dsp_sc_read_addr(1) = ls_sc_write_addr)  then
             dsp_data_gnt_i <= '0';
           else
             dsp_data_gnt_i <= '1';
           end if;
-        elsif dsp_sci_req(i) = '1' and ls_sci_we(i) = '0' then
+        elsif (dsp_sci_req(i) = '1' and dsp_sci_we(i) = '0') and ls_sci_we(i) = '0' then
           dsp_data_gnt_i <= '1';
         end if;
 
