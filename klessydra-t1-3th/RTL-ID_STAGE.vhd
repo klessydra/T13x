@@ -463,6 +463,23 @@ begin
                   when others =>
                     decoded_instruction_IE <= ILL_pattern;
                 end case;
+              when KSUBV =>           -- KSUBV_INSTRUCTION
+                dsp_instr_req <= '1';
+                vec_write_rd_ID <= '1';
+				vec_read_rs2_ID <= '1';
+				case FUNCT3_wires is
+                  when KSUBV8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSUBV8_pattern;
+                  when KSUBV16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSUBV16_pattern;
+                  when KSUBV32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSUBV32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
               when KDOTP =>           -- KDOTP_INSTRUCTION
 				vec_read_rs2_ID <= '1';
                 dsp_instr_req <= '1';

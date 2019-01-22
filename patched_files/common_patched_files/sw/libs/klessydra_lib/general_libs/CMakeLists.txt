@@ -20,9 +20,6 @@ set(HEADERS
     inc/encoding.h
     )
 
-#set(CMAKE_C_COMPILER klessydra-unknown-elf-gcc)
-#set(CMAKE_C_FLAGS "-O3 -g")
-
 include_directories(inc/)
 
 add_library(kless_libs STATIC ${SOURCES} ${HEADERS})

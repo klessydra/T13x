@@ -94,6 +94,10 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 endif()
 
+if(${USE_KLESSYDRA_T1_3TH})
+  set(KLESS_DEFINES "${NUMOFELEMENTS}" "${TIME}")
+endif()
+
 set(CMAKE_ASM_COMPILER "${CMAKE_C_COMPILER}")
 set(CMAKE_ASM_FLAGS    "${CMAKE_C_FLAGS}")
 

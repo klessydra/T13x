@@ -18,7 +18,7 @@ USE_KLESSYDRA_T0_3TH=0
 USE_KLESSYDRA_T1_3TH=1
 
 
-if [ $USE_KLESSYDRA_TEST -eq 0 ]
+if [ $USE_KLESSYDRA_TEST -eq 0 ] 
 then
 	OBJDUMP=`which riscv32-unknown-elf-objdump`
 	OBJCOPY=`which riscv32-unknown-elf-objcopy`
@@ -37,9 +37,10 @@ else
 	GCC_MARCH="rv32ia"
 fi
 
+KLESS_VSIZE=$VSIZE
+KLESS_TIME=$TIME
+
 VSIM=`which vsim`
-
-
 
 # if you want to have compressed instructions, set this to 1
 RVC=0
@@ -65,6 +66,8 @@ SIM_DIRECTORY="$PULP_GIT_DIRECTORY/vsim"
 PL_NETLIST=""
 
 cmake "$PULP_GIT_DIRECTORY"/sw/ \
+	-DNUMOFELEMENTS="$KLESS_VSIZE" \
+	-DTIME="$KLESS_TIME" \
     -DPULP_MODELSIM_DIRECTORY="$SIM_DIRECTORY" \
     -DCMAKE_C_COMPILER="$COMPILER" \
     -DVSIM="$VSIM" \

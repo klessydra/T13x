@@ -37,7 +37,9 @@ macro(add_application NAME SOURCE_FILES)
         ${CMAKE_SOURCE_DIR}/libs/beebs_lib/inc
       )
   endif()
+  
 
+  add_definitions(${KLESS_DEFINES})
   add_executable(${NAME}.elf $<TARGET_OBJECTS:crt0> ${SOURCE_FILES})
 
   # set subdirectory for add_executable

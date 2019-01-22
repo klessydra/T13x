@@ -1,14 +1,13 @@
 #include <stdlib.h>
 #include"dsp_functions.h"
 
-uint8_t* kless_dot_product_8(void *result, void* src1, void* src2, int size)
+int8_t* kless_vector_subtraction_8(void *result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
 	int key = 1;
-	int scalar_size = 4;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -18,34 +17,32 @@ uint8_t* kless_dot_product_8(void *result, void* src1, void* src2, int size)
 		"bnez %[key], SCP_copyin_vect8_2;"
 		"SCP_copyin_vect8_1:"
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
-		"	j END8;"
+		"	j END_8;"
 		"SCP_copyin_vect8_2:"
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
-		"	bnez %[key], END8;"
+		"	bnez %[key], END_8;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
 		"	csrw 0xFF0, %[sz]; "
-		"	kdotp8 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
-		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
-		"END8:"
+		"	ksubv8 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
+		"	kmemstr %[result], %[SPMADDRC], %[sz];"
+		"END_8:"
 		:
 		:[key] "r" (key),[psection1] "r" (psection1),
-         [psection2] "r" (psection2),
+         [psection2] "r" (psection2),  [sz] "r" (size),
 		 [SPMADDRA] "r" (SPMADDRA), [srcA] "r" (src1),
-		 [sz] "r" (size), [sc_sz] "r" (scalar_size),
 		 [SPMADDRB] "r" (SPMADDRB), [srcB] "r" (src2),
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 	);
 	return result;
 }
 
-uint16_t* kless_dot_product_16(void *result, void* src1, void* src2, int size)
+int16_t* kless_vector_subtraction_16(void *result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
-	int key = 2;
-	int scalar_size = 4;
+	int key = 1;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -55,34 +52,32 @@ uint16_t* kless_dot_product_16(void *result, void* src1, void* src2, int size)
 		"bnez %[key], SCP_copyin_vect16_2;"
 		"SCP_copyin_vect16_1:"
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
-		"	j END16;"
+		"	j END_16;"
 		"SCP_copyin_vect16_2:"
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
-		"	bnez %[key], END16;"
+		"	bnez %[key], END_16;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
 		"	csrw 0xFF0, %[sz]; "
-		"	kdotp16 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
-		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
-		"END16:"
+		"	ksubv16 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
+		"	kmemstr %[result], %[SPMADDRC], %[sz];"
+		"END_16:"
 		:
 		:[key] "r" (key),[psection1] "r" (psection1),
-         [psection2] "r" (psection2),
+         [psection2] "r" (psection2),  [sz] "r" (size),
 		 [SPMADDRA] "r" (SPMADDRA), [srcA] "r" (src1),
-		 [sz] "r" (size), [sc_sz] "r" (scalar_size),
 		 [SPMADDRB] "r" (SPMADDRB), [srcB] "r" (src2),
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 	);
 	return result;
 }
 
-uint32_t* kless_dot_product_32(void *result, void* src1, void* src2, int size)
+int32_t* kless_vector_subtraction_32(void *result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
-	int key = 3;
-	char scalar_size = 8;
+	int key = 1;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -92,20 +87,19 @@ uint32_t* kless_dot_product_32(void *result, void* src1, void* src2, int size)
 		"bnez %[key], SCP_copyin_vect32_2;"
 		"SCP_copyin_vect32_1:"
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
-		"	j END32;"
+		"	j END_32;"
 		"SCP_copyin_vect32_2:"
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
-		"	bnez %[key], END32;"
+		"	bnez %[key], END_32;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
 		"	csrw 0xFF0, %[sz]; "
-		"	kdotp32 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
-		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
-		"END32:"
+		"	ksubv32 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
+		"	kmemstr %[result], %[SPMADDRC], %[sz];"
+		"END_32:"
 		:
 		:[key] "r" (key),[psection1] "r" (psection1),
-         [psection2] "r" (psection2),
+         [psection2] "r" (psection2),  [sz] "r" (size),
 		 [SPMADDRA] "r" (SPMADDRA), [srcA] "r" (src1),
-		 [sz] "r" (size), [sc_sz] "r" (scalar_size),
 		 [SPMADDRB] "r" (SPMADDRB), [srcB] "r" (src2),
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 	);

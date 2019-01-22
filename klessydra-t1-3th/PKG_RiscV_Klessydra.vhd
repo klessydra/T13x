@@ -39,7 +39,7 @@ package riscv_klessydra is
 
   constant EXEC_UNIT_INSTR_SET_SIZE : natural := 44;  -- total number of instructions in the exec unit
   constant LS_UNIT_INSTR_SET_SIZE   : natural := 11;  -- total number of instructions in the ld_str unit
-  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 9;   -- total number of instructions in the dsp unit
+  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 12;  -- total number of instructions in the dsp unit
 
   -- EXEC UNIT INSTR SET ------------------------------------------------------------------------------------------------------------
   constant ADDI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000000000000000000000000000000001";
@@ -103,15 +103,18 @@ package riscv_klessydra is
   -----------------------------------------------------------------------------------------------
 
   -- DSP UNIT INSTR SET---------------------------------------------------------------------------		
-  constant KADDV8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000001";
-  constant KADDV16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000010";
-  constant KADDV32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000100";
-  constant KDOTP8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000001000";
-  constant KDOTP16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000010000";
-  constant KDOTP32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000100000";
-  constant KSVMUL8_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "001000000";
-  constant KSVMUL16_pattern : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "010000000";
-  constant KSVMUL32_pattern : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "100000000";
+  constant KADDV8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000001";
+  constant KADDV16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000010";
+  constant KADDV32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000100";
+  constant KSUBV8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000001000";
+  constant KSUBV16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000010000";
+  constant KSUBV32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000100000";
+  constant KDOTP8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000001000000";
+  constant KDOTP16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000010000000";
+  constant KDOTP32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000100000000";
+  constant KSVMUL8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "001000000000";
+  constant KSVMUL16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "010000000000";
+  constant KSVMUL32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "100000000000";
   ------------------------------------------------------------------------------------------------
 
   constant ADDI_bit_position    : natural := 0;
@@ -172,15 +175,18 @@ package riscv_klessydra is
   constant KMEMSTR_bit_position : natural := 10;
 
 
-  constant KADDV8_bit_position    : natural := 0;
-  constant KADDV16_bit_position   : natural := 1;
-  constant KADDV32_bit_position   : natural := 2;
-  constant KDOTP8_bit_position    : natural := 3;
-  constant KDOTP16_bit_position   : natural := 4;
-  constant KDOTP32_bit_position   : natural := 5;
-  constant KSVMUL8_bit_position   : natural := 6;
-  constant KSVMUL16_bit_position  : natural := 7;
-  constant KSVMUL32_bit_position  : natural := 8;
+  constant KADDV8_bit_position     : natural := 0;
+  constant KADDV16_bit_position    : natural := 1;
+  constant KADDV32_bit_position    : natural := 2;
+  constant KSUBV8_bit_position     : natural := 3;
+  constant KSUBV16_bit_position    : natural := 4;
+  constant KSUBV32_bit_position    : natural := 5;
+  constant KDOTP8_bit_position     : natural := 6;
+  constant KDOTP16_bit_position    : natural := 7;
+  constant KDOTP32_bit_position    : natural := 8;
+  constant KSVMUL8_bit_position    : natural := 9;
+  constant KSVMUL16_bit_position   : natural := 10;
+  constant KSVMUL32_bit_position   : natural := 11;
 
   --constant cluster_id_i         : std_logic_vector(5 downto 0) := "001011";
   -- CSRs addresses
@@ -333,6 +339,9 @@ package riscv_klessydra is
   constant KADDV8   : std_logic_vector(2 downto 0) := "000";
   constant KADDV16  : std_logic_vector(2 downto 0) := "001";
   constant KADDV32  : std_logic_vector(2 downto 0) := "010";
+  constant KSUBV8   : std_logic_vector(2 downto 0) := "000";
+  constant KSUBV16  : std_logic_vector(2 downto 0) := "001";
+  constant KSUBV32  : std_logic_vector(2 downto 0) := "010";
   constant KDOTP8   : std_logic_vector(2 downto 0) := "000";
   constant KDOTP16  : std_logic_vector(2 downto 0) := "001";
   constant KDOTP32  : std_logic_vector(2 downto 0) := "010";
@@ -377,8 +386,9 @@ package riscv_klessydra is
 
   --funct7 bits for KREG Instr
   constant KADDV  : std_logic_vector(6 downto 0) := "0000001";
-  constant KDOTP  : std_logic_vector(6 downto 0) := "0000010";
-  constant KSVMUL : std_logic_vector(6 downto 0) := "0000011";
+  constant KSUBV  : std_logic_vector(6 downto 0) := "0000010";
+  constant KDOTP  : std_logic_vector(6 downto 0) := "0001000";
+  constant KSVMUL : std_logic_vector(6 downto 0) := "0001100";
 
   -- instr. to change privilege level & interrupt-management instruction
   -- funct12 bits for instructions SYSTEM -> PRIV:

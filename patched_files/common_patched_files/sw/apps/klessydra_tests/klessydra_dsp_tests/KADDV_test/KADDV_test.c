@@ -1,39 +1,60 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 #include "dsp_functions.h"
 #include "functions.h"
 #include "klessydra_defs.h"
 
-#define NumOfElements 10
 #define NumOfThreads 3
 
-unsigned char vect8_1[NumOfElements] = {0xFF, 0xEE, 0xDD, 0xCC, 0xBB, 0xAA, 0x99, 0x88};
-unsigned char vect8_2[NumOfElements] = {0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00};
-unsigned short vect16_1[NumOfElements] = {0xFFFF, 0xEEEE, 0xDDDD, 0xCCCC, 0xBBBB, 0xAAAA, 0x9999, 0x8888};
-unsigned short vect16_2[NumOfElements] = {0x7777, 0x6666, 0x5555, 0x4444, 0x3333, 0x2222, 0x1111, 0x0000};
-unsigned int vect32_1[NumOfElements] = {0xFFFFFFFF, 0xEEEEEEEE, 0xDDDDDDDD, 0xCCCCCCCC, 0xBBBBBBBB, 0xAAAAAAAA, 0x99999999, 0x88888888};
-unsigned int vect32_2[NumOfElements] = {0x77777777, 0x66666666, 0x55555555, 0x44444444, 0x33333333, 0x22222222, 0x11111111, 0x00000000};
-unsigned char testres8[NumOfElements];
-unsigned short testres16[NumOfElements];
-unsigned int testres32[NumOfElements];
-unsigned char  *res8;
-unsigned short *res16;
-unsigned int   *res32;
-unsigned char result8[NumOfElements];
-unsigned short result16[NumOfElements];
-unsigned int result32[NumOfElements];
-int size8=NumOfElements*sizeof(char);
-int size16=NumOfElements*sizeof(short);
-int size32=NumOfElements*sizeof(int);
-int testperf[NumOfThreads], perf8[NumOfThreads], perf16[NumOfThreads], perf32[NumOfThreads];
+#ifndef NumOfElements
+	#define NumOfElements 10
+#endif
+
+#ifndef TIME
+	#define TIME 10
+#endif
+
+int8_t  vect8_1[NumOfElements];
+int8_t  vect8_2[NumOfElements];
+int16_t vect16_1[NumOfElements];
+int16_t vect16_2[NumOfElements];
+int32_t vect32_1[NumOfElements];
+int32_t vect32_2[NumOfElements];
+int8_t  testres8[NumOfElements];
+int16_t testres16[NumOfElements];
+int32_t testres32[NumOfElements];
+int8_t  *res8;
+int16_t *res16;
+int32_t *res32;
+int8_t  result8[NumOfElements];
+int16_t result16[NumOfElements];
+int32_t result32[NumOfElements];
+int   size8=NumOfElements*sizeof(char);
+int   size16=NumOfElements*sizeof(short);
+int   size32=NumOfElements*sizeof(int);
+int   testperf[NumOfThreads], perf8[NumOfThreads], perf16[NumOfThreads], perf32[NumOfThreads];
 
 
 int main()
 {	
+
+	srand(TIME);
+	for (int i=0; i<NumOfElements; i++) 
+	{ 
+		vect8_1[i]  = rand()  % (0x100 - 0x1) +1;
+		vect8_2[i]  = rand()  % (0x100 - 0x1) +1;
+		vect16_1[i] = rand()  % (0x10000 - 0x1) +1;
+		vect16_2[i] = rand()  % (0x10000 - 0x1) +1;
+		vect32_1[i] = rand()  % (0x80000000 - 0x1) +1;
+		vect32_2[i] = rand()  % (0x80000000 - 0x1) +1;
+	}
+
 	int add_pass;
 	int perf = 0;
 	int* ptr_perf = &perf;
 
-	/* 8-bit ADD here */
+	/* 8-bit KADDV here */
 	
 	// ENABLE COUNTING -------------------------------------------------------------------------
 	__asm__("csrrw zero, mcycle, zero;"
@@ -43,7 +64,7 @@ int main()
 	// TEST KADDV8 -----------------------------------------------------------------------------
 	res8=kless_vector_addition_8((void*) result8, (void*) vect8_1, (void*) vect8_2,  size8);
 	//------------------------------------------------------------------------------------------
-	
+
 	// DISABLE COUNTING AND SAVE MCYCLE OF EACH THREAD -----------------------------------------
 	__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -64,8 +85,8 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres8[i] = vect8_1[i]+vect8_2[i];
-			//printf("\ntestres8(%d): %x", i, testres8[i]);
-            //printf("\nres8(%d): %x", i, (unsigned char)res8[i]);
+			printf("\ntestres8(%d): %x", i, testres8[i]);
+            printf("\nres8(%d): %x", i, res8[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -76,7 +97,7 @@ int main()
         testperf[0]=perf;
 		for (int i=0; i<NumOfElements; i++)
 		{
-			if ((unsigned char)res8[i]==testres8[i])
+			if (res8[i]==testres8[i])
 			{
 				add_pass++;
 			}
@@ -87,7 +108,7 @@ int main()
 		}
 		if (add_pass==NumOfElements)
 		{
-			printf("\nPASSED 8-bit  vector addition");
+			printf("\nPASSED KADDV8  8-bit  vector addition");
 		}
 	}
 
@@ -123,8 +144,8 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres16[i] = vect16_1[i]+vect16_2[i];
-			//printf("\ntestres16(%d): %x", i, testres16[i]);
-            //printf("\nres16(%d): %x", i, (unsigned short)res16[i]);
+			printf("\ntestres16(%d): %x", i, testres16[i]);
+            printf("\nres16(%d): %x", i, res16[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -135,7 +156,7 @@ int main()
         testperf[1]=perf;
 		for (int i=0; i<NumOfElements; i++)
 		{
-			if ((unsigned short)res16[i]==testres16[i])
+			if (res16[i]==testres16[i])
 			{
 				add_pass++;
 			}
@@ -146,7 +167,7 @@ int main()
 		}
 		if (add_pass==NumOfElements)
 		{
-			printf("\nPASSED 16-bit vector addition");
+			printf("\nPASSED KADDV16 16-bit vector addition");
 		}
 	}
 
@@ -181,8 +202,8 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres32[i] = vect32_1[i]+vect32_2[i];
-			//printf("\ntestres32(%d): %x", i, (unsigned int)testres32[i]);
-            //printf("\nres32(%d): %x", i, (unsigned int)res32[i]);
+			printf("\ntestres32(%d): %x", i, testres32[i]);
+            printf("\nres32(%d): %x", i, res32[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -204,7 +225,7 @@ int main()
 		}
 		if (add_pass==NumOfElements)
 		{
-			printf("\nPASSED 32-bit vector addition");
+			printf("\nPASSED KADDV32 32-bit vector addition");
 		}
 	
 	}
@@ -235,13 +256,17 @@ int main()
 	return 0;
 
 	FAIL_VECT_ADD_8: 
-	printf("\nFAILED 8-bit  vector addition");
+	printf("\nFAILED KADDV8  8-bit  vector addition");
 	goto VECT_ADD_16;
 	FAIL_VECT_ADD_16: 
-	printf("\nFAILED 16-bit vector addition");
+	printf("\nFAILED KADDV16 16-bit vector addition");
 	goto VECT_ADD_32;
 	FAIL_VECT_ADD_32: 
-	printf("\nFAILED 32-bit vector addition\n\n");
-        return 1;
+	printf("\nFAILED KADDV32 32-bit vector addition\n");
+	if (Klessydra_get_coreID()==1)
+	{		
+		printf("\nNumber of Elements: %d\n\n",NumOfElements);
+	}
+	return 1;
 }
 

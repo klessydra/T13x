@@ -1,6 +1,7 @@
+#include <stdlib.h>
 #include"dsp_functions.h"
 
-int* kless_scalar_vect_mult_8(void* result, void* src1, void* src2, int size)
+uint8_t* kless_scalar_vect_mult_8(void* result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
@@ -16,7 +17,6 @@ int* kless_scalar_vect_mult_8(void* result, void* src1, void* src2, int size)
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
 		"	csrw 0xFF0, %[sz];"
 		"	ksvmul8 %[SPMADDRC], %[SPMADDRA], %[srcB];"
-		"   add %[sz], %[sz], %[sz];"	// AAA remove this if the result width in klessydra is ever changed
 		"	kmemstr %[result], %[SPMADDRC], %[sz];"
 		"END8:"
 		:
@@ -26,10 +26,10 @@ int* kless_scalar_vect_mult_8(void* result, void* src1, void* src2, int size)
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 		:
 	);
-	return (int*)result;
+	return result;
 }
 
-int* kless_scalar_vect_mult_16(void* result, void* src1, void* src2, int size)
+uint16_t* kless_scalar_vect_mult_16(void* result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
@@ -45,7 +45,6 @@ int* kless_scalar_vect_mult_16(void* result, void* src1, void* src2, int size)
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
 		"	csrw 0xFF0, %[sz];"
 		"	ksvmul16 %[SPMADDRC], %[SPMADDRA], %[srcB];"
-		"   add %[sz], %[sz], %[sz];"	// AAA remove this if the result width in klessydra is ever changed
 		"	kmemstr %[result], %[SPMADDRC], %[sz];"
 		"END16:"
 		:
@@ -55,10 +54,10 @@ int* kless_scalar_vect_mult_16(void* result, void* src1, void* src2, int size)
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 		:
 	);
-	return (int*)result;
+	return result;
 }
 
-int* kless_scalar_vect_mult_32(void* result, void* src1, void* src2, int size)
+uint32_t* kless_scalar_vect_mult_32(void* result, void* src1, void* src2, int size)
 {
 	int SPMADDRA = spmaddrA;
 	int SPMADDRB = spmaddrB;
@@ -74,7 +73,6 @@ int* kless_scalar_vect_mult_32(void* result, void* src1, void* src2, int size)
 		"	kmemld %[SPMADDRA], %[srcA], %[sz];"
 		"	csrw 0xFF0, %[sz];"
 		"	ksvmul32 %[SPMADDRC], %[SPMADDRA], %[srcB];"
-		"   add %[sz], %[sz], %[sz];"	// AAA remove this if the result width in klessydra is ever changed
 		"	kmemstr %[result], %[SPMADDRC], %[sz];"
 		"END32:"
 		:
@@ -84,5 +82,5 @@ int* kless_scalar_vect_mult_32(void* result, void* src1, void* src2, int size)
          [SPMADDRC] "r" (SPMADDRC), [result] "r" (result)
 		:
 	);
-	return (int*)result;
+	return result;
 }

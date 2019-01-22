@@ -43,11 +43,6 @@ begin
       end if; -- clk
     end process;
 
-    --read_logic: process (all) -- reading is combinational, like a reg. file 
-    --begin
-      --sc_data_rd(h) <= mem(h)(to_integer(unsigned(sc_addr_rd(h)(8 downto 0)))); 
-    --end process;
-    
   end generate sc_mem;
   -- end of replicated logic --------------------------------------------
 

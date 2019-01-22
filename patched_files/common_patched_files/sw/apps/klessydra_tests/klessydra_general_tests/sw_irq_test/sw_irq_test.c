@@ -1,7 +1,7 @@
 #include"functions.h"
 
 int main()
-{
+{ 
 	__asm__(	
 		"csrw 0x300, 0x8;" 	// each thread enables it's own interrupt
 	);
