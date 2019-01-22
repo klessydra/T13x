@@ -62,7 +62,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 	
 	// TEST KADDVU8 -----------------------------------------------------------------------------
-	res8=kless_vector_addition_unsigned_8((void*) result8, (void*) vect8_1, (void*) vect8_2,  size8);
+	res8=kless_vector_addition_8((void*) result8, (void*) vect8_1, (void*) vect8_2,  size8);
 	//------------------------------------------------------------------------------------------
 	
 	// DISABLE COUNTING AND SAVE MCYCLE OF EACH THREAD -----------------------------------------
@@ -120,7 +120,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 
 	// TEST KADDVU16 ----------------------------------------------------------------------------
-    res16=kless_vector_addition_unsigned_16((void*) result16, (void*) vect16_1, (void*) vect16_2, size16);
+    res16=kless_vector_addition_16((void*) result16, (void*) vect16_1, (void*) vect16_2, size16);
     //------------------------------------------------------------------------------------------
     
 	// DISABLE COUNTING AND SAVE MCYCLE OF EACH THREAD -----------------------------------------
@@ -180,7 +180,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 	
 	// TEST KADDVU32 ----------------------------------------------------------------------------
-	res32=kless_vector_addition_unsigned_32((void*) result32, (void*) vect32_1, (void*) vect32_2, size32);
+	res32=kless_vector_addition_32((void*) result32, (void*) vect32_1, (void*) vect32_2, size32);
 	//------------------------------------------------------------------------------------------
 	
 	// DISABLE COUNTING AND SAVE MCYCLE OF EACH THREAD -----------------------------------------

@@ -44,17 +44,13 @@ uint8_t* kless_dot_product_8(void* result, void* src1, void* src2, int size);
 uint16_t* kless_dot_product_16(void* result, void* src1, void* src2, int size);
 uint32_t* kless_dot_product_32(void* result, void* src1, void* src2, int size);
 
-int8_t*  kless_vector_addition_8(void* result, void* src1, void* src2, int size);
-int16_t* kless_vector_addition_16(void* result, void* src1, void* src2, int size);
-int32_t* kless_vector_addition_32(void* result, void* src1, void* src2, int size);
+void*  kless_vector_addition_8(void* result, void* src1, void* src2, int size);
+void* kless_vector_addition_16(void* result, void* src1, void* src2, int size);
+void* kless_vector_addition_32(void* result, void* src1, void* src2, int size);
 
 int8_t*  kless_vector_subtraction_8(void* result, void* src1, void* src2, int size);
 int16_t* kless_vector_subtraction_16(void* result, void* src1, void* src2, int size);
 int32_t* kless_vector_subtraction_32(void* result, void* src1, void* src2, int size);
-
-uint8_t*  kless_vector_addition_unsigned_8(void* result, void* src1, void* src2, int size);
-uint16_t* kless_vector_addition_unsigned_16(void* result, void* src1, void* src2, int size);
-uint32_t* kless_vector_addition_unsigned_32(void* result, void* src1, void* src2, int size);
 
 uint8_t*  kless_scalar_vect_mult_8(void* result, void* src1, void* src2, int size);
 uint16_t* kless_scalar_vect_mult_16(void* result, void* src1, void* src2, int size);
