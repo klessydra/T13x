@@ -32,7 +32,7 @@ b) kmemstr rd,rs1,rs2
 - Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
 - The number of bytes to be loaded are masked.
 
-- Currently the number of bytes in rs2 have to be a multiple of four (i.e. 32-bits) or else we raise an exception.
+- The bytes that are not multiples of four are masked.
 
 - If we have non scratchpad access, we raise an exception.
 
