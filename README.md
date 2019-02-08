@@ -30,7 +30,6 @@ a) Kmemld rd,rs1,rs2
 b) kmemstr rd,rs1,rs2
 
 - Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
-- The number of bytes to be loaded are masked.
 
 - The bytes that are not multiples of four are masked.
 
