@@ -7,7 +7,7 @@ Attached are the files used to build the riscv toolchain with the klessydra inst
    
 2) Switch to the commit which has the compatible version with our patched files
 
-         cd riscv-gnu-toolchain
+	 cd riscv-gnu-toolchain
 	 git checkout v20180629	
 
 3) Update the submodules inside the riscv-gnu-toolchain
