@@ -2,62 +2,22 @@
 
 Extensions of T13x core
 
-- Four scratchpad memories of size 512-bytes, having dual data ports for read and write of bus width being 128-bit.The Scratchpads are nicknamed A,B,C,D and they are mapped at the following addresses respectively
+I will include shortly a document stating all the features of the T13 core.
 
-  - 0x00109000 -> 0x001091FF (scA)
-  - 0x00109200 -> 0x001093FF (scB)
-  - 0x00109400 -> 0x001094FF (scC)
-  - 0x00109600 -> 0x001096FF (scD)
-  
-- Three sperate execution Units that can work in parallel allowing superscalarity
-
-  - DSP_Unit
-  - IE_Unit
-  - LSU_Unit
-  
-- DSP Unit does dot product and vector addition in SIMD fashion, it executes arithmetic instructions on different data width sizes, mainly, 8-bit, 16-bit, 32-bit. Operations are done using partial addition, multiplication. 
-
-- Partial adders allowed us to do 16*8-bit additions in one cycle, or 8*16-bit additions in one cycle or 4*32-bit additions in one cycle.
-- Partial multipliers allowed us to do 8*8-bit multiplication in one cycle, or 8*16-bit additions in one cycle or 4*32-bit additions in one cycle. The reason we do only 8-bit multiplication in once cylce, is because the partial multipliers are 16-bit multipliers, and not 8-bit. It is a far less complex impelmentation that way.
-
-1) T1x extends the riscv instruction set with two custom memory instructions:
-
-a) Kmemld rd,rs1,rs2
-
-- Loads the number of BYTES in "rs2" from the address in "rs1" in main memory to the internal scratchpad memory at address in "rd".
-- The bytes that are not multiples of four are masked.
-
-b) kmemstr rd,rs1,rs2
-
-- Loads the number of bytes in "rs2" from the address in "rs1" in the internal scratchpad memory at address to thee address in ram at "rd".
-
-- The bytes that are not multiples of four are masked.
-
-- If we have non scratchpad access, we raise an exception.
-
-- If we have dual scratchpad WRITE access we raise an exception.
-
-- If writing to the scratchpads will cause an overflow, we raise an exception.
-
-- However we don't raise an exception if a scratchpad is used simultanously for read and write, because as mentioned sc_memories were designed with dual ports for read and write.
-
-2) T1x has three arithmetic instructions that work on different data widths 8,16,32.
-
-a) kaddv rd,rs1,rs2
- 
-b) kdotp rd,rs1,rs2
- 
-c) ksvmul rd,rs1,rs2
-
-- The above arithmetic operations operate on the  the data in "rs1" and "rs2", and store the results in "rd". Operations are done in SIMD fashion 128-bit wide data bus.
-- For KADDV and KDOTP, rs1 and rs2 are indecies to vectors in the scratchpad memory. while for ksvmul only rs1 is a vector index while is the scalar to be multiplied by the vector referenced in rs1
-
+For now T13 can give you many configs in the PKG file that you can use to build your T13 gowever you want:
+Configs:
+    - Registerfile size (16, or 32)
+    - Scratchpad Memory number (Should not be put less than two)
+    - Scratchpad Size (should always be a power two)
+    - Scratchpad starting address (Lets you map the scartchpad mems wherever you want, remember not to overlap other sections)
+    - SIMD (Lets you choose the SIMD size you want. Can be put to "1,,2,4,8" only other configs are not allowed) increasing the SIMD will increase the number of functional units in the DSP, and the number of banks in every scratchpad.
+    - MCYCLE_EN, MINSTRET_EN, and MHPMCOUNTER_EN setting to 1 will enable the generation of the perfromance counters in the T1 core
 
 DSP-Unit TESTS:
 
 - Tests for the above operations have been added, after you merge the Klessydra with PULPino, you will find the tests inside <pulp_path>/sw/apps/klessydra_tests/klessydra_dsp_tests. 
 
-- The tests can show the performance of the DSP_Unit compared to vector operations being executed by a normal execution units.
+- The tests can show the performance of the DSP_Unit compared to vector operations being executed by the non-vector execution units.
 
 - the tests are
 
