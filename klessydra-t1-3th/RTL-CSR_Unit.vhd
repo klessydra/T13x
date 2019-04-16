@@ -24,7 +24,7 @@ entity CSR_Unit is
     served_except_condition     : in  replicated_bit;
     served_mret_condition       : in  replicated_bit;
     served_irq                  : in  replicated_bit;
-    pc_except_value             : in  replicated_32b_reg;
+    pc_except_value_wire        : in  replicated_32b_reg;
     dbg_req_o                   : in  std_logic;
     data_addr_internal          : in  std_logic_vector(31 downto 0);
     jump_instr                  : in  std_logic;
@@ -40,8 +40,9 @@ entity CSR_Unit is
     csr_instr_done              : out std_logic;
     csr_access_denied_o         : out std_logic;
     csr_rdata_o                 : out std_logic_vector (31 downto 0);
-    MVSIZE                      : out replicated_32b_reg;
-    MSTATUS                     : out replicated_32b_reg;
+    MVSIZE                      : out array_2d(THREAD_POOL_SIZE-1 downto 0)(Addr_Width downto 0);
+    MPSCLFAC                    : out array_2d(THREAD_POOL_SIZE-1 downto 0)(4 downto 0);
+    MSTATUS                     : out array_2d(harc_range)(1 downto 0);
     MEPC                        : out replicated_32b_reg;
     MCAUSE                      : out replicated_32b_reg;
     MIP                         : out replicated_32b_reg;
@@ -70,18 +71,16 @@ architecture CSR of CSR_Unit is
   signal PCCRs       : replicated_32b_reg;  -- still not implemented
   signal PCER        : replicated_32b_reg;  -- still not implemented
   signal PCMR        : replicated_32b_reg;  -- still not implemented
-  signal MESTATUS    : replicated_32b_reg;
-  signal MCPUID      : replicated_32b_reg;
-  signal MIMPID      : replicated_32b_reg;
-  signal MHARTID     : replicated_32b_reg;
+  signal MESTATUS    : array_2d(harc_range)(2  downto 0);
+  signal MCPUID      : array_2d(harc_range)(8  downto 0);
+  signal MIMPID      : array_2d(harc_range)(15 downto 0);
+  signal MHARTID     : array_2d(harc_range)(9  downto 0);
   signal MIRQ        : replicated_32b_reg;  -- extension, maps external irqs
   signal MBADADDR    : replicated_32b_reg;  -- misaligned address containers
 
   signal MCYCLE        : replicated_32b_reg;
   signal MINSTRET      : replicated_32b_reg;
   signal MHPMCOUNTER3  : replicated_32b_reg;
-  --signal MHPMCOUNTER4 : replicated_32b_reg; 
-  --signal MHPMCOUNTER5 : replicated_32b_reg; 
   signal MHPMCOUNTER6  : replicated_32b_reg;
   signal MHPMCOUNTER7  : replicated_32b_reg;
   signal MHPMCOUNTER8  : replicated_32b_reg;
@@ -90,9 +89,7 @@ architecture CSR of CSR_Unit is
   signal MHPMCOUNTER11 : replicated_32b_reg;
   signal MCYCLEH       : replicated_32b_reg;
   signal MINSTRETH     : replicated_32b_reg;
-  signal MHPMEVENT3    : replicated_bit;
-  --signal MHPMEVENT4           : replicated_bit;        
-  --signal MHPMEVENT5           : replicated_bit;        
+  signal MHPMEVENT3    : replicated_bit;       
   signal MHPMEVENT6    : replicated_bit;
   signal MHPMEVENT7    : replicated_bit;
   signal MHPMEVENT8    : replicated_bit;
@@ -112,7 +109,7 @@ architecture CSR of CSR_Unit is
   signal csr_rdata_o_replicated         : replicated_32b_reg;
 
   -- wire only signals (For Synopsis Comaptibility)
-  signal MSTATUS_internal       : replicated_32b_reg;
+  signal MSTATUS_internal       : array_2d(harc_range)(1 downto 0);
   signal MEPC_internal          : replicated_32b_reg;
   signal MCAUSE_internal        : replicated_32b_reg;
   signal MIP_internal           : replicated_32b_reg;
@@ -144,14 +141,15 @@ begin
 
     -- hardwired read-only connections  
     -- note: MCPUID, MIMPID, MHARTID replicated only for easy coding, they return same value for all threads
-    MCPUID(h) <= std_logic_vector(to_unsigned(256, 32));  -- xx move init value in pkg
-    MIMPID(h) <= std_logic_vector(to_unsigned(32768, 32));  -- xx move init value in pkg
+    MCPUID(h) <= std_logic_vector(to_unsigned(256, 9));  -- xx move init value in pkg
+    MIMPID(h) <= std_logic_vector(to_unsigned(32768, 16));  -- xx move init value in pkg
 
     -- irq request vector shifted by 2 bits, used in interrupt handler routine
     MIRQ(h) <= "0000000000000000000000000" & irq_id_i & "00";
-	pc_IE_replicated(harc_EXEC) <= pc_IE;
+	pc_IE_replicated(h) <= pc_IE when harc_EXEC = h else (others =>'0');
     csr_instr_req_replicated(h) <= '1' when csr_instr_req = '1' and harc_to_csr = h else '0';
-    trap_hndlr(h)               <= '1' when pc_IE_replicated(h) = MTVEC_RESET_VALUE(h)  else '0' when (pc_IE_replicated(h) = MEPC_internal(h)) or (pc_IE_replicated(h) = std_logic_vector(unsigned(MEPC_internal(h)) + 4));
+    trap_hndlr(h)               <= '1' when pc_IE_replicated(h) = MTVEC_RESET_VALUE(h)  else '0';
+    MHARTID(h)                  <= std_logic_vector(resize(unsigned(cluster_id_i) & to_unsigned(h, THREAD_ID_SIZE), 10));
 
     CSR_unit_op : process(clk_i, rst_ni)  -- single cycle unit, one process, fully synchronous 
 
@@ -160,35 +158,37 @@ begin
     begin
 
       if rst_ni = '0' then
-        MHARTID(h) 							  <= std_logic_vector(resize(unsigned(cluster_id_i) & to_unsigned(h, THREAD_ID_SIZE), 32));
         MSTATUS_internal(h)                   <= MSTATUS_RESET_VALUE;
         MVSIZE(h)                             <= MVSIZE_RESET_VALUE;
+        MPSCLFAC(h)                           <= MPSCLFAC_RESET_VALUE;
         MESTATUS(h)                           <= MESTATUS_RESET_VALUE;
         MEPC_internal(h)                      <= MEPC_RESET_VALUE;
         MCAUSE_internal(h)                    <= MCAUSE_RESET_VALUE;
         MTVEC_internal(h)                     <= MTVEC_RESET_VALUE(h);
         PCER(h)                               <= PCER_RESET_VALUE(h);
         --Reset of counters and related registers
-        MCYCLE(h)                         <= x"00000000";
-        MINSTRET(h)                       <= x"00000000";
-        MHPMCOUNTER3(h)                   <= x"00000000";
-        --MHPMCOUNTER4(h)       <= x"00000000"; -- xxxxxxxxxxxx why commented? (ask Cerutti)
-        --MHPMCOUNTER5(h)       <= x"00000000";
-        MHPMCOUNTER6(h)                   <= x"00000000";
-        MHPMCOUNTER7(h)                   <= x"00000000";
-        MHPMCOUNTER8(h)                   <= x"00000000";
-        MHPMCOUNTER9(h)                   <= x"00000000";
-        MHPMCOUNTER10(h)                  <= x"00000000";
-        MCYCLEH(h)                        <= x"00000000";
-        MINSTRETH(h)                      <= x"00000000";
-        MHPMEVENT3(h)                     <= PCER_RESET_VALUE(h)(2);
-        --MHPMEVENT4(h) <=PCER_RESET_VALUE(3);  -- xxxxxxxxxxxxxxx as above
-        --MHPMEVENT5(h) <=PCER_RESET_VALUE(4);  
-        MHPMEVENT6(h)                     <= PCER_RESET_VALUE(h)(5);
-        MHPMEVENT7(h)                     <= PCER_RESET_VALUE(h)(6);
-        MHPMEVENT8(h)                     <= PCER_RESET_VALUE(h)(7);
-        MHPMEVENT9(h)                     <= PCER_RESET_VALUE(h)(8);
-        MHPMEVENT10(h)                    <= PCER_RESET_VALUE(h)(9);
+        if (MCYCLE_EN = 1) then
+          MCYCLE(h)                         <= x"00000000";
+          MCYCLEH(h)                        <= x"00000000";
+        end if;
+        if (MINSTRET_EN = 1) then
+          MINSTRET(h)                       <= x"00000000";
+          MINSTRETH(h)                      <= x"00000000";
+        end if;
+        if (MHPMCOUNTER_EN = 1) then
+          MHPMCOUNTER3(h)                   <= x"00000000";
+          MHPMCOUNTER6(h)                   <= x"00000000";
+          MHPMCOUNTER7(h)                   <= x"00000000";
+          MHPMCOUNTER8(h)                   <= x"00000000";
+          MHPMCOUNTER9(h)                   <= x"00000000";
+          MHPMCOUNTER10(h)                  <= x"00000000";
+          MHPMEVENT3(h)                     <= PCER_RESET_VALUE(h)(2);
+          MHPMEVENT6(h)                     <= PCER_RESET_VALUE(h)(5);
+          MHPMEVENT7(h)                     <= PCER_RESET_VALUE(h)(6);
+          MHPMEVENT8(h)                     <= PCER_RESET_VALUE(h)(7);
+          MHPMEVENT9(h)                     <= PCER_RESET_VALUE(h)(8);
+          MHPMEVENT10(h)                    <= PCER_RESET_VALUE(h)(9);
+        end if;
         MIP_internal(h)                   <= MIP_RESET_VALUE;
 
         csr_instr_done_replicated(h)      <= '0';
@@ -209,7 +209,7 @@ begin
         if served_irq(h) = '1' and MIP_internal(h)(11) = '1' then
           -- it is the MEIP bit, ext. irq
           MCAUSE_internal(h) <= "1" & std_logic_vector(to_unsigned(11, 31));  -- ext. irq
-          MESTATUS(h)    <= MSTATUS_internal(h);
+          MESTATUS(h)(2 downto 1)    <= MSTATUS_internal(h);
           if trap_hndlr(h) = '0' then
             MEPC_internal(h) <= pc_IE;
           end if;     
@@ -218,13 +218,13 @@ begin
           else
 			MCAUSE_internal(h)(30) <= '0';
           end if;
-          MSTATUS_internal(h)(3) <= '0';    -- interrupt disabled
-          MSTATUS_internal(h)(7) <= MSTATUS_internal(h)(3);
+          MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
+          MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
         elsif served_irq(h) = '1' and MIP_internal(h)(3) = '1' then
           -- it is the MSIP bit, sw interrupt req
           MCAUSE_internal(h) <= "1" & std_logic_vector(to_unsigned(3, 31));  -- sw interrupt
           MIP_internal(h)(3) <= '0'; -- we reset the sw int. request just being served
-          MESTATUS(h)    <= MSTATUS_internal(h);
+          MESTATUS(h)(2 downto 1)    <= MSTATUS_internal(h);
           if trap_hndlr(h) = '0' then
             MEPC_internal(h) <= pc_IE;
           end if;     
@@ -233,12 +233,12 @@ begin
           else
 			MCAUSE_internal(h)(30) <= '0';
           end if;
-          MSTATUS_internal(h)(3) <= '0';    -- interrupt disabled
-          MSTATUS_internal(h)(7) <= MSTATUS_internal(h)(3);
+          MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
+          MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
         elsif served_irq(h) = '1' and MIP_internal(h)(7) = '1' then
           -- it is the MSIP bit, timer interrupt req
           MCAUSE_internal(h) <= "1" & std_logic_vector(to_unsigned(7, 31));  -- timer interrupt
-          MESTATUS(h)    <= MSTATUS_internal(h);
+          MESTATUS(h)(2 downto 1)    <= MSTATUS_internal(h);
           if trap_hndlr(h) = '0' then
             MEPC_internal(h) <= pc_IE;
           end if;   
@@ -247,8 +247,8 @@ begin
           else
 			MCAUSE_internal(h)(30) <= '0';
           end if;
-          MSTATUS_internal(h)(3) <= '0';    -- interrupt disabled
-          MSTATUS_internal(h)(7) <= MSTATUS_internal(h)(3);
+          MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
+          MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
           
         --  Exception-caused CSR updating ----------------------------------
         elsif served_except_condition(h) = '1' then
@@ -259,19 +259,18 @@ begin
           elsif served_ie_except_condition(h) = '1' then
             MCAUSE_internal(h)     <= ie_except_data;  -- passed from IE Stage
           end if;
-          MESTATUS(h)        <= MSTATUS_internal(h);
-          MESTATUS(h)        <= MSTATUS_internal(h);
-          MEPC_internal(h)       <= pc_except_value(h);
-          MSTATUS_internal(h)(3) <= '0';  -- interrupt disabled, xx this is to be checked           
-          MSTATUS_internal(h)(7) <= '1';  -- interrupt disabled, xx this is to be checked           
+          MESTATUS(h)(2 downto 1)        <= MSTATUS_internal(h);
+          MEPC_internal(h)   <= pc_except_value_wire(h);
+          MSTATUS_internal(h)(0) <= '0';  -- interrupt disabled, xx this is to be checked           
+          MSTATUS_internal(h)(1) <= '1';  -- interrupt disabled, xx this is to be checked           
           if misaligned_err = '1' then
             MBADADDR(h) <= data_addr_internal;
           end if;
 
         -- mret-caused CSR updating ----------------------------------------
         elsif served_mret_condition(h) = '1' then
-          MSTATUS_internal(h)(7) <= '1';
-          MSTATUS_internal(h)(3) <= MSTATUS_internal(h)(7);
+          MSTATUS_internal(h)(1) <= '1';
+          MSTATUS_internal(h)(0) <= MSTATUS_internal(h)(1);
         -- CSR instruction handling ----------------------------------------      
         elsif(csr_instr_done_replicated(h) = '1') then
           csr_instr_done_replicated(h)      <= '0';
@@ -280,45 +279,73 @@ begin
           csr_instr_done_replicated(h) <= '1';
           if (csr_op_i /= "000" and csr_op_i /= "100") then  -- check for valid operation 
             case csr_addr_i is
+
               when MVSIZE_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MVSIZE(h);
-                    MVSIZE(h)              <= csr_wdata_i;
+                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
+                    MVSIZE(h) <= csr_wdata_i(Addr_Width downto 0);
                   when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MVSIZE(h);
+                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
                     if(rs1(instr_word_IE) /= 0) then
-                      MVSIZE(h) <= (MVSIZE(h) or csr_wdata_i);
+                      MVSIZE(h) <= (MVSIZE(h) or csr_wdata_i(Addr_Width downto 0));
                     end if;
                   when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MVSIZE(h);
+                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
                     if(rs1(instr_word_IE) /= 0) then
-                      MVSIZE(h) <= (MVSIZE(h) and not(csr_wdata_i));
+                      MVSIZE(h) <= (MVSIZE(h) and not(csr_wdata_i(Addr_Width downto 0)));
                     end if;
                   when others =>
                     null;
                 end case;
+
+              when MPSCLFAC_addr =>
+                case csr_op_i is
+                  when CSRRW|CSRRWI =>
+                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                    MPSCLFAC(h) <= csr_wdata_i(4 downto 0);
+                  when CSRRS|CSRRSI =>
+                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                    if(rs1(instr_word_IE) /= 0) then
+                      MPSCLFAC(h) <= (MPSCLFAC(h) or csr_wdata_i(4 downto 0));
+                    end if;
+                  when CSRRC|CSRRCI =>
+                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                    if(rs1(instr_word_IE) /= 0) then
+                      MPSCLFAC(h) <= (MPSCLFAC(h) and not(csr_wdata_i(4 downto 0)));
+                    end if;
+                  when others =>
+                    null;
+                end case;
+
               when MSTATUS_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MSTATUS_internal(h);
-                    MSTATUS_internal(h)(7)        <= csr_wdata_i(7);
-                    MSTATUS_internal(h)(3)        <= csr_wdata_i(3);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MSTATUS_internal(h)(1) & "000" & MSTATUS_internal(h)(0) & "000";
+                    MSTATUS_internal(h)(1)    <= csr_wdata_i(7);
+                    MSTATUS_internal(h)(0)    <= csr_wdata_i(3);
                   when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MSTATUS_internal(h);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MSTATUS_internal(h)(1) & "000" & MSTATUS_internal(h)(0) & "000";
                     if(rs1(instr_word_IE) /= 0) then
-                      MSTATUS_internal(h)(7) <= (MSTATUS_internal(h)(7) or csr_wdata_i(7));
-                      MSTATUS_internal(h)(3) <= (MSTATUS_internal(h)(3) or csr_wdata_i(3));
+                      MSTATUS_internal(h)(1) <= (MSTATUS_internal(h)(1) or csr_wdata_i(7));
+                      MSTATUS_internal(h)(0) <= (MSTATUS_internal(h)(0) or csr_wdata_i(3));
                     end if;
                   when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MSTATUS_internal(h);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MSTATUS_internal(h)(1) & "000" & MSTATUS_internal(h)(0) & "000";
                     if(rs1(instr_word_IE) /= 0) then
-                      MSTATUS_internal(h)(7) <= MSTATUS_internal(h)(7) and (not csr_wdata_i(7));
-                      MSTATUS_internal(h)(3) <= MSTATUS_internal(h)(3) and (not csr_wdata_i(3));
+                      MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(1) and (not csr_wdata_i(7));
+                      MSTATUS_internal(h)(0) <= MSTATUS_internal(h)(0) and (not csr_wdata_i(3));
                     end if;
                   when others =>
                     null;
                 end case;
+
               when MIP_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
@@ -337,6 +364,7 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MEPC_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
@@ -355,6 +383,7 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MTVEC_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
@@ -373,6 +402,7 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MCAUSE_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
@@ -397,29 +427,31 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MESTATUS_addr =>
                 case csr_op_i is
                   when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MESTATUS(h);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MESTATUS(h)(2) & "000" & MESTATUS(h)(1) & "00" & MESTATUS(h)(0);
                     MESTATUS(h)(0)            <= csr_wdata_i(0);
                   when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MESTATUS(h);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MESTATUS(h)(2) & "000" & MESTATUS(h)(1) & "00" & MESTATUS(h)(0);
                     if(rs1(instr_word_IE) /= 0) then
                       MESTATUS(h)(0) <= (MESTATUS(h)(0) or csr_wdata_i(0));
                     end if;
                   when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MESTATUS(h);
+                    csr_rdata_o_replicated(h) <= (13 to 31 => '0') & "11" & "000" & MESTATUS(h)(2) & "000" & MESTATUS(h)(1) & "00" & MESTATUS(h)(0);
                     if(rs1(instr_word_IE) /= 0) then
                       MESTATUS(h)(0) <= (MESTATUS(h)(0) and (not csr_wdata_i(0)));
                     end if;
                   when others =>
                     null;
                 end case;
+ 
               when MCPUID_addr =>       -- read only
                 case csr_op_i is
                   when CSRRC|CSRRS|CSRRCI|CSRRSI =>
                     if(rs1(instr_word_IE) = 0) then
-                      csr_rdata_o_replicated(h) <= MCPUID(h);
+                      csr_rdata_o_replicated(h) <= (9 to 31 => '0') & MCPUID(h);
                     else
                       csr_access_denied_o_replicated(h) <= '1';
                     end if;
@@ -428,11 +460,12 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MIMPID_addr =>       -- read only
                 case csr_op_i is
                   when CSRRC|CSRRS|CSRRCI|CSRRSI =>
                     if(rs1(instr_word_IE) = 0) then
-                      csr_rdata_o_replicated(h) <= MIMPID(h);
+                      csr_rdata_o_replicated(h) <= (16 to 31 => '0') & MIMPID(h);
                     else
                       csr_access_denied_o_replicated(h) <= '1';
                     end if;
@@ -441,11 +474,12 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MHARTID_addr =>      -- read only
                 case csr_op_i is
                   when CSRRC|CSRRS|CSRRCI|CSRRSI =>
                     if(rs1(instr_word_IE) = 0) then
-                      csr_rdata_o_replicated(h) <= MHARTID(h);
+                      csr_rdata_o_replicated(h) <= (10 to 31 => '0') & MHARTID(h);
                     else
                       csr_access_denied_o_replicated(h) <= '1';
                     end if;
@@ -454,6 +488,7 @@ begin
                   when others =>
                     null;
                 end case;
+
               when MIRQ_addr =>         -- read only
                 case csr_op_i is
                   when CSRRC|CSRRS|CSRRCI|CSRRSI =>
@@ -467,6 +502,7 @@ begin
                   when others =>
                     null;
                 end case;
+
               when BADADDR_addr =>      -- read only
                 case csr_op_i is
                   when CSRRC|CSRRS|CSRRCI|CSRRSI =>
@@ -482,466 +518,441 @@ begin
                 end case;
 
               when MCYCLE_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MCYCLE(h);
-                    MCYCLE(h)                 <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MCYCLE(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MCYCLE(h) <= (MCYCLE(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MCYCLE(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MCYCLE(h) <= (MCYCLE(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
-
-              when MINSTRET_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);  --old value in reading
-                    MINSTRET(h)               <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MINSTRET(h) <= (MINSTRET(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MINSTRET(h) <= (MINSTRET(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MCYCLE_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MCYCLE(h);
+                      MCYCLE(h)                 <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MCYCLE(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MCYCLE(h) <= (MCYCLE(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MCYCLE(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MCYCLE(h) <= (MCYCLE(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MCYCLEH_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MCYCLEH(h);
-                    MCYCLEH(h)                <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MCYCLEH(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MCYCLEH(h) <= (MCYCLEH(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MCYCLEH(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MCYCLEH(h) <= (MCYCLEH(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MCYCLE_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MCYCLEH(h);
+                      MCYCLEH(h)                <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MCYCLEH(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MCYCLEH(h) <= (MCYCLEH(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MCYCLEH(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MCYCLEH(h) <= (MCYCLEH(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
+
+              when MINSTRET_addr =>
+                if (MINSTRET_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);  --old value in reading
+                      MINSTRET(h)               <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MINSTRET(h) <= (MINSTRET(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRET(h))-1);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MINSTRET(h) <= (MINSTRET(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MINSTRETH_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
-                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
-                    else
-                      csr_rdata_o_replicated(h) <= MINSTRETH(h);
-                    end if;
-                    MINSTRETH(h) <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
-                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
-                    else
-                      csr_rdata_o_replicated(h) <= MINSTRETH(h);
-                    end if;
-                    if(rs1(instr_word_IE) /= 0) then
-                      MINSTRETH(h) <= (MINSTRETH(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
-                      csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
-                    else
-                      csr_rdata_o_replicated(h) <= MINSTRETH(h);
-                    end if;
-                    if(rs1(instr_word_IE) /= 0) then
-                      MINSTRETH(h) <= (MINSTRETH(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MINSTRET_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
+                        csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
+                      else
+                        csr_rdata_o_replicated(h) <= MINSTRETH(h);
+                      end if;
+                      MINSTRETH(h) <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
+                        csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
+                      else
+                        csr_rdata_o_replicated(h) <= MINSTRETH(h);
+                      end if;
+                      if(rs1(instr_word_IE) /= 0) then
+                        MINSTRETH(h) <= (MINSTRETH(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      if(MINSTRET(h) = x"00000000" and MINSTRETH(h) /= x"00000000") then
+                        csr_rdata_o_replicated(h) <= std_logic_vector(unsigned(MINSTRETH(h))-1);
+                      else
+                        csr_rdata_o_replicated(h) <= MINSTRETH(h);
+                      end if;
+                      if(rs1(instr_word_IE) /= 0) then
+                        MINSTRETH(h) <= (MINSTRETH(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMCOUNTER3_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
-                    MHPMCOUNTER3(h)           <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER3(h) <= (MHPMCOUNTER3(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER3(h) <= (MHPMCOUNTER3(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
+                      MHPMCOUNTER3(h)           <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER3(h) <= (MHPMCOUNTER3(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER3(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER3(h) <= (MHPMCOUNTER3(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
-                -- when MHPMCOUNTER4_addr =>
-                -- case csr_op_i is
-                -- when CSRRW|CSRRWI =>
-                -- if (rd(instr_word_IE) /= 0) then
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER4(h);
-                -- end if;
-                -- MHPMCOUNTER4(h) <= csr_wdata_i;
-                -- when CSRRS|CSRRSI =>
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER4(h);
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMCOUNTER4(h) <= (MHPMCOUNTER4(h) or csr_wdata_i);
-                -- end if;
-                -- when CSRRC|CSRRCI =>
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER4(h);
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMCOUNTER4(h) <= (MHPMCOUNTER4(h) and not(csr_wdata_i));
-                -- end if;
-                -- when others =>
-                -- null;
-                -- end case;
-
-                -- when MHPMCOUNTER5_addr =>
-                -- case csr_op_i is
-                -- when CSRRW|CSRRWI =>
-                -- if (rd(instr_word_IE) /= 0) then
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER5(h);
-                -- end if;
-                -- MHPMCOUNTER5(h) <= csr_wdata_i;
-                -- when CSRRS|CSRRSI =>
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER5(h);
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMCOUNTER5(h) <= (MHPMCOUNTER5(h) or csr_wdata_i);
-                -- end if;
-                -- when CSRRC|CSRRCI =>
-                -- csr_rdata_o_replicated(h) <= MHPMCOUNTER5(h);
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMCOUNTER5(h) <= (MHPMCOUNTER5(h) and not(csr_wdata_i));
-                -- end if;
-                -- when others =>
-                -- null;
-                -- end case;
 
               when MHPMCOUNTER6_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
-                    MHPMCOUNTER6(h)           <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER6(h) <= (MHPMCOUNTER6(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER6(h) <= (MHPMCOUNTER6(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
+                      MHPMCOUNTER6(h)           <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER6(h) <= (MHPMCOUNTER6(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER6(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER6(h) <= (MHPMCOUNTER6(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMCOUNTER7_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
-                    MHPMCOUNTER7(h)           <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER7(h) <= (MHPMCOUNTER7(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER7(h) <= (MHPMCOUNTER7(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
+                      MHPMCOUNTER7(h)           <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER7(h) <= (MHPMCOUNTER7(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER7(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER7(h) <= (MHPMCOUNTER7(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMCOUNTER8_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
-                    MHPMCOUNTER8(h)           <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER8(h) <= (MHPMCOUNTER8(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER8(h) <= (MHPMCOUNTER8(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
+                      MHPMCOUNTER8(h)           <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER8(h) <= (MHPMCOUNTER8(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER8(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER8(h) <= (MHPMCOUNTER8(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMCOUNTER9_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
-                    MHPMCOUNTER9(h)           <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER9(h) <= (MHPMCOUNTER9(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER9(h) <= (MHPMCOUNTER9(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
+                      MHPMCOUNTER9(h)           <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER9(h) <= (MHPMCOUNTER9(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER9(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER9(h) <= (MHPMCOUNTER9(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMCOUNTER10_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
-                    MHPMCOUNTER10(h)          <= csr_wdata_i;
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER10(h) <= (MHPMCOUNTER10(h) or csr_wdata_i);
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMCOUNTER10(h) <= (MHPMCOUNTER10(h) and not(csr_wdata_i));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
+                      MHPMCOUNTER10(h)          <= csr_wdata_i;
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER10(h) <= (MHPMCOUNTER10(h) or csr_wdata_i);
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= MHPMCOUNTER10(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMCOUNTER10(h) <= (MHPMCOUNTER10(h) and not(csr_wdata_i));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
 
               when PCER_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= PCER(h);
-                    PCER(h)                   <= csr_wdata_i;
-                    MHPMEVENT3(h)             <= csr_wdata_i(2);
-                    --MHPMEVENT4(h) <= csr_wdata_i(3);
-                    --MHPMEVENT5(h) <= csr_wdata_i(4);  
-                    MHPMEVENT6(h)             <= csr_wdata_i(5);
-                    MHPMEVENT7(h)             <= csr_wdata_i(6);
-                    MHPMEVENT8(h)             <= csr_wdata_i(7);
-                    MHPMEVENT9(h)             <= csr_wdata_i(8);
-                    MHPMEVENT10(h)            <= csr_wdata_i(9);
+                if (MHPMCOUNTER_EN = 1 or MCYCLE_EN = 1 or MINSTRET_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= PCER(h);
+                      PCER(h)                   <= csr_wdata_i;
+                      MHPMEVENT3(h)             <= csr_wdata_i(2); 
+                      MHPMEVENT6(h)             <= csr_wdata_i(5);
+                      MHPMEVENT7(h)             <= csr_wdata_i(6);
+                      MHPMEVENT8(h)             <= csr_wdata_i(7);
+                      MHPMEVENT9(h)             <= csr_wdata_i(8);
+                      MHPMEVENT10(h)            <= csr_wdata_i(9);
 
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= PCER(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      PCER(h)        <= (PCER(h) or csr_wdata_i);
-                      MHPMEVENT3(h)  <= (PCER(h)(2) or csr_wdata_i(2));
-                                        --MHPMEVENT(h)4 <= (PCER(h)(3) or csr_wdata_i(3));      
-                                        --MHPMEVENT(h)5 <= (PCER(h)(4) or csr_wdata_i(4));
-                      MHPMEVENT6(h)  <= (PCER(h)(5) or csr_wdata_i(5));
-                      MHPMEVENT7(h)  <= (PCER(h)(6) or csr_wdata_i(6));
-                      MHPMEVENT8(h)  <= (PCER(h)(7) or csr_wdata_i(7));
-                      MHPMEVENT9(h)  <= (PCER(h)(8) or csr_wdata_i(8));
-                      MHPMEVENT10(h) <= (PCER(h)(9) or csr_wdata_i(9));
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= PCER(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        PCER(h)        <= (PCER(h) or csr_wdata_i);
+                        MHPMEVENT3(h)  <= (PCER(h)(2) or csr_wdata_i(2));
+                        MHPMEVENT6(h)  <= (PCER(h)(5) or csr_wdata_i(5));
+                        MHPMEVENT7(h)  <= (PCER(h)(6) or csr_wdata_i(6));
+                        MHPMEVENT8(h)  <= (PCER(h)(7) or csr_wdata_i(7));
+                        MHPMEVENT9(h)  <= (PCER(h)(8) or csr_wdata_i(8));
+                        MHPMEVENT10(h) <= (PCER(h)(9) or csr_wdata_i(9));
 
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= PCER(h);
-                    if(rs1(instr_word_IE) /= 0) then
-                      PCER(h)        <= (PCER(h) and not(csr_wdata_i));
-                      MHPMEVENT3(h)  <= (PCER(h)(2) and not (csr_wdata_i(2)));
-                                        --MHPMEVENT4(h) <= (PCER(h)(3) and not (csr_wdata_i(3)));       
-                                        --MHPMEVENT5 <= (PCER(h)(4) and not (csr_wdata_i(4)));
-                      MHPMEVENT6(h)  <= (PCER(h)(5) and not (csr_wdata_i(5)));
-                      MHPMEVENT7(h)  <= (PCER(h)(6) and not (csr_wdata_i(6)));
-                      MHPMEVENT8(h)  <= (PCER(h)(7) and not (csr_wdata_i(7)));
-                      MHPMEVENT9(h)  <= (PCER(h)(8) and not (csr_wdata_i(8)));
-                      MHPMEVENT10(h) <= (PCER(h)(9) and not (csr_wdata_i(9)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= PCER(h);
+                      if(rs1(instr_word_IE) /= 0) then
+                        PCER(h)        <= (PCER(h) and not(csr_wdata_i));
+                        MHPMEVENT3(h)  <= (PCER(h)(2) and not (csr_wdata_i(2)));
+                        MHPMEVENT6(h)  <= (PCER(h)(5) and not (csr_wdata_i(5)));
+                        MHPMEVENT7(h)  <= (PCER(h)(6) and not (csr_wdata_i(6)));
+                        MHPMEVENT8(h)  <= (PCER(h)(7) and not (csr_wdata_i(7)));
+                        MHPMEVENT9(h)  <= (PCER(h)(8) and not (csr_wdata_i(8)));
+                        MHPMEVENT10(h) <= (PCER(h)(9) and not (csr_wdata_i(9)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMEVENT3_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
-                    MHPMEVENT3(h)             <= csr_wdata_i(2);
-                    PCER(h)(2)                <= csr_wdata_i(2);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT3(h) <= (MHPMEVENT3(h) or csr_wdata_i(2));
-                      PCER(h)(2)    <= (PCER(h)(2) or csr_wdata_i(2));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT3(h) <= (MHPMEVENT3(h) and not(csr_wdata_i(2)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
-
-                -- when MHPMEVENT4_addr => -- xxxxxxxxxxxxxx why are these cases commented????????? (ask Cerutti)
-                -- case csr_op_i is
-                -- when CSRRW|CSRRWI =>
-                -- if (rd(instr_word_IE) /= 0) then
-                -- csr_rdata_o_replicated(h) <= (3 => MHPMEVENT4(h), others => '0');
-                -- end if;
-                -- MHPMEVENT4(h) <= csr_wdata_i(3);
-                -- PCER(h)(3) <= csr_wdata_i(3);
-                -- when CSRRS|CSRRSI =>
-                -- csr_rdata_o_replicated(h) <= (3 => MHPMEVENT4(h), others => '0');
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMEVENT4(h) <= (MHPMEVENT4(h) or csr_wdata_i(3));
-                -- PCER(h)(3) <= (PCER(h)(3) or csr_wdata_i(3));
-                -- end if;
-                -- when CSRRC|CSRRCI =>
-                -- csr_rdata_o_replicated(h) <= (3 => MHPMEVENT4, others => '0');
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMEVENT4(h) <= (MHPMEVENT4(h) and not(csr_wdata_i(3)));
-                -- end if;
-                -- when others =>
-                -- null;
-                -- end case;
-
-                -- when MHPMEVENT5_addr =>
-                -- case csr_op_i is
-                -- when CSRRW|CSRRWI =>
-                -- if (rd(instr_word_IE) /= 0) then
-                -- csr_rdata_o_replicated(h) <= (4 => MHPMEVENT5(h), others => '0');
-                -- end if;
-                -- MHPMEVENT5(h) <= csr_wdata_i(4);
-                -- PCER(h)(4) <= csr_wdata_i(4);
-                -- when CSRRS|CSRRSI =>
-                -- csr_rdata_o_replicated(h) <= (4 => MHPMEVENT5(h), others => '0');
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMEVENT5(h) <= (MHPMEVENT5(h) or csr_wdata_i(4));
-                -- PCER(h)(4) <= (PCER(h)(4) or csr_wdata_i(4));
-                -- end if;
-                -- when CSRRC|CSRRCI =>
-                -- csr_rdata_o_replicated(h) <= (4 => MHPMEVENT5(h), others => '0');
-                -- if(rs1(instr_word_IE) /= 0) then
-                -- MHPMEVENT5(h) <= (MHPMEVENT5(h) and not(csr_wdata_i(4)));
-                -- end if;
-                -- when others =>
-                -- null;
-                -- end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
+                      MHPMEVENT3(h)             <= csr_wdata_i(2);
+                      PCER(h)(2)                <= csr_wdata_i(2);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT3(h) <= (MHPMEVENT3(h) or csr_wdata_i(2));
+                        PCER(h)(2)    <= (PCER(h)(2) or csr_wdata_i(2));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (2 => MHPMEVENT3(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT3(h) <= (MHPMEVENT3(h) and not(csr_wdata_i(2)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMEVENT6_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
-                    MHPMEVENT6(h)             <= csr_wdata_i(5);
-                    PCER(h)(5)                <= csr_wdata_i(5);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT6(h) <= (MHPMEVENT6(h) or csr_wdata_i(5));
-                      PCER(h)(5)    <= (PCER(h)(5) or csr_wdata_i(5));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT6(h) <= (MHPMEVENT6(h) and not(csr_wdata_i(5)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
+                      MHPMEVENT6(h)             <= csr_wdata_i(5);
+                      PCER(h)(5)                <= csr_wdata_i(5);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT6(h) <= (MHPMEVENT6(h) or csr_wdata_i(5));
+                        PCER(h)(5)    <= (PCER(h)(5) or csr_wdata_i(5));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (5 => MHPMEVENT6(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT6(h) <= (MHPMEVENT6(h) and not(csr_wdata_i(5)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if; 
 
               when MHPMEVENT7_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
-                    MHPMEVENT7(h)             <= csr_wdata_i(6);
-                    PCER(h)(6)                <= csr_wdata_i(6);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT7(h) <= (MHPMEVENT7(h) or csr_wdata_i(6));
-                      PCER(h)(6)    <= (PCER(h)(6) or csr_wdata_i(6));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT7(h) <= (MHPMEVENT7(h) and not(csr_wdata_i(6)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
+                      MHPMEVENT7(h)             <= csr_wdata_i(6);
+                      PCER(h)(6)                <= csr_wdata_i(6);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT7(h) <= (MHPMEVENT7(h) or csr_wdata_i(6));
+                        PCER(h)(6)    <= (PCER(h)(6) or csr_wdata_i(6));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (6 => MHPMEVENT7(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT7(h) <= (MHPMEVENT7(h) and not(csr_wdata_i(6)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMEVENT8_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
-                    MHPMEVENT8(h)             <= csr_wdata_i(7);
-                    PCER(h)(7)                <= csr_wdata_i(7);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT8(h) <= (MHPMEVENT8(h) or csr_wdata_i(7));
-                      PCER(h)(7)    <= (PCER(h)(7) or csr_wdata_i(7));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT8(h) <= (MHPMEVENT8(h) and not(csr_wdata_i(7)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
+                      MHPMEVENT8(h)             <= csr_wdata_i(7);
+                      PCER(h)(7)                <= csr_wdata_i(7);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT8(h) <= (MHPMEVENT8(h) or csr_wdata_i(7));
+                        PCER(h)(7)    <= (PCER(h)(7) or csr_wdata_i(7));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (7 => MHPMEVENT8(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT8(h) <= (MHPMEVENT8(h) and not(csr_wdata_i(7)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMEVENT9_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
-                    MHPMEVENT9(h)             <= csr_wdata_i(8);
-                    PCER(h)(8)                <= csr_wdata_i(8);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT9(h) <= (MHPMEVENT9(h) or csr_wdata_i(8));
-                      PCER(h)(8)    <= (PCER(h)(8) or csr_wdata_i(8));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT9(h) <= (MHPMEVENT9(h) and not(csr_wdata_i(8)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
+                      MHPMEVENT9(h)             <= csr_wdata_i(8);
+                      PCER(h)(8)                <= csr_wdata_i(8);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT9(h) <= (MHPMEVENT9(h) or csr_wdata_i(8));
+                        PCER(h)(8)    <= (PCER(h)(8) or csr_wdata_i(8));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (8 => MHPMEVENT9(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT9(h) <= (MHPMEVENT9(h) and not(csr_wdata_i(8)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when MHPMEVENT10_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
-                    MHPMEVENT10(h)            <= csr_wdata_i(9);
-                    PCER(h)(9)                <= csr_wdata_i(9);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT10(h) <= (MHPMEVENT10(h) or csr_wdata_i(9));
-                      PCER(h)(9)     <= (PCER(h)(9) or csr_wdata_i(9));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MHPMEVENT10(h) <= (MHPMEVENT10(h) and not(csr_wdata_i(9)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if (MHPMCOUNTER_EN = 1) then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
+                      MHPMEVENT10(h)            <= csr_wdata_i(9);
+                      PCER(h)(9)                <= csr_wdata_i(9);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT10(h) <= (MHPMEVENT10(h) or csr_wdata_i(9));
+                        PCER(h)(9)     <= (PCER(h)(9) or csr_wdata_i(9));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h) <= (9 => MHPMEVENT10(h), others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MHPMEVENT10(h) <= (MHPMEVENT10(h) and not(csr_wdata_i(9)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                else
+                  csr_rdata_o_replicated(h) <= (others => '0');
+                end if;
 
               when others =>  -- invalid CSR address. ignored. May raise exception in future.
                 csr_rdata_o_replicated(h) <= (others => '0');  -- unhandled situation
@@ -957,93 +968,102 @@ begin
         if dbg_req_o = '0' then
           --THIS BIG CONDITION CHECKS WRITING TO THE CSR. IF A COUNTER IS WRITTEN, YOU DON'T HAVE TO INCREMENT IT.  (pag 22 riscv-public-v2.1.pdf)
           --The problems are only during writing on MCYCLE/H and MINSTRET/H or on any other counters that count csr instructions.
-          if (PCER(h)(0) = '1'
-              and not(csr_instr_req = '1'
-                      and (csr_addr_i = (MCYCLE_addr)
-                           or csr_addr_i = MCYCLEH_addr)
-                      and (csr_op_i = CSRRWI
-                           or csr_op_i = CSRRW
-                           or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
-                           )
-                      )
-              )
-          then                          --cycle counter
-            if(MCYCLE(h) = x"FFFFFFFF") then
-              MCYCLEH(h) <= std_logic_vector(unsigned(MCYCLEH(h))+1);
-              MCYCLE(h)  <= x"00000000";
-            else
-              MCYCLE(h) <= std_logic_vector(unsigned(MCYCLE(h))+1);
+          if (MCYCLE_EN = 1) then
+            if (PCER(h)(0) = '1'
+                and not(csr_instr_req = '1'
+                        and (csr_addr_i = (MCYCLE_addr)
+                             or csr_addr_i = MCYCLEH_addr)
+                        and (csr_op_i = CSRRWI
+                             or csr_op_i = CSRRW
+                             or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
+                             )
+                        )
+                )
+            then                          --cycle counter
+              if(MCYCLE(h) = x"FFFFFFFF") then
+                MCYCLEH(h) <= std_logic_vector(unsigned(MCYCLEH(h))+1);
+                MCYCLE(h)  <= x"00000000";
+              else
+                MCYCLE(h) <= std_logic_vector(unsigned(MCYCLE(h))+1);
+              end if;
             end if;
           end if;
-
-          if (PCER(h)(1) = '1'
-              and not(csr_instr_req = '1'
-                      and (csr_addr_i = (MINSTRET_addr)
-                           or csr_addr_i = MINSTRETH_addr)
-                      and (csr_op_i = CSRRWI
-                           or csr_op_i = CSRRW
-                           or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
-                           or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
-                           )
-                      )
-              )
-          then                          --instruction counter
-            if(instr_rvalid_i = '1') then
-              if (MINSTRET(h) = x"FFFFFFFF") then
-                MINSTRETH(h) <= std_logic_vector(unsigned(MINSTRETH(h))+1);
-                MINSTRET(h)  <= x"00000000";
-              else
-                MINSTRET(h) <= std_logic_vector(unsigned(MINSTRET(h))+1);
+          if (MINSTRET_EN = 1) then
+            if (PCER(h)(1) = '1'
+                and not(csr_instr_req = '1'
+                        and (csr_addr_i = (MINSTRET_addr)
+                             or csr_addr_i = MINSTRETH_addr)
+                        and (csr_op_i = CSRRWI
+                             or csr_op_i = CSRRW
+                             or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
+                             or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
+                             )
+                        )
+                )
+            then                          --instruction counter
+              if(instr_rvalid_i = '1') then
+                if (MINSTRET(h) = x"FFFFFFFF") then
+                  MINSTRETH(h) <= std_logic_vector(unsigned(MINSTRETH(h))+1);
+                  MINSTRET(h)  <= x"00000000";
+                else
+                  MINSTRET(h) <= std_logic_vector(unsigned(MINSTRET(h))+1);
+                end if;
               end if;
             end if;
           end if;
 
           if (PCER(h)(2) = '1') then    --load/store access stall
-            if (((data_req_o = '1' and data_gnt_i = '0') and data_valid_waiting_counter = '0') or ((not(data_req_o = '1' and data_gnt_i = '0')) and data_valid_waiting_counter = '1')) then
-              MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+1);
-            elsif((data_req_o = '1' and data_gnt_i = '0') and (data_valid_waiting_counter = '1')) then
-              MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+2);
+            if (MHPMCOUNTER_EN = 1) then
+              if (((data_req_o = '1' and data_gnt_i = '0') and data_valid_waiting_counter = '0') or ((not(data_req_o = '1' and data_gnt_i = '0')) and data_valid_waiting_counter = '1')) then
+                MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+1);
+              elsif((data_req_o = '1' and data_gnt_i = '0') and (data_valid_waiting_counter = '1')) then
+                MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+2);
+              end if;
             end if;
           end if;
 
-          --if(PCER(h)(4)='1') then     --instruction miss 
-          --    if ((instr_req_o = '1' and instr_gnt_i = '0') or ( instr_word_flush_bit_IE = '0' and instr_rvalid_i = '0' )) then
-          --            MHPMCOUNTER4 <= std_logic_vector(unsigned(MHPMCOUNTER4)+1);
-          --    end if;                 
-          --end if;     
-
           if(PCER(h)(5) = '1') then     --load access 
-            if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '0') then
-              MHPMCOUNTER6(h) <= std_logic_vector(unsigned(MHPMCOUNTER6(h))+1);
+            if (MHPMCOUNTER_EN = 1) then
+              if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '0') then
+                MHPMCOUNTER6(h) <= std_logic_vector(unsigned(MHPMCOUNTER6(h))+1);
+              end if;
             end if;
           end if;
 
           if(PCER(h)(6) = '1') then     --store access 
-            if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '1') then
-              MHPMCOUNTER7(h) <= std_logic_vector(unsigned(MHPMCOUNTER7(h))+1);
+            if (MHPMCOUNTER_EN = 1) then
+              if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '1') then
+                MHPMCOUNTER7(h) <= std_logic_vector(unsigned(MHPMCOUNTER7(h))+1);
+              end if;
             end if;
           end if;
 
           if(PCER(h)(7) = '1') then     --jump 
-            if (jump_instr = '1') then
-              MHPMCOUNTER8(h) <= std_logic_vector(unsigned(MHPMCOUNTER8(h))+1);
+            if (MHPMCOUNTER_EN = 1) then
+              if (jump_instr = '1') then
+                MHPMCOUNTER8(h) <= std_logic_vector(unsigned(MHPMCOUNTER8(h))+1);
+              end if;
             end if;
           end if;
 
           if(PCER(h)(8) = '1') then     --branch 
-            if (branch_instr = '1') then
-              MHPMCOUNTER9(h) <= std_logic_vector(unsigned(MHPMCOUNTER9(h))+1);
+            if (MHPMCOUNTER_EN = 1) then
+              if (branch_instr = '1') then
+                MHPMCOUNTER9(h) <= std_logic_vector(unsigned(MHPMCOUNTER9(h))+1);
+              end if;
             end if;
           end if;
 
-          if(PCER(h)(9) = '1') then     --btaken 
-            if (branch_instr = '1' and set_branch_condition = '1') then
-              MHPMCOUNTER10(h) <= std_logic_vector(unsigned(MHPMCOUNTER10(h))+1);
+          if(PCER(h)(9) = '1') then     --btaken
+            if (MHPMCOUNTER_EN = 1) then
+              if (branch_instr = '1' and set_branch_condition = '1') then
+                MHPMCOUNTER10(h) <= std_logic_vector(unsigned(MHPMCOUNTER10(h))+1);
+              end if;
             end if;
           end if;
         end if;  --debug_req_o='0'

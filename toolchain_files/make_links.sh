@@ -14,6 +14,7 @@ ln -s riscv32-unknown-elf-gcc-ranlib   klessydra-unknown-elf-gcc-ranlib
 ln -s riscv32-unknown-elf-gcov         klessydra-unknown-elf-gcov
 ln -s riscv32-unknown-elf-gcov-dump    klessydra-unknown-elf-gcov-dump
 ln -s riscv32-unknown-elf-gcov-tool    klessydra-unknown-elf-gcov-tool
+ln -s riscv32-unknown-elf-gdb          klessydra-unknown-elf-gdb
 ln -s riscv32-unknown-elf-gprof        klessydra-unknown-elf-gprof
 ln -s riscv32-unknown-elf-ld           klessydra-unknown-elf-ld
 ln -s riscv32-unknown-elf-ld.bfd       klessydra-unknown-elf-ld.bfd
@@ -22,6 +23,7 @@ ln -s riscv32-unknown-elf-objcopy      klessydra-unknown-elf-objcopy
 ln -s riscv32-unknown-elf-objdump      klessydra-unknown-elf-objdump
 ln -s riscv32-unknown-elf-ranlib       klessydra-unknown-elf-ranlib
 ln -s riscv32-unknown-elf-readelf      klessydra-unknown-elf-readelf
+ln -s riscv32-unknown-elf-run          klessydra-unknown-elf-run
 ln -s riscv32-unknown-elf-size         klessydra-unknown-elf-size
 ln -s riscv32-unknown-elf-strings      klessydra-unknown-elf-strings
 ln -s riscv32-unknown-elf-strip        klessydra-unknown-elf-strip

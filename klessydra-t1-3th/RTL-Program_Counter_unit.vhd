@@ -32,11 +32,11 @@ entity Program_Counter is
     set_wfi_condition                 : in  std_logic;
     harc_ID                           : in  harc_range;
     harc_LS                           : in  harc_range;
-    harc_DSP                          : in  harc_range;
     harc_EXEC                         : in  harc_range;
     instr_rvalid_IE                   : in  std_logic;
     pc_IE                             : in  std_logic_vector(31 downto 0);
-    MIP, MEPC, MSTATUS, MCAUSE, MTVEC : in  replicated_32b_reg;
+    MSTATUS                           : in  array_2d(harc_range)(1 downto 0);
+    MIP, MEPC, MCAUSE, MTVEC : in  replicated_32b_reg;
     instr_word_IE                     : in  std_logic_vector(31 downto 0);
     reset_state                       : in  std_logic;
     pc_IF                             : out std_logic_vector(31 downto 0);
@@ -91,6 +91,7 @@ architecture PC of Program_counter is
   signal incremented_pc_internal           : replicated_32b_reg;
   signal mepc_interrupt_pc_internal        : replicated_32b_reg;
   signal taken_branch_pc_lat_internal      : replicated_32b_reg;
+  signal taken_branch_pc_pending_internal  : replicated_32b_reg;
   signal taken_branch_pending_internal     : replicated_bit;
   signal irq_pending_internal              : replicated_bit;
 
@@ -110,6 +111,7 @@ architecture PC of Program_counter is
     signal set_mret_condition            : in    std_logic;
     signal pc                            : inout std_logic_vector(31 downto 0);
     signal taken_branch_pc_lat           : in    std_logic_vector(31 downto 0);
+    signal taken_branch_pc_pending       : in    std_logic_vector(31 downto 0);
     signal incremented_pc                : in    std_logic_vector(31 downto 0);
     signal boot_pc                       : in    std_logic_vector(31 downto 0);
     signal pc_update_enable              : in    std_logic;
@@ -132,14 +134,22 @@ architecture PC of Program_counter is
         served_dsp_except_condition <= '0';
         served_mret_condition   <= '0';
       -- taken_branch pending 
-      elsif taken_branch = '1' or taken_branch_pending = '1' then
+      elsif taken_branch = '1' then
         pc                      <= taken_branch_pc_lat;
         taken_branch_pending    <= '0';
-        served_ie_except_condition <= '1' when ie_except_condition = '1' else '0'; -- for CS units;
-        served_ls_except_condition <= '1' when ls_except_condition = '1' else '0'; -- for CS units;
+        served_ie_except_condition  <= '1' when ie_except_condition  = '1' else '0'; -- for CS units;
+        served_ls_except_condition  <= '1' when ls_except_condition  = '1' else '0'; -- for CS units;
         served_dsp_except_condition <= '1' when dsp_except_condition = '1' else '0'; -- for CS units;
-        served_except_condition <= '1' when set_except_condition = '1' else '0'; -- for CS units;
-        served_mret_condition   <= '1' when set_mret_condition = '1' else '0'; -- for CS units;
+        served_except_condition     <= '1' when set_except_condition = '1' else '0'; -- for CS units;
+        served_mret_condition       <= '1' when set_mret_condition   = '1' else '0'; -- for CS units;
+      elsif  taken_branch_pending = '1' then
+        pc                      <= taken_branch_pc_pending;
+        taken_branch_pending    <= '0';
+        served_ie_except_condition  <= '1' when ie_except_condition  = '1' else '0'; -- for CS units;
+        served_ls_except_condition  <= '1' when ls_except_condition  = '1' else '0'; -- for CS units;
+        served_dsp_except_condition <= '1' when dsp_except_condition = '1' else '0'; -- for CS units;
+        served_except_condition     <= '1' when set_except_condition = '1' else '0'; -- for CS units;
+        served_mret_condition       <= '1' when set_mret_condition   = '1' else '0'; -- for CS units;
       else
         pc <= boot_pc;                  -- default, should never occur
       end if;
@@ -193,16 +203,17 @@ begin
 
   -- fixed connections, not replicated 
   boot_pc                                 <= boot_addr_i(31 downto 8) & std_logic_vector(to_unsigned(128, 8));
-  mepc_incremented_pc_internal(harc_EXEC) <= MEPC(harc_EXEC);
-  mepc_interrupt_pc_internal(harc_EXEC)   <= MEPC(harc_EXEC) when MCAUSE(harc_EXEC)(30) = '0' else std_logic_vector(unsigned(MEPC(harc_EXEC)) + 4);  -- (MCAUSE(30) = '0') indicates that we weren't executing a WFI instruction
   ----------------------------------------------------------------------------------------------
   -- this part of logic and registers is replicated as many times as the supported threads:   --
   pc_update_logic : for h in harc_range generate
 
+    mepc_incremented_pc_internal(h) <= MEPC(h);
+    mepc_interrupt_pc_internal(h)   <= MEPC(h) when MCAUSE(h)(30) = '0' else std_logic_vector(unsigned(MEPC(h)) + 4);  -- (MCAUSE(30) = '0') indicates that we weren't executing a WFI instruction
+
     relative_to_PC(h) <= std_logic_vector(to_unsigned(0, 32)) when (absolute_jump = '1')
                          else pc_IE;
     incremented_pc_internal(h) <= std_logic_vector(unsigned(pc(h))+4);
-    irq_pending_internal(h)    <= ((MIP(h)(11) or MIP(h)(7) or MIP(h)(3)) and MSTATUS(h)(3));
+    irq_pending_internal(h)    <= ((MIP(h)(11) or MIP(h)(7) or MIP(h)(3)) and MSTATUS(h)(0));
 
     set_wfi_condition_replicated(h) <= '1' when set_wfi_condition = '1' and (harc_EXEC = h)
                                   else '0';
@@ -233,7 +244,8 @@ begin
       MTVEC(h)                                                         when ie_except_condition_replicated(h)  = '1'                         else  -- sets MTVEC address for exception trap
       mepc_incremented_pc_internal(h)                                  when set_mret_condition_replicated(h)   = '1' and MCAUSE(h)(31) = '0' else  -- sets return address from exception subroutine
       mepc_interrupt_pc_internal(h)                                    when set_mret_condition_replicated(h)   = '1' and MCAUSE(h)(31) = '1' else  -- sets return address from interrupt subroutine
-      MTVEC(h)                                                         when served_irq(h);                                                         -- sets MTVEC address for exception trap, 
+      MTVEC(h)                                                         when served_irq(h)                                                    else  -- sets MTVEC address for exception trap, 
+     (others => '0');
 
 
     pc_update_enable(h) <= '1' when instr_gnt_i = '1'
@@ -246,23 +258,27 @@ begin
     pc_updater : process(clk_i, rst_ni, boot_pc)
     begin
       if rst_ni = '0' then
-        pc(h)                            <= (others => '0');  -- better to put 0 to ensure clear synthesis
-        taken_branch_pending_internal(h) <= '0';
-        served_ie_except_condition(h)    <= '0';
-        served_ls_except_condition(h)    <= '0';
-        served_dsp_except_condition(h)   <= '0';
-        served_except_condition(h)       <= '0';
-        served_mret_condition(h)         <= '0';
+        pc(h)                               <= (others => '0');  -- better to put 0 to ensure clear synthesis
+        taken_branch_pc_pending_internal(h) <= (others => '0');
+        taken_branch_pending_internal(h)    <= '0';
+        served_ie_except_condition(h)       <= '0';
+        served_ls_except_condition(h)       <= '0';
+        served_dsp_except_condition(h)      <= '0';
+        served_except_condition(h)          <= '0';
+        served_mret_condition(h)            <= '0';
       elsif rising_edge(clk_i) then
         -- synch.ly updates pc with new value depending on conditions pending 
         -- synch.ly raises "served" signal for the condition that is being served 
         -- synch.ly lowers "served" signal for other conditions
+        if taken_branch_replicated(h) = '1' then 
+          taken_branch_pc_pending_internal(h) <= taken_branch_pc_lat_internal(h);
+        end if;
         if reset_state = '1' then
           pc(h) <= boot_pc;
         else
           pc_update(MTVEC(h), instr_gnt_i, taken_branch_replicated(h), set_wfi_condition_replicated(h), taken_branch_pending_internal(h),
                     irq_pending_internal(h),ie_except_condition_replicated(h), ls_except_condition_replicated(h), dsp_except_condition_replicated(h),
-					set_except_condition_replicated(h), set_mret_condition_replicated(h), pc(h), taken_branch_pc_lat_internal(h), 
+					set_except_condition_replicated(h), set_mret_condition_replicated(h), pc(h), taken_branch_pc_lat_internal(h), taken_branch_pc_pending_internal(h),
 					incremented_pc_internal(h), boot_pc, pc_update_enable(h), served_ie_except_condition(h), served_ls_except_condition(h),
 					served_dsp_except_condition(h), served_except_condition(h),
                     served_mret_condition(h));

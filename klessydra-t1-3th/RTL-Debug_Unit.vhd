@@ -23,13 +23,13 @@ entity Debug_UNIT is
     incremented_pc           : in  replicated_32b_reg;
     MTVEC                    : in  replicated_32b_reg;
     MIP                      : in  replicated_32b_reg;
-    MSTATUS                  : in  replicated_32b_reg;
+    MSTATUS                  : in  array_2d(harc_range)(1 downto 0);
     MCAUSE                   : in  replicated_32b_reg;
     mepc_incremented_pc      : in  replicated_32b_reg;
     mepc_interrupt_pc        : in  replicated_32b_reg;
-    regfile                  : in  regfile_replicated_array;
+    regfile                  : in  array_3d(harc_range)(RF_SIZE-1 downto 0)(31 downto 0);
     pc_IE                    : in  std_logic_vector (31 downto 0);
-    harc_EXEC                  : in  harc_range;
+    harc_EXEC                : in  harc_range;
     ebreak_instr             : in  std_logic;
     dbg_ack_i                : in  std_logic;
 	taken_branch			 : in std_logic;

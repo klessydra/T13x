@@ -14,21 +14,14 @@ package riscv_klessydra is
   file file_handler : text open write_mode is "execution_trace.txt";
 
   -- riscv 32x32bit register file for single thread cores
-  type regfile_behavioral_array is array (31 downto 0) of std_logic_vector(31 downto 0);
+  type regfile_behavioral_array is array (RF_Size-1 downto 0) of std_logic_vector(31 downto 0);
 
   -- scratchpad replicated arrays
-  type array_2d is array (integer range<>) of std_logic_vector;
-  type array_3d is array(integer range<>) of array_2d;
   type sc_repl_128b_reg is array(2 downto 0) of std_logic_vector(127 downto 0);
   type sc_repl_10b_reg  is array(2 downto 0) of std_logic_vector(9 downto 0);
   type sc_repl_16b_reg  is array(2 downto 0) of std_logic_vector(15 downto 0);
   type sc_repl_bit      is array(2 downto 0) of std_logic;
-
-  constant SIMD_RD_BYTES : integer := 16;			 
-  constant Num_SCs       : integer := 4;
-  constant Addr_Width    : integer := 9;
-  constant Data_Width    : integer := 128;
-						 
+				 
   -- array type for replicas of hardware context of each thread. 
   type replicated_32b_reg is array (harc_range) of std_logic_vector(31 downto 0);
   type replicated_bit is array (harc_range) of std_logic;
@@ -39,7 +32,7 @@ package riscv_klessydra is
 
   constant EXEC_UNIT_INSTR_SET_SIZE : natural := 44;  -- total number of instructions in the exec unit
   constant LS_UNIT_INSTR_SET_SIZE   : natural := 11;  -- total number of instructions in the ld_str unit
-  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 12;  -- total number of instructions in the dsp unit
+  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 43;  -- total number of instructions in the dsp unit
 
   -- EXEC UNIT INSTR SET ------------------------------------------------------------------------------------------------------------
   constant ADDI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000000000000000000000000000000001";
@@ -102,20 +95,51 @@ package riscv_klessydra is
   constant KMEMSTR_pattern : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "10000000000";
   -----------------------------------------------------------------------------------------------
 
-  -- DSP UNIT INSTR SET---------------------------------------------------------------------------		
-  constant KADDV8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000001";
-  constant KADDV16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000010";
-  constant KADDV32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000100";
-  constant KSUBV8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000001000";
-  constant KSUBV16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000010000";
-  constant KSUBV32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000100000";
-  constant KDOTP8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000001000000";
-  constant KDOTP16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000010000000";
-  constant KDOTP32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000100000000";
-  constant KSVMUL8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "001000000000";
-  constant KSVMUL16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "010000000000";
-  constant KSVMUL32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "100000000000";
-  ------------------------------------------------------------------------------------------------
+  -- DSP UNIT INSTR SET----------------------------------------------------------------------------------------------	
+  constant KADDV8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000001";
+  constant KADDV16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000010";
+  constant KADDV32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000100";
+  constant KSUBV8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000001000";
+  constant KSUBV16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000010000";
+  constant KSUBV32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000100000";
+  constant KVMUL8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000001000000";
+  constant KVMUL16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000010000000";
+  constant KVMUL32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000100000000";
+  constant KVRED8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000001000000000";
+  constant KVRED16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000010000000000";
+  constant KVRED32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000100000000000";
+  constant KDOTP8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000001000000000000";
+  constant KDOTP16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000010000000000000";
+  constant KDOTP32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000100000000000000";
+  constant KSVADDSC8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000001000000000000000";
+  constant KSVADDSC16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000010000000000000000";
+  constant KSVADDSC32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000100000000000000000";
+  constant KSVADDRF8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000001000000000000000000";
+  constant KSVADDRF16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000010000000000000000000";
+  constant KSVADDRF32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000100000000000000000000";
+  constant KSVMULSC8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000001000000000000000000000";
+  constant KSVMULSC16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000010000000000000000000000";
+  constant KSVMULSC32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000100000000000000000000000";
+  constant KSVMULRF8_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000001000000000000000000000000";
+  constant KSVMULRF16_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000010000000000000000000000000";
+  constant KSVMULRF32_pattern  : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000100000000000000000000000000";
+  constant KSRAV8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000001000000000000000000000000000";
+  constant KSRAV16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000010000000000000000000000000000";
+  constant KSRAV32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000100000000000000000000000000000";
+  constant KSRLV8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000001000000000000000000000000000000";
+  constant KSRLV16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000010000000000000000000000000000000";
+  constant KSRLV32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000100000000000000000000000000000000";
+  constant KBCAST8_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000001000000000000000000000000000000000";
+  constant KBCAST16_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000010000000000000000000000000000000000";
+  constant KBCAST32_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000100000000000000000000000000000000000";
+  constant KRELU8_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000001000000000000000000000000000000000000";
+  constant KRELU16_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000010000000000000000000000000000000000000";
+  constant KRELU32_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000100000000000000000000000000000000000000";
+  constant KDOTPPS8_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0001000000000000000000000000000000000000000";
+  constant KDOTPPS16_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0010000000000000000000000000000000000000000";
+  constant KDOTPPS32_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "0100000000000000000000000000000000000000000";
+  constant KVCP_pattern        : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "1000000000000000000000000000000000000000000";
+  -------------------------------------------------------------------------------------------------------------------
 
   constant ADDI_bit_position    : natural := 0;
   constant SLTI_bit_position    : natural := 1;
@@ -175,19 +199,50 @@ package riscv_klessydra is
   constant KMEMSTR_bit_position : natural := 10;
 
 
-  constant KADDV8_bit_position     : natural := 0;
-  constant KADDV16_bit_position    : natural := 1;
-  constant KADDV32_bit_position    : natural := 2;
-  constant KSUBV8_bit_position     : natural := 3;
-  constant KSUBV16_bit_position    : natural := 4;
-  constant KSUBV32_bit_position    : natural := 5;
-  constant KDOTP8_bit_position     : natural := 6;
-  constant KDOTP16_bit_position    : natural := 7;
-  constant KDOTP32_bit_position    : natural := 8;
-  constant KSVMUL8_bit_position    : natural := 9;
-  constant KSVMUL16_bit_position   : natural := 10;
-  constant KSVMUL32_bit_position   : natural := 11;
-
+  constant KADDV8_bit_position       : natural := 0;
+  constant KADDV16_bit_position      : natural := 1;
+  constant KADDV32_bit_position      : natural := 2;
+  constant KSUBV8_bit_position       : natural := 3;
+  constant KSUBV16_bit_position      : natural := 4;
+  constant KSUBV32_bit_position      : natural := 5;
+  constant KVMUL8_bit_position       : natural := 6;
+  constant KVMUL16_bit_position      : natural := 7;
+  constant KVMUL32_bit_position      : natural := 8;
+  constant KVRED8_bit_position       : natural := 9;
+  constant KVRED16_bit_position      : natural := 10;
+  constant KVRED32_bit_position      : natural := 11;
+  constant KDOTP8_bit_position       : natural := 12;
+  constant KDOTP16_bit_position      : natural := 13;
+  constant KDOTP32_bit_position      : natural := 14;
+  constant KSVADDSC8_bit_position    : natural := 15;
+  constant KSVADDSC16_bit_position   : natural := 16;
+  constant KSVADDSC32_bit_position   : natural := 17;
+  constant KSVADDRF8_bit_position    : natural := 18;
+  constant KSVADDRF16_bit_position   : natural := 19;
+  constant KSVADDRF32_bit_position   : natural := 20;
+  constant KSVMULSC8_bit_position    : natural := 21;
+  constant KSVMULSC16_bit_position   : natural := 22;
+  constant KSVMULSC32_bit_position   : natural := 23;
+  constant KSVMULRF8_bit_position    : natural := 24;
+  constant KSVMULRF16_bit_position   : natural := 25;
+  constant KSVMULRF32_bit_position   : natural := 26;
+  constant KSRAV8_bit_position       : natural := 27;
+  constant KSRAV16_bit_position      : natural := 28;
+  constant KSRAV32_bit_position      : natural := 29;
+  constant KSRLV8_bit_position       : natural := 30;
+  constant KSRLV16_bit_position      : natural := 31;
+  constant KSRLV32_bit_position      : natural := 32;
+  constant KBCAST8_bit_position      : natural := 33;
+  constant KBCAST16_bit_position     : natural := 34;
+  constant KBCAST32_bit_position     : natural := 35;
+  constant KRELU8_bit_position       : natural := 36;
+  constant KRELU16_bit_position      : natural := 37;
+  constant KRELU32_bit_position      : natural := 38;
+  constant KDOTPPS8_bit_position     : natural := 39;
+  constant KDOTPPS16_bit_position    : natural := 40;
+  constant KDOTPPS32_bit_position    : natural := 41;
+  constant KVCP_bit_position         : natural := 42;
+						 
   --constant cluster_id_i         : std_logic_vector(5 downto 0) := "001011";
   -- CSRs addresses
   constant MSTATUS_addr : std_logic_vector (11 downto 0) := "001100000000";
@@ -270,7 +325,8 @@ package riscv_klessydra is
   constant MHPMEVENT29_addr   : std_logic_vector (11 downto 0) := x"33D";
   constant MHPMEVENT30_addr   : std_logic_vector (11 downto 0) := x"33E";
   constant MHPMEVENT31_addr   : std_logic_vector (11 downto 0) := x"33F";
-  constant MVSIZE_addr        : std_logic_vector (11 downto 0) := x"FF0"; -- CCC
+  constant MVSIZE_addr        : std_logic_vector (11 downto 0) := x"BF0";
+  constant MPSCLFAC_addr      : std_logic_vector (11 downto 0) := x"BF4";
 
   -- opcodes
   constant OP_IMM   : std_logic_vector(6 downto 0) := "0010011";
@@ -336,18 +392,9 @@ package riscv_klessydra is
   constant SINGLE : std_logic_vector(2 downto 0) := "010";
 
   -- funct3 bits of KLESS opcode
-  constant KADDV8   : std_logic_vector(2 downto 0) := "000";
-  constant KADDV16  : std_logic_vector(2 downto 0) := "001";
-  constant KADDV32  : std_logic_vector(2 downto 0) := "010";
-  constant KSUBV8   : std_logic_vector(2 downto 0) := "000";
-  constant KSUBV16  : std_logic_vector(2 downto 0) := "001";
-  constant KSUBV32  : std_logic_vector(2 downto 0) := "010";
-  constant KDOTP8   : std_logic_vector(2 downto 0) := "000";
-  constant KDOTP16  : std_logic_vector(2 downto 0) := "001";
-  constant KDOTP32  : std_logic_vector(2 downto 0) := "010";
-  constant KSVMUL8  : std_logic_vector(2 downto 0) := "000";
-  constant KSVMUL16 : std_logic_vector(2 downto 0) := "001";
-  constant KSVMUL32 : std_logic_vector(2 downto 0) := "010";
+  constant KARITH8     : std_logic_vector(2 downto 0) := "000";
+  constant KARITH16    : std_logic_vector(2 downto 0) := "001";
+  constant KARITH32    : std_logic_vector(2 downto 0) := "010";
 
   -- instructions to access CSRs
   -- funct3 bits of SYSTEM opcode:
@@ -385,10 +432,21 @@ package riscv_klessydra is
   constant KMEMSTR : std_logic_vector(6 downto 0) := "0000001";
 
   --funct7 bits for KREG Instr
-  constant KADDV  : std_logic_vector(6 downto 0) := "0000001";
-  constant KSUBV  : std_logic_vector(6 downto 0) := "0000010";
-  constant KDOTP  : std_logic_vector(6 downto 0) := "0001000";
-  constant KSVMUL : std_logic_vector(6 downto 0) := "0001100";
+  constant KADDV    : std_logic_vector(6 downto 0) := "0000001";
+  constant KSUBV    : std_logic_vector(6 downto 0) := "0000010";
+  constant KVMUL    : std_logic_vector(6 downto 0) := "0000100";
+  constant KVRED    : std_logic_vector(6 downto 0) := "0000110";
+  constant KDOTP    : std_logic_vector(6 downto 0) := "0001000";
+  constant KSVADDSC : std_logic_vector(6 downto 0) := "0001100";
+  constant KSVADDRF : std_logic_vector(6 downto 0) := "0001101";
+  constant KSVMULSC : std_logic_vector(6 downto 0) := "0001110";
+  constant KSVMULRF : std_logic_vector(6 downto 0) := "0001111";
+  constant KSRAV    : std_logic_vector(6 downto 0) := "0010000";
+  constant KSRLV    : std_logic_vector(6 downto 0) := "0010001";
+  constant KRELU    : std_logic_vector(6 downto 0) := "0011000";
+  constant KDOTPPS  : std_logic_vector(6 downto 0) := "0011001";
+  constant KBCAST   : std_logic_vector(6 downto 0) := "0011110";
+  constant KVCP     : std_logic_vector(6 downto 0) := "0011111";
 
   -- instr. to change privilege level & interrupt-management instruction
   -- funct12 bits for instructions SYSTEM -> PRIV:
@@ -419,14 +477,15 @@ package riscv_klessydra is
   constant WRITE_SAME_SCARTCHPAD_EXCEPT_CODE : std_logic_vector(31 downto 0) := x"00000104"; -- CCC
 
   -- reset values 
-  constant MTVEC_RESET_VALUE    : replicated_32b_reg := (others => x"00000094");
-  constant PCER_RESET_VALUE     : replicated_32b_reg := (others => x"00000000");
-  constant MSTATUS_RESET_VALUE  : std_logic_vector(31 downto 0) := x"00001800";
-  constant MESTATUS_RESET_VALUE : std_logic_vector(31 downto 0) := x"00001800";
-  constant MEPC_RESET_VALUE     : std_logic_vector(31 downto 0) := x"00000000";  -- label to decode the kind of misaligned access
-  constant MCAUSE_RESET_VALUE   : std_logic_vector(31 downto 0) := x"00000000";
-  constant MIP_RESET_VALUE      : std_logic_vector(31 downto 0) := x"00000000";
-  constant MVSIZE_RESET_VALUE   : std_logic_vector(31 downto 0) := x"00000004";
+  constant MTVEC_RESET_VALUE    : replicated_32b_reg                     := (others => x"00000094");
+  constant PCER_RESET_VALUE     : replicated_32b_reg                     := (others => x"00000000");
+  constant MSTATUS_RESET_VALUE  : std_logic_vector(1 downto 0)           := "00";
+  constant MESTATUS_RESET_VALUE : std_logic_vector(2 downto 0)           := "000";
+  constant MEPC_RESET_VALUE     : std_logic_vector(31 downto 0)          := x"00000000";  -- label to decode the kind of misaligned access
+  constant MCAUSE_RESET_VALUE   : std_logic_vector(31 downto 0)          := x"00000000";
+  constant MIP_RESET_VALUE      : std_logic_vector(31 downto 0)          := x"00000000";
+  constant MVSIZE_RESET_VALUE   : std_logic_vector(Addr_Width downto 0)  := (1 to Addr_Width => '0') & '1';
+  constant MPSCLFAC_RESET_VALUE : std_logic_vector(4 downto 0)           := (others => '0');
 
   -- functions
   function aq(signal instr : in std_logic_vector(31 downto 0)) return std_logic;
@@ -464,17 +523,17 @@ package body riscv_klessydra is
 
   function rs1 (signal instr : in std_logic_vector(31 downto 0)) return integer is
   begin
-    return to_integer(unsigned(instr(19 downto 15)));
+    return to_integer(unsigned(instr(15+(RF_CEIL-1) downto 15)));
   end;
 
   function rs2 (signal instr : in std_logic_vector(31 downto 0)) return integer is
   begin
-    return to_integer(unsigned(instr(24 downto 20)));
+    return to_integer(unsigned(instr(20+(RF_CEIL-1) downto 20)));
   end;
 
   function rd (signal instr : in std_logic_vector(31 downto 0)) return integer is
   begin
-    return to_integer(unsigned(instr(11 downto 7)));
+    return to_integer(unsigned(instr(7+(RF_CEIL-1) downto 7)));
   end;
 
   function I_immediate(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is

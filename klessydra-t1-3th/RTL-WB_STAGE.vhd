@@ -23,7 +23,7 @@ entity WB_STAGE is
 	  instr_rvalid_WB            : in std_logic;
 	  harc_LS_WB                 : in harc_range;
 	  harc_IE_WB                 : in harc_range;
-	  regfile                    : out regfile_replicated_array
+	  regfile                    : out array_3d(harc_range)(RF_SIZE-1 downto 0)(31 downto 0)
        );
 end entity; -------------------------------
 
@@ -41,18 +41,18 @@ begin
 -- Writes back on register file
 -----------------------------------------------------------------------------------------------------
 
-  harc_WB <= harc_LS_WB when LS_WB_EN = '1' else harc_IE_WB when IE_WB_EN = '1';
-  instr_word_WB <= instr_word_LS_WB when LS_WB_EN = '1' else instr_word_IE_WB when IE_WB_EN = '1';
+  harc_WB <= harc_LS_WB when LS_WB_EN = '1' else harc_IE_WB;
+  instr_word_WB <= instr_word_LS_WB when LS_WB_EN = '1' else instr_word_IE_WB when IE_WB_EN = '1' else (others => '0');
   WB_EN <= '1' when (LS_WB_EN = '1' or IE_WB_EN = '1') else '0';
-  WB_RD <= IE_WB when IE_WB_EN = '1' else LS_WB when LS_WB_EN = '1';  
+  WB_RD <= IE_WB when IE_WB_EN = '1' else LS_WB when LS_WB_EN = '1' else (others => '0');  
 
   fsm_WB_seq : process(clk_i, rst_ni)
 	  
-  variable regfile_wire : regfile_replicated_array;
+  variable regfile_wire : array_3d(harc_range)(RF_SIZE-1 downto 0)(31 downto 0);
 
   begin
     if rst_ni = '0' then
-      for index in 0 to 31
+      for index in 0 to RF_Size-1
       loop
         for h in harc_range loop
           regfile_wire(h)(index) := std_logic_vector(to_unsigned(0, 32));

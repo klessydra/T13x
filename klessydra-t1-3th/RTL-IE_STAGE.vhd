@@ -15,17 +15,17 @@ entity IE_STAGE is
 	   -- clock, and reset active low
     clk_i, rst_ni          : in std_logic;
     irq_i                  : in std_logic;
-	pc_ID_lat              : in std_logic_vector(31 downto 0);
+    flush_cycle_count      : in replicated_positive_integer;
 	RS1_Data_IE            : in std_logic_vector(31 downto 0);
 	RS2_Data_IE            : in std_logic_vector(31 downto 0);
 	irq_pending            : in replicated_bit;
 	fetch_enable_i         : in std_logic;
 	csr_instr_done         : in std_logic;
     csr_access_denied_o    : in std_logic;
-    csr_rdata_o            : in std_logic_vector (31 downto 0);
-    pc_IE                  : in std_logic_vector (31 downto 0);
-    instr_word_IE          : in std_logic_vector (31 downto 0);
-    data_addr_internal_IE  : in std_logic_vector (31 downto 0);
+    csr_rdata_o            : in std_logic_vector(31 downto 0);
+    pc_IE                  : in std_logic_vector(31 downto 0);
+    instr_word_IE          : in std_logic_vector(31 downto 0);
+    data_addr_internal_IE  : in std_logic_vector(3 downto 0);
     pass_BEQ_ID            : in std_logic;
     pass_BNE_ID            : in std_logic;
     pass_BLT_ID            : in std_logic;
@@ -35,15 +35,15 @@ entity IE_STAGE is
     sw_mip                 : in std_logic;
 	ie_instr_req           : in std_logic;
 	dbg_req_o              : in std_logic;
-    MSTATUS                : in replicated_32b_reg;
+    MSTATUS                : in array_2d(harc_range)(1 downto 0);
 	harc_EXEC              : in harc_range;
     instr_rvalid_IE        : in std_logic;  -- validity bit at IE input
     taken_branch           : in std_logic;
 	decoded_instruction_IE : in std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
-    csr_addr_i             : out std_logic_vector (11 downto 0);
-    ie_except_data         : out std_logic_vector (31 downto 0);
-    ie_csr_wdata_i         : out std_logic_vector (31 downto 0);
-    csr_op_i               : out std_logic_vector (2 downto 0);
+    csr_addr_i             : out std_logic_vector(11 downto 0);
+    ie_except_data         : out std_logic_vector(31 downto 0);
+    ie_csr_wdata_i         : out std_logic_vector(31 downto 0);
+    csr_op_i               : out std_logic_vector(2 downto 0);
     csr_wdata_en           : out std_logic;
     harc_to_csr            : out harc_range;
     csr_instr_req          : out std_logic;
@@ -51,6 +51,7 @@ entity IE_STAGE is
     jump_instr             : out std_logic;
     jump_instr_lat         : out std_logic;
 	WFI_Instr		       : out std_logic;
+    sleep_state            : out std_logic;
     reset_state            : out std_logic;
 	set_branch_condition   : out std_logic;
 	IE_except_condition    : out std_logic;
@@ -78,16 +79,14 @@ end entity;  ------------------------------------------
 -- Klessydra T03x (4 stages) pipeline implementation -----------------------
 architecture EXECUTE of IE_STAGE is
 
-  type fsm_IE_states is (sleep, reset, normal, csr_instr_wait_state, debug, first_boot);
+  type fsm_IE_states is (sleep, reset, normal, csr_instr_wait_state, debug);
 
   signal state_IE, nextstate_IE : fsm_IE_states;
 
   -- signals for counting intructions
   signal clock_cycle         : std_logic_vector(63 downto 0);  -- RDCYCLE
   signal external_counter    : std_logic_vector(63 downto 0);  -- RDTIME
-  signal instruction_counter : std_logic_vector(63 downto 0);  -- RDINSTRET
-  signal flush_cycle_count   : replicated_positive_integer; -- delay slot counter to flush incoming instr. in IE stage
-
+  --signal instruction_counter : std_logic_vector(63 downto 0);  -- RDINSTRET
 --------------------------------------------------------------------------------------------------
 ----------------------- ARCHITECTURE BEGIN -------------------------------------------------------
 begin
@@ -110,7 +109,7 @@ begin
     if rst_ni = '0' then
       IE_WB                  <= std_logic_vector(to_unsigned(0, 32));
       IE_WB_EN               <= '0';
-      instruction_counter    <= std_logic_vector(to_unsigned(0, 64));
+      --instruction_counter    <= std_logic_vector(to_unsigned(0, 64));
       csr_instr_req          <= '0';
       csr_wdata_en           <= '0';
       csr_op_i               <= (others => '0');
@@ -126,13 +125,11 @@ begin
           null;
         when reset =>
           null;
-        when first_boot =>
-          null;
         when debug =>
           null;
         when normal =>
           -- check if there is a valid instruction and the thread it belongs to is not in a delay slot: 
-          if  ie_instr_req = '0'  or flush_cycle_count(harc_EXEC) /=0 then --instr_rvalid_IE = '0' or flush_cycle_count(harc_EXEC) /=0 then
+          if  ie_instr_req = '0'  or flush_cycle_count(harc_EXEC) /=0 then
             IE_WB_EN       <= '0';
             --instr_rvalid_WB <= '0'; -- do nothing and wait for valid instruction and finished delay slot
             -- in a generic version we would have conditions on busy_WB 
@@ -146,7 +143,7 @@ begin
             IE_WB_EN       <= '0';
             instr_rvalid_WB <= '0'; -- in the sync process we don't need to do anything here
           else
-            instruction_counter <= std_logic_vector(unsigned(instruction_counter)+1);
+            --instruction_counter <= std_logic_vector(unsigned(instruction_counter)+1);  -- AAA should be updated or removed since the exec stage has been split
             pc_WB               <= pc_IE;
             instr_rvalid_WB     <= '1';
             instr_word_IE_WB    <= instr_word_IE;
@@ -375,7 +372,6 @@ begin
               IE_WB_EN                      <= '0';
               ie_except_data                <= ECALL_EXCEPT_CODE;
 			  csr_wdata_en                  <= '1';
-              pc_IE_except_value(harc_EXEC) <= pc_IE;
             end if;
 
             if decoded_instruction_IE(EBREAK_bit_position) = '1' then
@@ -407,10 +403,10 @@ begin
               IE_WB_EN      <= '0';
               csr_op_i      <= FUNCT3(instr_word_IE);
               csr_instr_req <= '1';
-              ie_csr_wdata_i   <= RS1_Data_IE;
+              ie_csr_wdata_i <= RS1_Data_IE;
               csr_wdata_en   <= '1';
-              csr_addr_i    <= std_logic_vector(to_unsigned(to_integer(unsigned(CSR_ADDR(instr_word_IE))), 12));
-              harc_to_csr   <= harc_EXEC;
+              csr_addr_i     <= std_logic_vector(to_unsigned(to_integer(unsigned(CSR_ADDR(instr_word_IE))), 12));
+              harc_to_csr    <= harc_EXEC;
             end if;
 
             if decoded_instruction_IE(CSRRWI_bit_position) = '1' then
@@ -437,7 +433,6 @@ begin
               IE_WB_EN                             <= '0';
               ie_except_data                       <= ILLEGAL_INSN_EXCEPT_CODE;
               csr_wdata_en                         <= '1';
-              pc_IE_except_value(harc_EXEC) <= pc_IE;
             end if;
 
             if decoded_instruction_IE(NOP_bit_position) = '1' then
@@ -462,7 +457,6 @@ begin
             IE_WB_EN                             <= '0';
             csr_wdata_en                         <= '1';
             ie_except_data                       <= ILLEGAL_INSN_EXCEPT_CODE;
-            pc_IE_except_value  (harc_EXEC) <= pc_IE;
           else
             IE_WB_EN <= '0'; -- do nothing and wait
           end if;
@@ -489,7 +483,9 @@ begin
     variable nextstate_IE_wires               : fsm_IE_states;
 
   begin
+    PC_offset_wires                  := (others => (others => '0'));
     served_irq_wires		         := (others => '0');
+    nextstate_IE_wires               := normal; 
     absolute_jump_wires              := '0';
     core_busy_IE_wires               := '0';
     IE_except_condition_wires        := '0';
@@ -503,6 +499,7 @@ begin
     dbg_ack_i_wires                  := '0';
     WFI_Instr_wires                  := '0';
     reset_state                      <= '0';
+    sleep_state                      <= '0';
 
     if rst_ni = '0' then
       if fetch_enable_i = '1' then
@@ -519,6 +516,7 @@ begin
             dbg_ack_i_wires    := '1';
             core_busy_IE_wires      := '1';
             nextstate_IE_wires := sleep;
+            sleep_state  <= '1';
           elsif irq_i = '1' or fetch_enable_i = '1' then
             nextstate_IE_wires := normal;
           else
@@ -538,9 +536,6 @@ begin
           else
             nextstate_IE_wires := normal;
           end if;
-
-        when first_boot =>
-          nextstate_IE_wires := normal;
 
         when debug =>
           dbg_ack_i_wires := '1';
@@ -699,6 +694,7 @@ begin
               nextstate_IE_wires        := normal;  -- was except_wait_state;
               IE_except_condition_wires := '1';
               ie_taken_branch_wires     := '1';
+              pc_IE_except_value(harc_EXEC) <= pc_IE;
             end if;
 
             if decoded_instruction_IE(EBREAK_bit_position) = '1' then
@@ -718,7 +714,7 @@ begin
             end if;
 
             if decoded_instruction_IE(WFI_bit_position) = '1' then
-              if MSTATUS(harc_EXEC)(3) = '1' then
+              if MSTATUS(harc_EXEC)(0) = '1' then
                 set_wfi_condition_wires  := '1';
                 ie_taken_branch_wires    := '1';
               end if;
@@ -729,6 +725,7 @@ begin
               nextstate_IE_wires         := normal;
               IE_except_condition_wires := '1';
               ie_taken_branch_wires     := '1';
+              pc_IE_except_value(harc_EXEC) <= pc_IE;
             end if;
 
             if decoded_instruction_IE(NOP_bit_position) = '1' then
@@ -752,6 +749,7 @@ begin
             nextstate_IE_wires         := normal;
             IE_except_condition_wires := '1';
             ie_taken_branch_wires     := '1';
+            pc_IE_except_value  (harc_EXEC) <= pc_IE;
           else
             nextstate_IE_wires := normal;
           end if;
@@ -782,23 +780,11 @@ begin
     if rst_ni = '0' then
       branch_instr_lat <= '0'; 
       jump_instr_lat   <= '0';
-      for h in harc_range loop
-        flush_cycle_count(h) <= 0;
-      end loop;
-      state_IE         <= reset;
-      
+      state_IE         <= reset; 
     elsif rising_edge(clk_i) then
       branch_instr_lat       <= branch_instr;
       jump_instr_lat         <= jump_instr;
-      for h in harc_range loop
-        if taken_branch = '1' and harc_EXEC = h then 
-          flush_cycle_count(h) <= NOP_POOL_SIZE;
-        elsif flush_cycle_count(h) /= 0 and core_busy_IE = '0' then
-          flush_cycle_count(h) <= flush_cycle_count(h) - 1;
-        end if;
-      end loop;
       state_IE               <= nextstate_IE;
-
     end if;
   end process;
 -------------------------------------------------------------------end of IE stage -----------------

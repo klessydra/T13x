@@ -7,9 +7,8 @@ Attached are the files used to build the riscv toolchain with the klessydra inst
    
 2) Switch to the commit which has the compatible version with our patched files
 
-	 cd riscv-gnu-toolchain
-
-	 git checkout v20180629	
+	- cd riscv-gnu-toolchain
+	- git checkout v20180629	
 
 3) Update the submodules inside the riscv-gnu-toolchain
 
@@ -26,9 +25,9 @@ Attached are the files used to build the riscv toolchain with the klessydra inst
   -  make
 
 6) After the build, in order to use both pulpino ri5cy toolchain and klessydra toolchain simultaneusly, execute the "make_links.sh" which creates symbolic links of the official pointers.
-   -	copy the "make_links.sh" into <path_to_klessydra_toolchain>/bin using "sudo cp"
-   -	sudo chmod +x make_links.sh
-   -	sudo ./make_links.sh
+   -	copy the "make_links.sh" into <path_to_klessydra_toolchain>/bin 
+   -	chmod +x make_links.sh
+   -	./make_links.sh
 
 7) Add the path of <klessydra_toolchain>/bin to environmental variables.
 

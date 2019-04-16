@@ -52,6 +52,7 @@ vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessy
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-CSR_Unit.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Debug_Unit.vhd || goto error
+vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Dotp_Accumulator.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-IF_STAGE.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-ID_STAGE.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-IE_STAGE.vhd || goto error

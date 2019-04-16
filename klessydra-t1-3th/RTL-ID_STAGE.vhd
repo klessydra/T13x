@@ -33,8 +33,8 @@ entity ID_STAGE is
 	amo_load                   : out std_logic;
 	amo_load_skip              : out std_logic;
     instr_word_IE              : out std_logic_vector(31 downto 0);
-	harc_ID_lat                : in harc_range;
-    pc_ID_lat                  : in std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
+	harc_ID                    : in harc_range;
+    pc_ID                      : in std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
 	core_busy_IE               : in std_logic;
 	core_busy_LS               : in std_logic;
     busy_LS                    : in std_logic;
@@ -47,10 +47,11 @@ entity ID_STAGE is
     sw_mip                     : out std_logic;
     harc_EXEC                  : out harc_range;
     data_addr_internal_IE      : out std_logic_vector(31 downto 0);
+    vec_read_rs1_ID            : out std_logic;
     vec_read_rs2_ID            : out std_logic;
     vec_write_rd_ID            : out std_logic;
     vec_width_ID               : out std_logic_vector(1 downto 0);
-    regfile                    : in regfile_replicated_array;
+    regfile                    : in array_3d(harc_range)(RF_SIZE-1 downto 0)(31 downto 0);
     -- clock, reset active low
     clk_i                      : in  std_logic;
     rst_ni                     : in  std_logic
@@ -84,7 +85,7 @@ architecture DECODE of ID_STAGE is
 -- This pipeline stage always takes one cycle latency
 -----------------------------------------------------------------------------------------------------
 begin
-  fsm_ID_sync : process(clk_i, rst_ni)  -- synch single state process
+  fsm_ID_sync : process(clk_i, rst_ni, instr_word_ID_lat)  -- synch single state process
 
     variable OPCODE_wires  : std_logic_vector (6 downto 0);
     variable FUNCT3_wires  : std_logic_vector (2 downto 0);
@@ -114,9 +115,9 @@ begin
         instr_rvalid_IE  <= '1';
         instr_word_IE    <= instr_word_ID_lat;
         -- pc propagation
-        pc_IE            <= pc_ID_lat;
+        pc_IE            <= pc_ID;
         -- harc propagation
-        harc_EXEC             <= harc_ID_lat;
+        harc_EXEC             <= harc_ID;
         RS1_Addr_IE           <= std_logic_vector(to_unsigned(rs1(instr_word_ID_lat), 5));
         RS2_Addr_IE           <= std_logic_vector(to_unsigned(rs2(instr_word_ID_lat), 5));
         RD_Addr_IE            <= std_logic_vector(to_unsigned(rd(instr_word_ID_lat), 5));
@@ -126,9 +127,9 @@ begin
         --SB_Imm_IE          <= std_logic_vector(to_unsigned(to_integer(unsigned(SB_immediate(instr_word_ID_lat))), 12));
         --CSR_ADDR_IE        <= std_logic_vector(to_unsigned(to_integer(unsigned(CSR_ADDR(instr_word_ID_lat))), 12));
 
-        RS1_Data_IE <= regfile  (harc_ID_lat)(rs1(instr_word_ID_lat));
-        RS2_Data_IE <= regfile  (harc_ID_lat)(rs2(instr_word_ID_lat));
-        RD_Data_IE  <= regfile  (harc_ID_lat)(rd(instr_word_ID_lat));
+        RS1_Data_IE <= regfile(harc_ID)(rs1(instr_word_ID_lat));
+        RS2_Data_IE <= regfile(harc_ID)(rs2(instr_word_ID_lat));
+        RD_Data_IE  <= regfile(harc_ID)(rd(instr_word_ID_lat));
       end if;  -- instr. conditions
       if core_busy_IE = '0' and core_busy_LS = '0' and ls_parallel_exec = '1' and dsp_parallel_exec = '1' and instr_rvalid_ID = '1' then
         -- process the instruction
@@ -147,6 +148,7 @@ begin
         amo_load         <= '0';
         sw_mip           <= '0';
         vec_write_rd_ID  <= '0';
+        vec_read_rs1_ID  <= '0';
         vec_read_rs2_ID  <= '0';
         vec_width_ID     <= "00";
 
@@ -155,22 +157,22 @@ begin
         if data_addr_internal_ID(31 downto 4) = x"0000FF0" then
           sw_mip <= '1';
         end if;
-        if (signed(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) = signed(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) = signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BEQ_ID <= '1';
         end if;
-        if (signed(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) /= signed(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) /= signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BNE_ID <= '1';
         end if;
-        if (signed(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) < signed(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) < signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BLT_ID <= '1';
         end if;
-        if (unsigned(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) < unsigned(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (unsigned(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) < unsigned(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BLTU_ID <= '1';
         end if;
-        if (signed(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) >= signed(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) >= signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BGE_ID <= '1';
         end if;
-        if (unsigned(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))(31 downto 0)) >= unsigned(regfile  (harc_ID_lat)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        if (unsigned(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) >= unsigned(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BGEU_ID <= '1';
         end if;
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -449,15 +451,16 @@ begin
               when KADDV =>           -- KADDV_INSTRUCTION
                 dsp_instr_req <= '1';
                 vec_write_rd_ID <= '1';
+				vec_read_rs1_ID <= '1';
 				vec_read_rs2_ID <= '1';
 				case FUNCT3_wires is
-                  when KADDV8 =>
+                  when KARITH8 =>
                     vec_width_ID <= "00";
                     decoded_instruction_DSP <= KADDV8_pattern;
-                  when KADDV16 =>
+                  when KARITH16 =>
                     vec_width_ID <= "01";
                     decoded_instruction_DSP <= KADDV16_pattern;
-                  when KADDV32 =>
+                  when KARITH32 =>
                     vec_width_ID <= "10";
                     decoded_instruction_DSP <= KADDV32_pattern;
                   when others =>
@@ -466,52 +469,229 @@ begin
               when KSUBV =>           -- KSUBV_INSTRUCTION
                 dsp_instr_req <= '1';
                 vec_write_rd_ID <= '1';
+				vec_read_rs1_ID <= '1';
 				vec_read_rs2_ID <= '1';
 				case FUNCT3_wires is
-                  when KSUBV8 =>
+                  when KARITH8 =>
                     vec_width_ID <= "00";
                     decoded_instruction_DSP <= KSUBV8_pattern;
-                  when KSUBV16 =>
+                  when KARITH16 =>
                     vec_width_ID <= "01";
                     decoded_instruction_DSP <= KSUBV16_pattern;
-                  when KSUBV32 =>
+                  when KARITH32 =>
                     vec_width_ID <= "10";
                     decoded_instruction_DSP <= KSUBV32_pattern;
                   when others =>
                     decoded_instruction_IE <= ILL_pattern;
                 end case;
+              when KVMUL =>           -- KVMUL_INSTRUCTION
+                dsp_instr_req <= '1';
+                vec_write_rd_ID <= '1';
+				vec_read_rs1_ID <= '1';
+				vec_read_rs2_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KVMUL8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KVMUL16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KVMUL32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KVRED =>           -- KVRED_INSTRUCTION
+                dsp_instr_req <= '1';
+				vec_read_rs1_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KVRED8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KVRED16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KVRED32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
               when KDOTP =>           -- KDOTP_INSTRUCTION
+				vec_read_rs1_ID <= '1';
 				vec_read_rs2_ID <= '1';
                 dsp_instr_req <= '1';
 				case FUNCT3_wires is
-                  when KDOTP8 =>
+                  when KARITH8 =>
                     vec_width_ID <= "00";
                     decoded_instruction_DSP <= KDOTP8_pattern;
-                  when KDOTP16 =>
+                  when KARITH16 =>
                     vec_width_ID <= "01";
                     decoded_instruction_DSP <= KDOTP16_pattern;
-                  when KDOTP32 =>
+                  when KARITH32 =>
                     vec_width_ID <= "10";
                     decoded_instruction_DSP <= KDOTP32_pattern;
                   when others =>
                     decoded_instruction_IE <= ILL_pattern;
                 end case;
-              when KSVMUL =>
+              when KDOTPPS =>           -- KDOTPPS_INSTRUCTION
+				vec_read_rs1_ID <= '1';
+				vec_read_rs2_ID <= '1';
                 dsp_instr_req <= '1';
-                vec_write_rd_ID <= '1';
 				case FUNCT3_wires is
-                  when KDOTP8 =>
+                  when KARITH8 =>
                     vec_width_ID <= "00";
-                    decoded_instruction_DSP <= KSVMUL8_pattern;
-                  when KDOTP16 =>
+                    decoded_instruction_DSP <= KDOTPPS8_pattern;
+                  when KARITH16 =>
                     vec_width_ID <= "01";
-                    decoded_instruction_DSP <= KSVMUL16_pattern;
-                  when KDOTP32 =>
+                    decoded_instruction_DSP <= KDOTPPS16_pattern;
+                  when KARITH32 =>
                     vec_width_ID <= "10";
-                    decoded_instruction_DSP <= KSVMUL32_pattern;
+                    decoded_instruction_DSP <= KDOTPPS32_pattern;
                   when others =>
                     decoded_instruction_IE <= ILL_pattern;
                 end case;
+              when KSVADDSC =>
+                dsp_instr_req   <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID  <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSVADDSC8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSVADDSC16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSVADDSC32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KSVADDRF =>
+                dsp_instr_req <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSVADDRF8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSVADDRF16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSVADDRF32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KSVMULSC =>
+                dsp_instr_req   <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID  <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSVMULSC8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSVMULSC16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSVMULSC32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KSVMULRF =>
+                dsp_instr_req <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSVMULRF8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSVMULRF16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSVMULRF32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KSRAV =>
+                dsp_instr_req <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID  <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSRAV8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSRAV16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSRAV32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KSRLV =>
+                dsp_instr_req <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KSRLV8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KSRLV16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KSRLV32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KRELU =>
+                dsp_instr_req <= '1';
+                vec_read_rs1_ID <= '1';
+                vec_write_rd_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KRELU8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KRELU16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KRELU32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KBCAST =>
+                dsp_instr_req <= '1';
+                vec_write_rd_ID <= '1';
+				case FUNCT3_wires is
+                  when KARITH8 =>
+                    vec_width_ID <= "00";
+                    decoded_instruction_DSP <= KBCAST8_pattern;
+                  when KARITH16 =>
+                    vec_width_ID <= "01";
+                    decoded_instruction_DSP <= KBCAST16_pattern;
+                  when KARITH32 =>
+                    vec_width_ID <= "10";
+                    decoded_instruction_DSP <= KBCAST32_pattern;
+                  when others =>
+                    decoded_instruction_IE <= ILL_pattern;
+                end case;
+              when KVCP =>
+                dsp_instr_req    <= '1';
+                vec_read_rs1_ID  <= '1';
+                vec_write_rd_ID  <= '1';
+                decoded_instruction_DSP <= KVCP_pattern;
               when others =>            -- ILLEGAL_INSTRUCTION
                 ie_instr_req <= '1';
                 decoded_instruction_IE <= ILL_pattern;
@@ -534,7 +714,7 @@ begin
 	OPCODE_wires  := OPCODE(instr_word_ID_lat);
 		
     -- parallelism enablers, halts the pipeline when it is zero. -------------------
-    ls_parallel_exec  <= '0' when (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and busy_LS = '1' else '1';     
+    ls_parallel_exec  <= '0' when busy_LS = '1' else '1';  --  (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and    
     dsp_parallel_exec <= '0' when (OPCODE_wires = KDSP or OPCODE_wires = KMEM) and busy_DSP = '1' else '1';
     --------------------------------------------------------------------------------
 
@@ -545,7 +725,7 @@ begin
     end if;  
   end process;
 
-  data_addr_internal_ID <= std_logic_vector(signed(regfile  (harc_ID_lat)(rs1(instr_word_ID_lat))) + signed(S_immediate(instr_word_ID_lat)));
+  data_addr_internal_ID <= std_logic_vector(signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))) + signed(S_immediate(instr_word_ID_lat)));
 
 ---------------------------------------------------------------------- end of ID stage -------------
 ----------------------------------------------------------------------------------------------------
