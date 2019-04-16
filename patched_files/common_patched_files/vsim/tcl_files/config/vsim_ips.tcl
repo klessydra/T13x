@@ -18,6 +18,7 @@ set VSIM_IP_LIBS " \
   -L klessydra-t0-2th_lib\
   -L klessydra-t0-3th_lib\
   -L klessydra-t1-3th_lib\
+  -L klessydra-f0-3th_lib\
   -L zero_riscy_lib \
   -L axi_slice_dc_lib \
   -L riscv_lib \

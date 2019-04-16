@@ -90,8 +90,6 @@ int main()
 		{
 			testres8 += vect8_1[i]*vect8_2[i];
 		}
-		printf("\ntestres8: %x",testres8);
-		printf("\nres8: %x",*res8);
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[test_perf_i], mcycle, zero;"
 			"sw %[test_perf_i], 0(%[test_ptr_perf]);"
@@ -99,6 +97,8 @@ int main()
 			:[test_perf_i] "r" (test_perf_i), [test_ptr_perf] "r" (test_ptr_perf)
 			);
 		testperf[0]=test_perf_i;
+		//printf("\ntestres8: %x",testres8);
+		//printf("\nres8: %x",*res8);
 		if (*res8==testres8)
 		{
 			printf("\nPASSED KDOTP8  8-bit  vector dot product");
@@ -143,8 +143,6 @@ int main()
 		{
 			testres16 += vect16_1[i]*vect16_2[i];     
 		}
-		printf("\ntestres16: %x",testres16);
-		printf("\nres16: %x",*res16);
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[test_perf_i], mcycle, zero;"
 			"sw %[test_perf_i], 0(%[test_ptr_perf]);"
@@ -152,6 +150,8 @@ int main()
 			:[test_perf_i] "r" (test_perf_i), [test_ptr_perf] "r" (test_ptr_perf)
 			);
 		testperf[1]=test_perf_i;
+		//printf("\ntestres16: %x",testres16);
+		//printf("\nres16: %x",*res16);
 		if (*res16==testres16)
 		{
 			printf("\nPASSED KDOTP16 16-bit vector dot product");
@@ -197,8 +197,6 @@ int main()
 		{
 			testres32 += vect32_1[i]*vect32_2[i];     
 		}
-		printf("\ntestres32: %x",testres32);
-		printf("\nres32: %x",*res32);
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[test_perf_i], mcycle, zero;"
 			"sw %[test_perf_i], 0(%[test_ptr_perf]);"
@@ -206,6 +204,8 @@ int main()
 			:[test_perf_i] "r" (test_perf_i), [test_ptr_perf] "r" (test_ptr_perf)
 			);
 		testperf[2]=test_perf_i;
+		//printf("\ntestres32: %x",testres32);
+		//printf("\nres32: %x",*res32);
 		if (*res32==testres32)
 		{
 			printf("\nPASSED KDOTP32 32-bit vector dot product\n\n");

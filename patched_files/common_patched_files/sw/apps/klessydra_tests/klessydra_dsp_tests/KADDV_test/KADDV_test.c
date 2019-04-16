@@ -85,8 +85,6 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres8[i] = vect8_1[i]+vect8_2[i];
-			printf("\ntestres8(%d): %x", i, testres8[i]);
-            printf("\nres8(%d): %x", i, res8[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -95,6 +93,11 @@ int main()
 			:[perf] "r" (perf), [ptr_perf] "r" (ptr_perf)
 			);
         testperf[0]=perf;
+		/*for (int i=0; i<NumOfElements; i++)
+		{
+			printf("\ntestres8(%d): %x", i, testres8[i]);
+            printf("\nres8(%d): %x", i, res8[i]);
+		}*/
 		for (int i=0; i<NumOfElements; i++)
 		{
 			if (res8[i]==testres8[i])
@@ -144,8 +147,6 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres16[i] = vect16_1[i]+vect16_2[i];
-			printf("\ntestres16(%d): %x", i, testres16[i]);
-            printf("\nres16(%d): %x", i, res16[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -154,6 +155,11 @@ int main()
 			:[perf] "r" (perf), [ptr_perf] "r" (ptr_perf)
 			);
         testperf[1]=perf;
+		/*for (int i=0; i<NumOfElements; i++)
+		{
+			printf("\ntestres16(%d): %x", i, testres16[i]);
+            printf("\nres16(%d): %x", i, res16[i]);
+		}*/
 		for (int i=0; i<NumOfElements; i++)
 		{
 			if (res16[i]==testres16[i])
@@ -202,8 +208,6 @@ int main()
 		for (int i=0; i<NumOfElements; i++)
 		{
 			testres32[i] = vect32_1[i]+vect32_2[i];
-			printf("\ntestres32(%d): %x", i, testres32[i]);
-            printf("\nres32(%d): %x", i, res32[i]);
 		}
 		__asm__("csrrw zero, 0x7A0, 0x00000000;"
 			"csrrw %[perf], mcycle, zero;"
@@ -212,6 +216,11 @@ int main()
 			:[perf] "r" (perf), [ptr_perf] "r" (ptr_perf)
 			);
 		testperf[2]=perf;
+		/*for (int i=0; i<NumOfElements; i++)
+		{
+			printf("\ntestres32(%d): %x", i, testres32[i]);
+            printf("\nres32(%d): %x", i, res32[i]);
+		}*/
 		for (int i=0; i<NumOfElements; i++)
 		{
 			if (res32[i]==testres32[i])

@@ -14,6 +14,7 @@ add wave -group "DSP" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_C
 add wave -group "LSU" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU/*
 add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SCI/*
 add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SCI/SC/*
+
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MTVEC
 add wave -group CSR -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MCYCLE
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/PCER
@@ -76,4 +77,10 @@ add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/pc_IF
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/FETCH/pc_ID
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/pc_IE
+
+configure wave -namecolwidth  250
+configure wave -valuecolwidth 100
+configure wave -justifyvalue left
+configure wave -signalnamewidth 1
+configure wave -timelineunits ns
 

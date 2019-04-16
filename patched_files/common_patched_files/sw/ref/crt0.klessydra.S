@@ -45,7 +45,7 @@ reset:
 	csrr tp, k_mhartid;			#load mhartID value's in thread pointer tp 
 	andi tp,tp,0x07;			#estraggo il valore del core nel cluster (contenuto nei 4 bit meno significativi)
 	li t3,0;					#counter and coreID
-	li t4,0x140000;				#load in t4 gp value
+	li t4,0x0F000000;			#load in t4 gp value
 	li t5,16;					#max coreID number
 	li t6,-thread_stack_size;	#stack size for each thread
 

@@ -15,7 +15,7 @@ int kdotp8(void* rd, void* rs1, void* rs2)
 int kdotp8_v2(void* rd, void* rs1, void* rs2, int size)
 {
 	__asm__(
-                "csrw 0xFF0, %[size];"
+        "csrw 0xBF0, %[size];"
 		"kdotp8 %[rd], %[rs1], %[rs2];"
 		://no output register
 		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
@@ -52,7 +52,7 @@ int kdotp32(void* rd, void* rs1, void* rs2)
 int kdotp32_v2(void* rd, void* rs1, void* rs2, int size)
 {
 	__asm__(
-                "csrw 0xFF0, %[size];"
+                "csrw 0xBF0, %[size];"
 		"kdotp32 %[rd], %[rs1], %[rs2];"
 		://no output register
 		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)

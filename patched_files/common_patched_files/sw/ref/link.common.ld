@@ -4,8 +4,8 @@ __DYNAMIC  =  0;
 MEMORY
 {
     instrram    : ORIGIN = 0x00000000, LENGTH = 0x20000
-    dataram     : ORIGIN = 0x00100000, LENGTH = 0x30000
-    stack       : ORIGIN = 0x00130000, LENGTH = 0x10000
+    dataram     : ORIGIN = 0x00100000, LENGTH = 0xEF00000
+    stack       : ORIGIN = 0x0F000000, LENGTH = 0x1000000
 }
 
 /* Stack information variables */

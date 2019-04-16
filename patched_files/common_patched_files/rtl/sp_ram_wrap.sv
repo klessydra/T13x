@@ -12,7 +12,9 @@
 
 module sp_ram_wrap
   #(
-    parameter RAM_SIZE   = 262144,              // in bytes
+    //parameter RAM_SIZE = 262144, // in bytes
+    parameter RAM_SIZE   = 267386880,
+        
     parameter ADDR_WIDTH = $clog2(RAM_SIZE),
     parameter DATA_WIDTH = 32
   )(

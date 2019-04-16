@@ -8,7 +8,7 @@ uint8_t* kless_dot_product_8(void *result, void* src1, void* src2, int size)
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
 	int key = 1;
-	int scalar_size = 4;
+	char scalar_size = 4;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -23,7 +23,7 @@ uint8_t* kless_dot_product_8(void *result, void* src1, void* src2, int size)
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
 		"	bnez %[key], END8;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
-		"	csrw 0xFF0, %[sz]; "
+		"	csrw 0xBF0, %[sz]; "
 		"	kdotp8 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
 		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
 		"END8:"
@@ -45,7 +45,7 @@ uint16_t* kless_dot_product_16(void *result, void* src1, void* src2, int size)
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
 	int key = 2;
-	int scalar_size = 4;
+	char scalar_size = 4;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -60,7 +60,7 @@ uint16_t* kless_dot_product_16(void *result, void* src1, void* src2, int size)
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
 		"	bnez %[key], END16;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
-		"	csrw 0xFF0, %[sz]; "
+		"	csrw 0xBF0, %[sz]; "
 		"	kdotp16 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
 		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
 		"END16:"
@@ -82,7 +82,7 @@ uint32_t* kless_dot_product_32(void *result, void* src1, void* src2, int size)
 	int SPMADDRC = spmaddrC;
 	int SPMADDRD = spmaddrD;
 	int key = 3;
-	char scalar_size = 8;
+	char scalar_size = 4;
 	static int section1 = 0;
 	static int section2 = 0;
 	int* psection1 = &section1;
@@ -97,7 +97,7 @@ uint32_t* kless_dot_product_32(void *result, void* src1, void* src2, int size)
 		"	amoswap.w.aq %[key], %[key], (%[psection2]);"
 		"	bnez %[key], END32;"
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
-		"	csrw 0xFF0, %[sz]; "
+		"	csrw 0xBF0, %[sz]; "
 		"	kdotp32 %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
 		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
 		"END32:"

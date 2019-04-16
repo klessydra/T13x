@@ -8,6 +8,9 @@ USE_KLESSYDRA_TEST=1
 # Set this to one if you are using a klessydra core
 USE_KLESSYDRA=1
 
+# Set this to one if you are using rv32E regfile for klessydra T1
+USE_KLESSYDRA_TINY=0
+
 # if you are using klessydra-t0-2th (The three pipeline version of klessydra t0), set this to 1
 USE_KLESSYDRA_T0_2TH=0
 
@@ -17,6 +20,8 @@ USE_KLESSYDRA_T0_3TH=0
 # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1
 USE_KLESSYDRA_T1_3TH=1
 
+# if you are using klessydra-f0-3th (The four pipeline version of klessydra f0), set this to 1
+USE_KLESSYDRA_F0_3TH=0
 
 if [ $USE_KLESSYDRA_TEST -eq 0 ] 
 then
@@ -28,13 +33,22 @@ then
 	#TARGET_C_FLAGS="-O2 -g -falign-functions=16  -funroll-all-loops"
 	# riscy with PULPextensions, it is assumed you use the ETH GCC Compiler
 	GCC_MARCH="RV32I"
-else
+elif [ $USE_KLESSYDRA_TINY -eq 0 ] 
+then
 	OBJDUMP=`which klessydra-unknown-elf-objdump`
 	OBJCOPY=`which klessydra-unknown-elf-objcopy`
 	COMPILER=`which klessydra-unknown-elf-gcc`
 	RANLIB=`which klessydra-unknown-elf-ranlib`
 	TARGET_C_FLAGS="-O3 -g"
 	GCC_MARCH="rv32ia"
+elif [ $USE_KLESSYDRA_TINY -eq 1 ] 
+then
+	OBJDUMP=`which klessydra-tiny-unknown-elf-objdump`
+	OBJCOPY=`which klessydra-tiny-unknown-elf-objcopy`
+	COMPILER=`which klessydra-tiny-unknown-elf-gcc`
+	RANLIB=`which klessydra-tiny-unknown-elf-ranlib`
+	TARGET_C_FLAGS="-O3 -g"
+	GCC_MARCH="rv32ea"
 fi
 
 KLESS_VSIZE=$VSIZE
@@ -74,10 +88,12 @@ cmake "$PULP_GIT_DIRECTORY"/sw/ \
     -DRVC="$RVC" \
     -DRISCY_RV32F="$RISCY_RV32F" \
     -DUSE_KLESSYDRA="$USE_KLESSYDRA" \
+    -DUSE_KLESSYDRA_TINY="$USE_KLESSYDRA_TINY" \
     -DUSE_KLESSYDRA_TEST="$USE_KLESSYDRA_TEST" \
     -DUSE_KLESSYDRA_T0_2TH="$USE_KLESSYDRA_T0_2TH" \
     -DUSE_KLESSYDRA_T0_3TH="$USE_KLESSYDRA_T0_3TH" \
     -DUSE_KLESSYDRA_T1_3TH="$USE_KLESSYDRA_T1_3TH" \
+	-DUSE_KLESSYDRA_F0_3TH="$USE_KLESSYDRA_F0_3TH" \
     -DUSE_ZERO_RISCY="$USE_ZERO_RISCY" \
     -DZERO_RV32M="$ZERO_RV32M" \
     -DZERO_RV32E="$ZERO_RV32E" \

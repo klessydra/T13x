@@ -27,11 +27,11 @@ module tb;
   parameter  BAUDRATE       = 781250;    // 1562500
   parameter  CLK_USE_FLL    = 0;  // 0 or 1
   parameter  TEST           = ""; //valid values are "" (NONE), "DEBUG"
-  parameter  THREAD_POOL_SIZE = 4;
+  parameter  USE_ZERO_RISCY = 0;
   parameter  USE_KLESSYDRA_T0_2TH = 0;
   parameter  USE_KLESSYDRA_T0_3TH = 0;
   parameter  USE_KLESSYDRA_T1_3TH = 0;
-  parameter  USE_ZERO_RISCY = 0;
+  parameter  USE_KLESSYDRA_F0_3TH = 0;
   parameter  RISCY_RV32F    = 0;
   parameter  ZERO_RV32M     = 1;
   parameter  ZERO_RV32E     = 0;
@@ -125,13 +125,14 @@ module tb;
 
   pulpino_top
   #(
-    .USE_KLESSYDRA_T0_2TH (  USE_KLESSYDRA_T0_2TH),
-    .USE_KLESSYDRA_T0_3TH (  USE_KLESSYDRA_T0_3TH),
-    .USE_KLESSYDRA_T1_3TH (  USE_KLESSYDRA_T1_3TH),
-    .USE_ZERO_RISCY       ( USE_ZERO_RISCY ),
-    .RISCY_RV32F          ( RISCY_RV32F    ),
-    .ZERO_RV32M           ( ZERO_RV32M     ),
-    .ZERO_RV32E           ( ZERO_RV32E     )
+    .USE_ZERO_RISCY          ( USE_ZERO_RISCY ),
+    .USE_KLESSYDRA_T0_2TH    ( USE_KLESSYDRA_T0_2TH ),
+    .USE_KLESSYDRA_T0_3TH    ( USE_KLESSYDRA_T0_3TH ),
+    .USE_KLESSYDRA_T1_3TH    ( USE_KLESSYDRA_T1_3TH ),
+    .USE_KLESSYDRA_F0_3TH    ( USE_KLESSYDRA_F0_3TH ),
+    .RISCY_RV32F             ( RISCY_RV32F    ),
+    .ZERO_RV32M              ( ZERO_RV32M     ),
+    .ZERO_RV32E              ( ZERO_RV32E     )
    )
   top_i
   (

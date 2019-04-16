@@ -22,6 +22,7 @@ module pulpino_top
     parameter USE_KLESSYDRA_T0_2TH = 0,
     parameter USE_KLESSYDRA_T0_3TH = 0,
     parameter USE_KLESSYDRA_T1_3TH = 0,
+    parameter USE_KLESSYDRA_F0_3TH = 0,
     parameter USE_ZERO_RISCY       = 0,
     parameter RISCY_RV32F          = 0,
     parameter ZERO_RV32M           = 1,
@@ -178,6 +179,7 @@ module pulpino_top
     .USE_KLESSYDRA_T0_2TH (  USE_KLESSYDRA_T0_2TH),
     .USE_KLESSYDRA_T0_3TH (  USE_KLESSYDRA_T0_3TH),
     .USE_KLESSYDRA_T1_3TH (  USE_KLESSYDRA_T1_3TH),
+    .USE_KLESSYDRA_F0_3TH (  USE_KLESSYDRA_F0_3TH),
     .USE_ZERO_RISCY       (  USE_ZERO_RISCY      ),
     .RISCY_RV32F          (  RISCY_RV32F         ),
     .ZERO_RV32M           (  ZERO_RV32M          ),
@@ -318,7 +320,7 @@ module pulpino_top
     .slave     ( masters    ),
 
     .start_addr_i ( { 32'h1A10_0000, 32'h0010_0000, 32'h0000_0000 } ),
-    .end_addr_i   ( { 32'h1A11_FFFF, 32'h001F_FFFF, 32'h000F_FFFF } )
+    .end_addr_i   ( { 32'h1A11_FFFF, 32'h0FFF_FFFF, 32'h000F_FFFF } )
   );
 
 endmodule

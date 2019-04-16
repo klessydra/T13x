@@ -94,9 +94,7 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 endif()
 
-if(${USE_KLESSYDRA_T1_3TH})
-  set(KLESS_DEFINES "${NUMOFELEMENTS}" "${TIME}")
-endif()
+set(KLESS_DEFINES "${NUMOFELEMENTS}" "${TIME}")
 
 set(CMAKE_ASM_COMPILER "${CMAKE_C_COMPILER}")
 set(CMAKE_ASM_FLAGS    "${CMAKE_C_FLAGS}")
@@ -109,6 +107,9 @@ set(VSIM "vsim" CACHE FILEPATH "Path to the vsim executable")
  if(${ZERO_RV32E})
    set(crt0      "ref/crt0.riscv_E.S")
    set(crt0_boot "ref/crt0.boot_E.S")
+ elseif(${USE_KLESSYDRA_TINY})
+   set(crt0      "ref/crt0.klessydra_E.S")
+   set(crt0_boot "ref/crt0.boot_E.S")
  elseif(${USE_KLESSYDRA})
    set(crt0      "ref/crt0.klessydra.S")
    set(crt0_boot "ref/crt0.boot.S")
@@ -118,7 +119,6 @@ set(VSIM "vsim" CACHE FILEPATH "Path to the vsim executable")
  endif()
 
  include_directories(libs/klessydra_lib/general_libs/inc)
- include_directories(libs/klessydra_lib/vgg_libs/inc)
  if (${USE_KLESSYDRA_T1_3TH})
    include_directories(libs/klessydra_lib/dsp_libs/inc) 
  endif()
@@ -180,6 +180,11 @@ add_custom_target(vcompile.core.klessydra-t1-3th
   WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
   ${USES_TERMINAL})
 
+add_custom_target(vcompile.core.klessydra-f0-3th
+  COMMAND tcsh -c ./vcompile/vcompile_klessydra-f0-3th.csh
+  WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
+  ${USES_TERMINAL})
+
 add_custom_target(vcompile.core.zero
   COMMAND tcsh ./vcompile/vcompile_zero-riscy.csh
   WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
@@ -188,7 +193,6 @@ add_custom_target(vcompile.core.zero
 ################################################################################
 
 add_subdirectory(libs/klessydra_lib/general_libs)
-add_subdirectory(libs/klessydra_lib/vgg_libs)
 
 if (${USE_KLESSYDRA_T1_3TH})
   add_subdirectory(libs/klessydra_lib/dsp_libs)

@@ -114,7 +114,8 @@ l2_start     = 0x00000000
 l2_end       = l2_start + l2_banks * l2_bank_size * 4 - 1
 
 tcdm_banks     = 1
-tcdm_bank_size = 65536 # in words (32 bit)
+#tcdm_bank_size = 65536 # in words (32 bit)
+tcdm_bank_size = 267386880/4
 tcdm_start     = 0x00100000
 tcdm_end       = tcdm_start + tcdm_banks * tcdm_bank_size * 4 - 1
 tcdm_bank_bits = int(math.log(tcdm_banks, 2))
