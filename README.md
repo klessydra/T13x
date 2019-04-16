@@ -10,8 +10,8 @@ Configs:
   - Scratchpad Memory number (Should not be put less than two)
   - Scratchpad Size (should always be a power two)
   - Scratchpad starting address (Lets you map the scartchpad mems wherever you want, remember not to overlap other sections)
-    - SIMD (Lets you choose the SIMD size you want. Can be put to "1,,2,4,8" only other configs are not allowed) increasing the SIMD will increase the number of functional units in the DSP, and the number of banks in every scratchpad.
-    - MCYCLE_EN, MINSTRET_EN, and MHPMCOUNTER_EN setting to 1 will enable the generation of the perfromance counters in the T1 core
+  - SIMD (Lets you choose the SIMD size you want. Can be put to "1,,2,4,8" only other configs are not allowed) increasing the SIMD will increase the number of functional units in the DSP, and the number of banks in every scratchpad.
+  - MCYCLE_EN, MINSTRET_EN, and MHPMCOUNTER_EN setting to 1 will enable the generation of the perfromance counters in the T1 core
 
 DSP-Unit TESTS:
 
