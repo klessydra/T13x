@@ -141,7 +141,8 @@ PROCEDURE:
 		c) cd build
 		
 		d) ./cmake_configure.klessydra-t1-3th.gcc.sh
-		
+		   (Execute the above script twice if you ever change the variable that changes the riscv-compiler, since changing the compiler flushes the values of the variables in the cmake cache and gives an error. Executing the script for a second time after changing the riscv-compiler will let the variables be redfined again )
+		   
 		e) make vcompile
 
 		For running Klessydra tests; the variable "USE_KLESSYDRA_TEST" in the above shell file is set to '1' by default. You only need to build and run your test
