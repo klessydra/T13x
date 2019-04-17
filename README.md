@@ -4,8 +4,8 @@ Extensions of T13x core
 
 I will include shortly a document stating all the features of the T13 core.
 
-For now T13 can give you many configs in the PKG file that you can use to build your T13 gowever you want:
-Configs:
+For now, T13 can configed in many ways in the PKG file that you can use to build your T13 core however you want:
+The customizable configurations are:
   - Registerfile size (16, or 32)
   - Scratchpad Memory number (Should not be put less than two)
   - Scratchpad Size (should always be a power two)
