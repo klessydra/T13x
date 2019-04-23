@@ -48,6 +48,8 @@ signal dsp_sci_req_lat            : std_logic_vector(SPM_NUM-1 downto 0);
 signal dsp_to_sc_lat              : array_2d(SPM_NUM-1 downto 0)(1 downto 0);
 signal dsp_sc_data_read_wire      : array_2d(1 downto 0)(SIMD_Width-1 downto 0);
 signal ls_sc_data_read            : std_logic_vector(Data_Width-1 downto 0);
+signal dsp_sci_wr_gnt_lat         : std_logic;
+signal ls_sci_wr_gnt_lat          : std_logic;
 signal halt_dsp                   : std_logic;
 signal sc_cycle_lat               : std_logic_vector(SIMD_BITS-1 downto 0);
 signal sc_cycle                   : std_logic_vector(SIMD_BITS-1 downto 0);
@@ -92,6 +94,8 @@ begin
       sc_cycle             <= (others => '0');
     elsif rising_edge(clk_i) then
       halt_dsp             <= '0';
+      dsp_sci_wr_gnt_lat   <= dsp_sci_wr_gnt;
+      ls_sci_wr_gnt_lat    <= ls_sci_wr_gnt;
       dsp_sci_req_lat      <= dsp_sci_req;
       dsp_to_sc_lat        <= dsp_to_sc;
       sc_cycle_lat         <= sc_cycle; 
@@ -149,8 +153,8 @@ begin
     rd_offset                  <= (others => (others => '0'));
     dsp_sc_data_read_int_wire  <= (others => (others => '0'));
     wr_offset                  <= (others => '0');
-	ls_sci_wr_gnt              <= '0';
-	dsp_sci_wr_gnt             <= '0';
+	ls_sci_wr_gnt              <= ls_sci_wr_gnt_lat;
+	dsp_sci_wr_gnt             <= dsp_sci_wr_gnt_lat;
     ls_sc_data_read_wire       <= ls_sc_data_read;
 	dsp_sc_data_write_int_wire <= (others => '0');
     dsp_sc_data_read_wire      <= dsp_sc_data_read;
@@ -211,16 +215,16 @@ begin
         dsp_data_gnt_i <= '1';
       end if;
 
-      if ls_sci_we(i) = '0' and dsp_sci_we(i) = '1' then
+      if ls_sci_we(i) = '0' and dsp_sci_we(i) = '1' then -- One DSP write enable request will put the dsp_sci_wr_gnt to '1' if the no ongoing LSU writes to the same scratchpad
         dsp_sci_wr_gnt <= '1';
-      elsif ls_sci_we(i) = '1' and dsp_sci_we(i) = '1' and dsp_sci_wr_gnt = '1' then -- to latch dsp_sci_wr_gnt when ls_sci_we(i) becomes '1'
-        dsp_sci_wr_gnt <= '1';
+      elsif unsigned(dsp_sci_we) = 0 then  -- All the dsp_sci_we must be zero in-order to switch the dsp_sci_wr_gnt back to '0'
+        dsp_sci_wr_gnt <= '0';
       end if;
 
-      if ls_sci_we(i) = '1' and dsp_sci_we(i) = '0' then
+      if ls_sci_we(i) = '1' and dsp_sci_we(i) = '0' then -- One LSU write enable request will put the ls_sci_wr_gnt to '1' if the no ongoing DSP writes to the same scratchpad
         ls_sci_wr_gnt <= '1';
-      elsif ls_sci_we(i) = '1' and dsp_sci_we(i) = '1' and ls_sci_wr_gnt = '1' then -- to latch ls_sci_wr_gnt when dsp_sci_we(i) becomes '1'
-        ls_sci_wr_gnt <= '1';
+      elsif unsigned(ls_sci_we) = 0 then   -- All the ls_sci_we must be zero in-order to switch the ls_sci_wr_gnt back to '0'
+        ls_sci_wr_gnt <= '0';
       end if;
     end loop;
 

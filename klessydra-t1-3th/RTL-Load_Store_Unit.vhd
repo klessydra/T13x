@@ -127,18 +127,18 @@ begin
 	  amo_store  <= '0';
       misaligned_err <= '0';
 	  LS_WB    <= (others => '0');
+      busy_LS_lat <= busy_LS;
       if irq_pending(harc_EXEC) = '1' then
         null;
-      elsif ls_instr_req = '0' and busy_LS = '0' and busy_LS_lat = '0' then
+      elsif ls_instr_req = '0' and busy_LS_lat = '0' then
 	    LS_WB_EN <= '0';
-	  elsif LS_instr_req = '1' or busy_LS = '1' or busy_LS_lat = '1' then
+	  elsif LS_instr_req = '1' or busy_LS_lat = '1' then
 		instr_word_LS_WB <= instr_word_IE;
 		harc_LS_WB <= harc_EXEC;
         if data_rvalid_i = '1' then
           ls_sc_data_write <= data_rdata_i;
         end if;
 	    LS_WB_EN <= '0';
-        busy_LS_lat <= '0';
         case state_LS is	
           when normal =>
             decoded_instruction_LS_lat <= decoded_instruction_LS;
@@ -260,7 +260,6 @@ begin
 		  
             if decoded_instruction_LS_lat(KMEMLD_bit_position) = '1' or decoded_instruction_LS_lat(KMEMSTR_bit_position) = '1' then
               if RS2_Data_IE_lat(Addr_Width downto 0) >= (0 to Addr_Width => '0') then
-                busy_LS_lat <= busy_LS;
                 if RS2_Data_IE_lat(Addr_Width downto 0) >= (4 to Addr_Width => '0') & x"4" then
                   if data_rvalid_i = '1' then
                     if decoded_instruction_LS_lat(KMEMLD_bit_position) = '1'  then
@@ -417,7 +416,7 @@ begin
     ls_sci_req <= (others => '0');
     ls_sci_we  <= (others => '0');
     if irq_pending(harc_EXEC) = '1' then
-    elsif LS_instr_req = '1' or busy_LS = '1' or busy_LS_lat = '1' then
+    elsif LS_instr_req = '1' or busy_LS_lat = '1' then
       case state_LS is
         when normal =>
 
@@ -432,13 +431,13 @@ begin
             if ((data_addr_internal_wires(1 downto 0) = "00" and (decoded_instruction_LS(LW_bit_position) = '1' or (decoded_instruction_LS(AMOSWAP_bit_position) = '1'))) or 
                (data_addr_internal_wires(0) = '0' and (decoded_instruction_LS(LH_bit_position) = '1' or decoded_instruction_LS(LHU_bit_position) = '1')) or                
                (decoded_instruction_LS(LB_bit_position) = '1' or decoded_instruction_LS(LBU_bit_position) = '1')) then
-              core_busy_LS_wires := '1';
               data_be_internal_wires := data_be_ID;
               data_req_o_wires       := '1';
               if load_err = '1' then
                 ls_except_condition_wires := '1';
                 ls_taken_branch_wires     := '1';
               else
+                core_busy_LS_wires := '1';
                 nextstate_LS <= data_valid_waiting;
               end if;
             else
@@ -449,10 +448,8 @@ begin
 
           if (decoded_instruction_LS(SW_bit_position) = '1' and sw_mip = '0') or (decoded_instruction_LS(AMOSWAP_bit_position) = '1' and (amo_store = '1' or amo_load_skip = '1')) then
             if amo_store = '0' and amo_load_skip = '0'  then
-              busy_LS_wires          := '1';
               data_addr_internal_wires := std_logic_vector(signed(RS1_Data_IE) + signed(S_immediate(instr_word_IE)));
             elsif amo_store = '1' or amo_load_skip = '1' then
-              core_busy_LS_wires := '1';
               data_addr_internal_wires := std_logic_vector(signed(RS1_Data_IE));
             end if;
             data_we_o_wires        := '1';  -- is a writing
@@ -465,6 +462,10 @@ begin
                 ls_taken_branch_wires      := '1';
               else
                 nextstate_LS <= data_valid_waiting;
+                busy_LS_wires := '1';
+                if amo_store = '1' or amo_load_skip = '1' then
+                  core_busy_LS_wires := '1';
+                end if;
               end if;
             else
               ls_except_condition_wires  := '1';
@@ -474,7 +475,6 @@ begin
 
           if decoded_instruction_LS(SH_bit_position) then
             data_addr_internal_wires := std_logic_vector(signed(RS1_Data_IE) + signed(S_immediate(instr_word_IE)));
-            busy_LS_wires      := '1';
             if data_addr_internal_wires(0) = '0' then
               data_req_o_wires   := '1';
               if store_err = '1' then
@@ -482,6 +482,7 @@ begin
                 ls_taken_branch_wires      := '1';
               else
                 nextstate_LS <= data_valid_waiting;
+                busy_LS_wires := '1';
               end if;
             else
               ls_except_condition_wires  := '1';
@@ -503,12 +504,12 @@ begin
 
           if decoded_instruction_LS(SB_bit_position) = '1'then
             data_addr_internal_wires := std_logic_vector(signed(RS1_Data_IE) + signed(S_immediate(instr_word_IE)));
-            busy_LS_wires      := '1';
             data_req_o_wires   := '1';
             if store_err = '1' then
               ls_except_condition_wires  := '1';
               ls_taken_branch_wires      := '1';
             else
+              busy_LS_wires := '1';
               nextstate_LS <= data_valid_waiting;
             end if;
             case data_addr_internal_wires(1 downto 0) is
@@ -553,7 +554,6 @@ begin
             else
               nextstate_LS    <= data_valid_waiting;
               busy_LS_wires   := '1';
-              --core_busy_LS_wires := '1';
             end if;
           end if;
 
@@ -568,7 +568,6 @@ begin
             elsif(RD_Data_IE(1 downto 0) /= "00") then
               ls_except_condition_wires  := '1';
               ls_taken_branch_wires      := '1';
-              busy_LS_wires              := '1'; -- AAA check why this is here
             elsif store_err = '1' then
               ls_except_condition_wires  := '1';
               ls_taken_branch_wires      := '1';
@@ -578,7 +577,6 @@ begin
             else
               nextstate_LS    <= data_valid_waiting;
               busy_LS_wires   := '1';
-              --core_busy_LS_wires := '1';
               ls_sci_req(to_integer(unsigned(rs1_to_sc))) <= '1';
               ls_sc_read_addr <= RS1_Data_IE(Addr_Width - 1 downto SIMD_BITS+2);
             end if;
@@ -598,7 +596,6 @@ begin
             end if;
             if RS2_Data_IE_lat(Addr_Width downto 0) /= (0 to Addr_Width => '0') then
               busy_LS_wires      := '1';
-              --core_busy_LS_wires := '1';
               data_be_internal_wires     := "1111";
               data_req_o_wires           := '1';
               data_addr_internal_wires := RS1_Data_IE_wire_lat;
@@ -623,7 +620,6 @@ begin
             end if;
             if RS2_Data_IE_lat(Addr_Width downto 0) /= (0 to Addr_Width => '0') then
               busy_LS_wires      := '1';
-              --core_busy_LS_wires := '1';
               nextstate_LS <= data_valid_waiting;
               if data_rvalid_i = '1' then
                 ls_sci_req(to_integer(unsigned(ls_rs1_to_sc))) <= '1';

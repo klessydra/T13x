@@ -483,6 +483,7 @@ begin
     variable nextstate_IE_wires               : fsm_IE_states;
 
   begin
+    pc_IE_except_value               <= (others => (others => '0'));
     PC_offset_wires                  := (others => (others => '0'));
     served_irq_wires		         := (others => '0');
     nextstate_IE_wires               := normal; 

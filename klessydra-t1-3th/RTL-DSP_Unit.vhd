@@ -116,6 +116,7 @@ architecture DSP of DSP_Unit is
   signal dsp_mul_c                      : std_logic_vector(SIMD_Width -1 downto 0); --  Contains the results of the 16-bit multipliers
   signal dsp_mul_d                      : std_logic_vector(SIMD_Width -1 downto 0); --  Contains the results of the 16-bit multipliers
   -- Functional Unit Ports ---
+  signal dsp_in_sign_bits               : std_logic_vector(4*SIMD-1 downto 0);
   signal dsp_in_shifter_operand         : std_logic_vector(SIMD_Width -1 downto 0);
   signal dsp_in_shifter_operand_lat     : std_logic_vector(SIMD_Width -1 downto 0);            -- 15 bits because i only want to latch the signed bits
   signal dsp_int_shifter_operand        : std_logic_vector(SIMD_Width -1 downto 0);
@@ -148,6 +149,7 @@ architecture DSP of DSP_Unit is
   signal busy_dsp_internal              : std_logic;
   signal busy_DSP_internal_lat          : std_logic;
   signal RF_RD                          : std_logic;
+  signal SIMD_RD_BYTES                  : integer;
 
   component ACCUMULATOR
 	port(
@@ -171,13 +173,13 @@ begin
 
   ------------ Sequential Stage of DSP Unit -------------------------------------------------------------------------
   DSP_Exec_Unit : process(clk_i, rst_ni)  -- single cycle unit, fully synchronous 
-  variable SIMD_RD_BYTES : integer;
+
   begin
     if rst_ni = '0' then
     elsif rising_edge(clk_i) then
       if irq_pending(harc_EXEC) = '1' then
         null;
-      elsif dsp_instr_req = '1' or busy_DSP_internal = '1' or busy_DSP_internal_lat = '1' then  
+      elsif dsp_instr_req = '1' or busy_DSP_internal_lat = '1' then  
 
         case state_DSP is
 
@@ -198,7 +200,9 @@ begin
             RF_RD    <= '0';
             dotpps   <= '0';
             dotp     <= '0';
-            SIMD_RD_BYTES := SIMD*(Data_Width/8);
+            accum_en <= '0';
+            mul_en   <= '0';
+            SIMD_RD_BYTES <= SIMD*(Data_Width/8);
 
             -- Set signals to enable correct virtual parallelism operation
             if decoded_instruction_DSP(KADDV32_bit_position)    = '1' or
@@ -248,7 +252,7 @@ begin
               accum_en <= '1';
               dotp <= '1';
             elsif decoded_instruction_DSP(KDOTP8_bit_position)  = '1' then
-              SIMD_RD_BYTES := SIMD*(Data_Width/8)/2;
+              SIMD_RD_BYTES <= SIMD*(Data_Width/8)/2;
               mul_en <= '1';
               accum_en <= '1';
               dotp <= '1';
@@ -264,7 +268,7 @@ begin
               shift_en <= '1';
               dotpps <= '1';
             elsif decoded_instruction_DSP(KDOTPPS8_bit_position)  = '1' then
-              SIMD_RD_BYTES := SIMD*(Data_Width/8)/2;
+              SIMD_RD_BYTES <= SIMD*(Data_Width/8)/2;
               mul_en <= '1';
               accum_en <= '1';
               shift_en <= '1';
@@ -274,7 +278,7 @@ begin
             elsif decoded_instruction_DSP(KVRED16_bit_position) = '1' then
               accum_en <= '1';
             elsif decoded_instruction_DSP(KVRED8_bit_position)  = '1' then
-              SIMD_RD_BYTES := SIMD*(Data_Width/8)/2;
+              SIMD_RD_BYTES <= SIMD*(Data_Width/8)/2;
               accum_en <= '1';
             elsif decoded_instruction_DSP(KSVMULRF32_bit_position) = '1' then
               FUNCT_SELECT_MASK <= (others => '1');
@@ -284,7 +288,7 @@ begin
               RF_RD <= '1';
               mul_en <= '1';
             elsif decoded_instruction_DSP(KSVMULRF8_bit_position)  = '1' then
-              SIMD_RD_BYTES := SIMD*(Data_Width/8)/2;
+              SIMD_RD_BYTES <= SIMD*(Data_Width/8)/2;
               RF_RD  <= '1';
               mul_en <= '1';
             elsif decoded_instruction_DSP(KVMUL32_bit_position)    = '1' or
@@ -296,7 +300,7 @@ begin
               mul_en <= '1';
             elsif decoded_instruction_DSP(KVMUL8_bit_position)     = '1' or
 				  decoded_instruction_DSP(KSVMULSC8_bit_position)  = '1' then
-              SIMD_RD_BYTES := SIMD*(Data_Width/8)/2;
+              SIMD_RD_BYTES <= SIMD*(Data_Width/8)/2;
               mul_en <= '1';
             elsif decoded_instruction_DSP(KSRAV32_bit_position) = '1' then
               shift_en <= '1';
@@ -454,6 +458,7 @@ begin
     dsp_sc_data_write_wire_int  <= (others => '0');
     dsp_sc_data_write_wire      <= dsp_sc_data_write_wire_int;
     nextstate_DSP               <= dsp_init;
+    dsp_in_accum_operands       <= (others => '0');
     dsp_in_mul_operands         <= (others => (others => '0'));
     dsp_sc_read_addr            <= (others => (others => '0'));
     dsp_to_sc                   <= (others => (others => '0'));
@@ -461,7 +466,7 @@ begin
 
     if irq_pending(harc_EXEC)= '1' then
       nextstate_DSP <= dsp_init;
-    elsif dsp_instr_req = '1' or busy_DSP_internal = '1' or busy_DSP_internal_lat = '1' then
+    elsif dsp_instr_req = '1' or busy_DSP_internal_lat = '1' then
       nextstate_DSP <= dsp_init;
       case state_DSP is
 	
@@ -680,11 +685,16 @@ begin
              dsp_in_adder_operands(1)     <= (not dsp_sc_data_read(1));
            end if;
 
-           if decoded_instruction_DSP_lat(KVRED8_bit_position)  = '1' or
-              decoded_instruction_DSP_lat(KVRED16_bit_position) = '1' or
+           if decoded_instruction_DSP_lat(KVRED8_bit_position)  = '1' then
+             for i in 0 to 2*SIMD-1 loop
+               dsp_in_accum_operands(15+16*(i) downto 16*(i)) <= x"00" & (dsp_sc_data_read(0)(7+8*(i) downto 8*(i)) and dsp_sc_data_read_mask(7+8*(i) downto 8*(i)));
+             end loop;
+             dsp_sc_data_write_wire_int(31 downto 0) <= dsp_out_accum_results;  -- AAA add a mask in order to store the lower part only when 16-bit or 8-bit.
+           end if;
+           if decoded_instruction_DSP_lat(KVRED16_bit_position) = '1' or
               decoded_instruction_DSP_lat(KVRED32_bit_position) = '1' then
              dsp_sc_data_write_wire_int(31 downto 0) <= dsp_out_accum_results;  -- AAA add a mask in order to store the lower part only when 16-bit or 8-bit.
-             dsp_in_accum_operands                   <= dsp_sc_data_read(0);
+             dsp_in_accum_operands                   <= dsp_sc_data_read(0) and dsp_sc_data_read_mask;
            end if;
 
            if decoded_instruction_DSP_lat(KRELU8_bit_position)  = '1' or
@@ -726,7 +736,7 @@ begin
            if (dsp_sci_wr_gnt = '0' and wb_ready = '1') then
              halt_dsp <= '1';
              recover_state_wires <= '1';
-           elsif MVSIZE_WRITE = (0 to Addr_Width => '0') then
+           elsif unsigned(MVSIZE_WRITE) <= SIMD_RD_BYTES then
              recover_state_wires <= '0';
            end if;
 
@@ -765,7 +775,7 @@ begin
              -- KVCP signals are handeled here
              if adder_stage_3_en = '1' then
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';	
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -789,7 +799,7 @@ begin
              -- KRELU signals are handeled here
              if relu_stage_2_en = '1' then
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';	
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -814,7 +824,7 @@ begin
              -- KSRAV signals are handeled here
              if shifter_stage_3_en = '1' then
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';	
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -839,7 +849,7 @@ begin
              -- KADDV and KSUBV signals are handeled here
              if adder_stage_3_en = '1' then
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';	
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -868,7 +878,7 @@ begin
              -- KDOTP signals are handeled here
              if accum_stage_2_en = '1' then
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';	
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -900,9 +910,9 @@ begin
               decoded_instruction_DSP_lat(KSVADDSC32_bit_position) = '1' or decoded_instruction_DSP_lat(KSVADDSC16_bit_position) = '1' or decoded_instruction_DSP_lat(KSVADDSC8_bit_position) = '1' or
               decoded_instruction_DSP_lat(KSVADDRF32_bit_position) = '1' or decoded_instruction_DSP_lat(KSVADDRF16_bit_position) = '1' or decoded_instruction_DSP_lat(KSVADDRF8_bit_position) = '1' then
              -- KMUL signals are handeled here
-             if mul_stage_3_en = '1' then 
+             if mul_stage_3_en = '1' or  adder_stage_3_en = '1' then 
                wb_ready <= '1';
-             elsif recover_state_wires = '1' then
+             elsif recover_state = '1' then
                wb_ready <= '1';				 
              end if;
              if MVSIZE_READ > (0 to Addr_Width => '0') then
@@ -1113,11 +1123,14 @@ begin
   begin
     if rst_ni = '0' then
     elsif rising_edge(clk_i) then
-      for i in 0 to SIMD-1 loop
-        if shift_en = '1' and (shifter_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
+      if shift_en = '1' and (shifter_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
+        for i in 0 to SIMD-1 loop
           dsp_int_shifter_operand(31+32*(i) downto 32*(i)) <= to_stdlogicvector(to_bitvector(dsp_in_shifter_operand(31+32*(i) downto 32*(i))) srl to_integer(unsigned(dsp_in_shift_amount)));
-        end if;
-      end loop;
+        end loop;
+        for i in 0 to 4*SIMD-1 loop -- latch the sign bits
+          dsp_in_sign_bits(i) <= dsp_in_shifter_operand(7+8*(i));
+        end loop;
+      end if;
     end if;
   end process;
 
@@ -1137,7 +1150,7 @@ begin
           for i in 0 to SIMD-1 loop
             dsp_out_shifter_results(31+32*(i) downto 32*(i)) <= dsp_in_shifter_operand_lat(31 +32*(i) downto 32*(i)) or dsp_int_shifter_operand(31+32*(i) downto 32*(i)); 
           end loop;
-        elsif vec_width_DSP = "01" then
+        elsif vec_width_DSP = "01" or decoded_instruction_DSP_lat(KDOTPPS8_bit_position) = '1' then -- KDOTPPS8 has been added here because the number of elements loaded for mul operations is equal for 8-bit and 16-bits instr
           for i in 0 to 2*SIMD-1 loop
             dsp_out_shifter_results(15+16*(i) downto 16*(i)) <=  dsp_in_shifter_operand_lat(15 +16*(i) downto 16*(i)) or (dsp_int_shifter_operand(15+16*(i) downto 16*(i)) and dsp_shift_enabler(15 downto 0));
           end loop;
@@ -1147,31 +1160,33 @@ begin
           end loop;
         end if;
       end if;
-      dsp_in_shifter_operand_lat <= (others => '0');
-      if decoded_instruction_DSP_lat(KSRAV32_bit_position) = '1' or decoded_instruction_DSP(KDOTPPS32_bit_position) = '1' then    -- 32-bit sign extension for for srl in stage 1
-        for i in 0 to SIMD-1 loop
-          dsp_in_shifter_operand_lat(31+32*(i) downto 31 - to_integer(unsigned(dsp_in_shift_amount(4 downto 0)))+32*(i))   <= (others => dsp_in_shifter_operand(31+32*(i)));
-        end loop;
-      elsif decoded_instruction_DSP_lat(KSRAV16_bit_position) = '1' or decoded_instruction_DSP(KDOTPPS16_bit_position) = '1' then -- 16-bit sign extension for for srl in stage 1
-        for i in 0 to 2*SIMD-1 loop
-          dsp_in_shifter_operand_lat(15+16*(i) downto 15 - to_integer(unsigned(dsp_in_shift_amount(3 downto 0)))+16*(i))   <= (others => dsp_in_shifter_operand(15+16*(i)));
-        end loop;
-      elsif decoded_instruction_DSP_lat(KSRAV8_bit_position) = '1' or decoded_instruction_DSP(KDOTPPS8_bit_position) = '1' then  -- 8-bit  sign extension for for srl in stage 1
-        for i in 0 to 4*SIMD-1 loop
-          dsp_in_shifter_operand_lat(7+8*(i) downto 7 - to_integer(unsigned(dsp_in_shift_amount(2 downto 0)))+8*(i))    <= (others => dsp_in_shifter_operand(7+8*(i)));
-        end loop;
-      end if;
     end if;
   end process;
 
   fsm_DSP_shifter_comb : process(all)
   begin
     dsp_shift_enabler <= (others => '0');
+    dsp_in_shifter_operand_lat <= (others => '0');
     if shift_en = '1' and halt_dsp_lat = '0' then
       if vec_width_DSP = "01" then
         dsp_shift_enabler(15 - to_integer(unsigned(dsp_in_shift_amount(3 downto 0))) downto 0) <= (others => '1');
       elsif vec_width_DSP = "00" then
         dsp_shift_enabler(7 -  to_integer(unsigned(dsp_in_shift_amount(2 downto 0))) downto 0) <= (others => '1');
+      end if;
+      if decoded_instruction_DSP_lat(KSRAV32_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' then    -- 32-bit sign extension for for srl in stage 1
+        for i in 0 to SIMD-1 loop
+          dsp_in_shifter_operand_lat(31+32*(i) downto 31 - to_integer(unsigned(dsp_in_shift_amount(4 downto 0)))+32*(i))   <= (others => dsp_in_sign_bits(3+4*(i)));
+        end loop;
+      elsif decoded_instruction_DSP_lat(KSRAV16_bit_position) = '1' or 
+            decoded_instruction_DSP_lat(KDOTPPS16_bit_position)   = '1' or
+            decoded_instruction_DSP_lat(KDOTPPS8_bit_position) = '1'then -- 16-bit sign extension for for srl in stage 1
+        for i in 0 to 2*SIMD-1 loop
+          dsp_in_shifter_operand_lat(15+16*(i) downto 15 - to_integer(unsigned(dsp_in_shift_amount(3 downto 0)))+16*(i))   <= (others => dsp_in_sign_bits(1+2*(i)));
+        end loop;
+      elsif decoded_instruction_DSP_lat(KSRAV8_bit_position) = '1' then  -- 8-bit  sign extension for for srl in stage 1
+        for i in 0 to 4*SIMD-1 loop
+          dsp_in_shifter_operand_lat(7+8*(i) downto 7 - to_integer(unsigned(dsp_in_shift_amount(2 downto 0)))+8*(i))    <= (others => dsp_in_sign_bits(i));
+        end loop;
       end if;
     end if;
   end process; 

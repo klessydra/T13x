@@ -40,11 +40,14 @@ begin
           when dsp_exec =>
   
             if (accum_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
-              if decoded_instruction_DSP_lat(KDOTP32_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' then
+              if decoded_instruction_DSP_lat(KDOTP32_bit_position)   = '1' or 
+				 decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' or
+				 decoded_instruction_DSP_lat(KVRED32_bit_position)   = '1' then
                 dsp_out_accum_results <= std_logic_vector(unsigned(dsp_in_accum_operands(31 downto 0))  +
                                                 unsigned(dsp_out_accum_results));
               elsif decoded_instruction_DSP_lat(KDOTP16_bit_position)   = '1' or decoded_instruction_DSP_lat(KDOTP8_bit_position)    = '1' or
-				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' then
+				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' or 
+				    decoded_instruction_DSP_lat(KVRED16_bit_position)   = '1' or decoded_instruction_DSP_lat(KVRED8_bit_position)    = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(15 downto 0)))   + (unsigned(dsp_in_accum_operands(31 downto 16)))   +
                                                 unsigned(dsp_out_accum_results));
               end if;
@@ -70,11 +73,14 @@ begin
           when dsp_exec =>
   
             if (accum_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
-              if decoded_instruction_DSP_lat(KDOTP32_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' then
+              if decoded_instruction_DSP_lat(KDOTP32_bit_position)   = '1' or 
+				 decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' or
+				 decoded_instruction_DSP_lat(KVRED32_bit_position)   = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(31 downto 0))  + unsigned(dsp_in_accum_operands(63  downto 32))) +
                                                 unsigned(dsp_out_accum_results));
               elsif decoded_instruction_DSP_lat(KDOTP16_bit_position)   = '1' or decoded_instruction_DSP_lat(KDOTP8_bit_position)    = '1' or
-				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' then
+				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' or 
+				    decoded_instruction_DSP_lat(KVRED16_bit_position)   = '1' or decoded_instruction_DSP_lat(KVRED8_bit_position)    = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(15 downto 0)))   + (unsigned(dsp_in_accum_operands(31 downto 16)))   +
                                                (unsigned(dsp_in_accum_operands(47 downto 32)))  + (unsigned(dsp_in_accum_operands(63 downto 48)))   +
                                                 unsigned(dsp_out_accum_results));
@@ -101,12 +107,15 @@ begin
           when dsp_exec =>
   
             if (accum_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
-              if decoded_instruction_DSP_lat(KDOTP32_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' then
+              if decoded_instruction_DSP_lat(KDOTP32_bit_position)   = '1' or 
+                 decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' or 
+                 decoded_instruction_DSP_lat(KVRED32_bit_position)   = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(31 downto 0))  + unsigned(dsp_in_accum_operands(63  downto 32))) +
                                                           (unsigned(dsp_in_accum_operands(95 downto 64)) + unsigned(dsp_in_accum_operands(127 downto 96))) +
                                                            unsigned(dsp_out_accum_results));
               elsif decoded_instruction_DSP_lat(KDOTP16_bit_position)   = '1' or decoded_instruction_DSP_lat(KDOTP8_bit_position)    = '1' or
-				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' then
+				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' or 
+				    decoded_instruction_DSP_lat(KVRED16_bit_position)   = '1' or decoded_instruction_DSP_lat(KVRED8_bit_position)    = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(15 downto 0)))   + (unsigned(dsp_in_accum_operands(31 downto 16)))   +
                                                           (unsigned(dsp_in_accum_operands(47 downto 32)))  + (unsigned(dsp_in_accum_operands(63 downto 48)))   +
                                                           (unsigned(dsp_in_accum_operands(79 downto 64)))  + (unsigned(dsp_in_accum_operands(95 downto 80)))   +
@@ -135,14 +144,17 @@ begin
           when dsp_exec =>
   
             if (accum_stage_1_en = '1' or recover_state_wires = '1') and halt_dsp_lat = '0' then
-              if decoded_instruction_DSP_lat(KDOTP32_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' then
+              if decoded_instruction_DSP_lat(KDOTP32_bit_position)   = '1' or 
+				 decoded_instruction_DSP_lat(KDOTPPS32_bit_position) = '1' or
+				 decoded_instruction_DSP_lat(KVRED32_bit_position)   = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(31 downto 0))    + unsigned(dsp_in_accum_operands(63  downto 32)))   +
                                                           (unsigned(dsp_in_accum_operands(95 downto 64))   + unsigned(dsp_in_accum_operands(127 downto 96)))   +
                                                           (unsigned(dsp_in_accum_operands(159 downto 128)) + unsigned(dsp_in_accum_operands(191  downto 160))) +
                                                           (unsigned(dsp_in_accum_operands(223 downto 192)) + unsigned(dsp_in_accum_operands(255 downto 224)))  +
                                                            unsigned(dsp_out_accum_results));
               elsif decoded_instruction_DSP_lat(KDOTP16_bit_position)   = '1' or decoded_instruction_DSP_lat(KDOTP8_bit_position)    = '1' or
-				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' then
+				    decoded_instruction_DSP_lat(KDOTPPS16_bit_position) = '1' or decoded_instruction_DSP_lat(KDOTPPS8_bit_position)  = '1' or 
+				    decoded_instruction_DSP_lat(KVRED16_bit_position)   = '1' or decoded_instruction_DSP_lat(KVRED8_bit_position)    = '1' then
                 dsp_out_accum_results <= std_logic_vector((unsigned(dsp_in_accum_operands(15 downto 0)))    + (unsigned(dsp_in_accum_operands(31 downto 16)))     +
                                                           (unsigned(dsp_in_accum_operands(47 downto 32)))   + (unsigned(dsp_in_accum_operands(63 downto 48)))     +
                                                           (unsigned(dsp_in_accum_operands(79 downto 64)))   + (unsigned(dsp_in_accum_operands(95 downto 80)))     +

@@ -111,7 +111,7 @@ begin
         null;  -- do nothing and wait for the stall to finish; don't touch instr_rvalid_IE
       elsif instr_rvalid_ID = '0' then
         instr_rvalid_IE <= '0';         -- wait for a valid instruction
-      else                              -- propagate the instruction
+      else
         instr_rvalid_IE  <= '1';
         instr_word_IE    <= instr_word_ID_lat;
         -- pc propagation
@@ -130,8 +130,6 @@ begin
         RS1_Data_IE <= regfile(harc_ID)(rs1(instr_word_ID_lat));
         RS2_Data_IE <= regfile(harc_ID)(rs2(instr_word_ID_lat));
         RD_Data_IE  <= regfile(harc_ID)(rd(instr_word_ID_lat));
-      end if;  -- instr. conditions
-      if core_busy_IE = '0' and core_busy_LS = '0' and ls_parallel_exec = '1' and dsp_parallel_exec = '1' and instr_rvalid_ID = '1' then
         -- process the instruction
         -- read data from the operand registers
         -- Decode Starts here
@@ -159,20 +157,17 @@ begin
         end if;
         if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) = signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BEQ_ID <= '1';
-        end if;
-        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) /= signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        else
           pass_BNE_ID <= '1';
         end if;
         if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) < signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BLT_ID <= '1';
+        else
+          pass_BGE_ID <= '1';
         end if;
         if (unsigned(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) < unsigned(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
           pass_BLTU_ID <= '1';
-        end if;
-        if (signed(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) >= signed(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
-          pass_BGE_ID <= '1';
-        end if;
-        if (unsigned(regfile  (harc_ID)(rs1(instr_word_ID_lat))(31 downto 0)) >= unsigned(regfile  (harc_ID)(rs2(instr_word_ID_lat))(31 downto 0))) then
+        else
           pass_BGEU_ID <= '1';
         end if;
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -714,7 +709,7 @@ begin
 	OPCODE_wires  := OPCODE(instr_word_ID_lat);
 		
     -- parallelism enablers, halts the pipeline when it is zero. -------------------
-    ls_parallel_exec  <= '0' when busy_LS = '1' else '1';  --  (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and    
+    ls_parallel_exec  <= '0' when (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and busy_LS = '1' else '1';  --  (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and    
     dsp_parallel_exec <= '0' when (OPCODE_wires = KDSP or OPCODE_wires = KMEM) and busy_DSP = '1' else '1';
     --------------------------------------------------------------------------------
 

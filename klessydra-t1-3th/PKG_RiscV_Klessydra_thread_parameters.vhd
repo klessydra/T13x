@@ -42,8 +42,8 @@ package thread_parameters_klessydra is
   constant SPM_STRT_ADDR  : std_logic_vector(31 downto 0) := x"1000_0000";  -- This is starting address of the spms, it shouldn't be bigger than 2^32, and shouldn't overlap any sections in the memory map
   constant SIMD           : natural := 4;   -- Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
   constant MCYCLE_EN      : natural := 1;   -- Can be set to 1 or 0 only. Setting to zero will disable MCYCLE and MCYCLEH
-  constant MINSTRET_EN    : natural := 1;   -- Can be set to 1 or 0 only. Setting to zero will disable MINSTRET and MINSTRET
-  constant MHPMCOUNTER_EN : natural := 1;   -- Can be set to 1 or 0 only. Setting to zero will disable all the other program counters
+  constant MINSTRET_EN    : natural := 1;   -- Can be set to 1 or 0 only. Setting to zero will disable MINSTRET and MINSTRETH
+  constant MHPMCOUNTER_EN : natural := 1;   -- Can be set to 1 or 0 only. Setting to zero will disable all program counters except "MCYCLE/H" and "MINSTRET/H"
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
   constant RF_CEIL        : natural := integer(ceil(log2(real(RF_SIZE))));
