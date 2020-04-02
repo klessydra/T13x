@@ -1,31 +1,6 @@
-# T13x Extensions illustration
-
-Extensions of T13x core
-
-I will include shortly a document stating all the features of the T13 core.
-
-For now, T13 can configed in many ways in the PKG file that you can use to build your T13 core however you want:
-The customizable configurations are:
-  - Registerfile size (16, or 32)
-  - Scratchpad Memory number (Should not be put less than two)
-  - Scratchpad Size (should always be a power two)
-  - Scratchpad starting address (Lets you map the scartchpad mems wherever you want, remember not to overlap other sections)
-  - SIMD (Lets you choose the SIMD size you want. Can be put to "1,,2,4,8" only other configs are not allowed) increasing the SIMD will increase the number of functional units in the DSP, and the number of banks in every scratchpad.
-  - MCYCLE_EN, MINSTRET_EN, and MHPMCOUNTER_EN setting to 1 will enable the generation of the perfromance counters in the T1 core
-
-DSP-Unit TESTS:
-
-- Tests for the above operations have been added, after you merge the Klessydra with PULPino, you will find the tests inside <pulp_path>/sw/apps/klessydra_tests/klessydra_dsp_tests. 
-
-- The tests can show the performance of the DSP_Unit compared to vector operations being executed by the non-vector execution units.
-
-- the tests are
-
-Hope you like it :D
-
 # Merging T13x User Guide
 
-Intro: The Klessydra processing core family is a set of processors featuring full compliance with the RISC-V, and pin-to-pin compatible with the PULPino riscy cores. Klessydra cores fully support the RV32I Base Integer Instruction set, and one instruction from the RV32A extension. 'T1' further extends the instruction set with four instructions as described above. The only privilege level supported in klessydra is Machine mode "M".
+Intro: The Klessydra processing core family is a set of processors featuring full compliance with the RISC-V, and pin-to-pin compatible with the PULPino riscy cores. Klessydra cores fully support the RV32IM Base Integer Instruction set, and one instruction from the RV32A extension. 'T1' further extends the instruction set with a set of vector instructions as described above. The only privilege level supported in klessydra is Machine mode "M".
 
 This guide explains how one can download and install Pulpino, and it's 
 modified version of the riscv-gnu toolchain. It also demonstrates
@@ -115,7 +90,38 @@ PROCEDURE:
 			
 	IT"S DONE!!!!!!
 
-EXTRA:
+Supplimentary Information:
 
 7.	In order to run tests in Modelsim, go to the build folder and do the following:
 		make nameofthetest.vsim (or .vsimc to run a test without modelsim GUI)
+
+8. many Klessydra-T13 tests areavailable, and they will be described in the test_guide
+
+# T13x Extensions illustration
+
+This small section illustrates briefly the extensions of the T13
+
+Extensions of T13x core:
+
+The T13 can configed in many ways in the from the "cmake_configure.klessydra-t1-3th.gcc.sh" found in the sw forlder:
+
+You will find the following generics that will be passed to the RTL. Read the comments next to the variables before modifying:
+1)  "THREAD_POOL_SIZE" sets the number of hardware threads. This should not be set less than 3, and the T13 perfroms best when it is equal to 3 and not grater.
+2)  "LUTRAM_RF" this variable creates a LUTRAM based registerfile instead of a flip-flop based one, it is good for FPGA synthesis as it saves a lot of power
+3)	"RV32E" this enables the embedded extension of the RISCV ISA, and makes the regfile to be half its original size.
+4)	"RV32M" this enable the M-extension of the RISCV ISA. The mul instruction is a single cycle instructions, and the mulh/hu/hsu instructions need 3 cycles. divisions are slow, and can be up to 32 cycles, however fast single cycle divisions are availabe for special cases (div by 0, numerator < denominator, numerator is 0, and numerator equals the denminator).
+5)	"superscalar_exec_en=1"  Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction executing. This more than doubles the speed of the core in many apps, however if in the exceptional case the RTL is not simulating correctly, disable this and see whether the RTL will work again.
+6)	"accl_en"  Enables the generation of the hardware accelerator of the T13
+7)	"replicate_accl_en" Set to 1 to replicate the accelerator for every thread, this increases the parallelism of the T13 by allocating a dedicated accelerator for each hardware thread
+8)	"multithreaded_accl_en" Set this to 1 to let the replicated accelerator have shared functional units, but maintain dedicated SPM memories for each hardware thread (note: replicate_accl_en must be set to '1').
+9)	"SPM_NUM" The number of scratchpads available "Minimum allowed is 2". When the acclerator is replicated, each hardware thread will have scratchpads equal to SPM_NUM, so in a THREAD_POOL_SIZE of 3 we will have 3*SPM_NUM scratchpads in totals
+10)	Addr_Width" This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
+11)	"SIMD" Changing the SIMD, would increase the DLP by increasing the number of the functional units in the accelerator, and the number of banks in the spms acordingly (can be power of 2 only e.g. 1,2,4,8) no more than SIMD 8 is allowed. Setting this to '8' with replicate_accl_en and superscalar_exec_en being set to '1' as well will make the accelerator run at peak performance.
+12)	"MCYCLE_EN" Can be set to 1 or 0 only. Setting to zero will disable MCYCLE and MCYCLEH
+13)	"MINSTRET_EN" Can be set to 1 or 0 only. Setting to zero will disable MINSTRET and MINSTRETH
+14)	"MHPMCOUNTER_EN" Can be set to 1 or 0 only. Setting to zero will disable all performance counters except "MCYCLE/H" and "MINSTRET/H"
+15)	"count_all" Perfomance counters count for all the harts instead of there own hart
+16)	"debug_en" Generates the debug unit, the debug unit is elimentary and might need some further evaluation and testing
+
+
+Hope you like it :D
