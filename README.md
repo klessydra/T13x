@@ -43,6 +43,8 @@ PROCEDURE:
 		b) cd ri5cy_gnu_toolchain
 		
 		c) make ZERORISCY=1
+
+		d) in case you need to build for RISCY cores, then just do "make" instead, and then add the symbolic links as shown from step 4.
 		
 	When the build is done, add the path **_<path_to_toolchain>/ri5cy_gnu_toolchain/install/bin_** to the environmental variables
 
