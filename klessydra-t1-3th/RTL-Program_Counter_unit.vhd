@@ -1,5 +1,15 @@
------------------- PC Managing Unit(s) -----------------------------------------------------------
---------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------------------
+--  PC -- (Program Counters and hart interleavers)                                                          --
+--  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                        --
+--                                                                                                          --
+--  Date Modified: 17-11-2019                                                                               --
+--------------------------------------------------------------------------------------------------------------
+--  Program Counter Managing Units -- synchronous process, sinle cycle.                                     --
+--  Note: in the present version, gives priority to branching over trapping, except LSU and DSP traps       -- 
+--  i.e. branch instructions are not interruptible. This can be changed but may be unsafe.                  --
+--  Implements as many PC units as the  number of harts supported                                           --
+--  This entity also implements the hardware context counters that interleve the harts in the core.         --
+--------------------------------------------------------------------------------------------------------------
 
 
 -- ieee packages ------------
@@ -11,48 +21,49 @@ use std.textio.all;
 
 -- local packages ------------
 use work.riscv_klessydra.all;
-use work.thread_parameters_klessydra.all;
-
 
 entity Program_Counter is
+  generic (
+    THREAD_POOL_SIZE      : integer;
+    ACCL_NUM              : natural
+  );
   port (
     absolute_jump                     : in  std_logic;
     data_we_o_lat                     : in  std_logic;
-    PC_offset                         : in  replicated_32b_reg;
+    PC_offset                         : in  array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
     taken_branch                      : in  std_logic;
     ie_taken_branch                   : in  std_logic;
     ls_taken_branch                   : in  std_logic;
-    dsp_taken_branch                  : in  std_logic;
+    dsp_taken_branch                  : in  std_logic_vector(ACCL_NUM - 1 downto 0);
     set_branch_condition              : in  std_logic;
-    ls_except_condition               : in  std_logic;
     ie_except_condition               : in  std_logic;
-    dsp_except_condition              : in  std_logic;
+    ls_except_condition               : in  std_logic;
+    dsp_except_condition              : in  std_logic_vector(ACCL_NUM - 1 downto 0);
     set_except_condition              : in  std_logic;
     set_mret_condition                : in  std_logic;
     set_wfi_condition                 : in  std_logic;
-    harc_ID                           : in  harc_range;
-    harc_LS                           : in  harc_range;
-    harc_EXEC                         : in  harc_range;
+    harc_ID                           : in  integer range THREAD_POOL_SIZE - 1 downto 0;
+    harc_EXEC                         : in  integer range THREAD_POOL_SIZE - 1 downto 0;
     instr_rvalid_IE                   : in  std_logic;
     pc_IE                             : in  std_logic_vector(31 downto 0);
-    MSTATUS                           : in  array_2d(harc_range)(1 downto 0);
-    MIP, MEPC, MCAUSE, MTVEC : in  replicated_32b_reg;
+    MSTATUS                           : in  array_2d(THREAD_POOL_SIZE - 1 downto 0)(1 downto 0);
+    MIP, MEPC, MCAUSE, MTVEC          : in  array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
     instr_word_IE                     : in  std_logic_vector(31 downto 0);
     reset_state                       : in  std_logic;
     pc_IF                             : out std_logic_vector(31 downto 0);
-    harc_IF                           : out harc_range;
-    served_ie_except_condition        : out replicated_bit;
-    served_ls_except_condition        : out replicated_bit;
-    served_dsp_except_condition       : out replicated_bit;
-    served_except_condition           : out replicated_bit;
-    served_mret_condition             : out replicated_bit;
-    served_irq                        : in  replicated_bit;
-	taken_branch_pending              : out replicated_bit; 
-    taken_branch_pc_lat               : out replicated_32b_reg;
-    incremented_pc                    : out replicated_32b_reg;
-    mepc_incremented_pc               : out replicated_32b_reg;
-    mepc_interrupt_pc                 : out replicated_32b_reg;
-    irq_pending                       : out replicated_bit;
+    harc_IF                           : out integer range THREAD_POOL_SIZE - 1 downto 0;
+    served_ie_except_condition        : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    served_ls_except_condition        : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    served_dsp_except_condition       : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    served_except_condition           : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    served_mret_condition             : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    served_irq                        : in  std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    taken_branch_pending              : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
+    taken_branch_pc_lat               : out array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
+    incremented_pc                    : out array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
+    mepc_incremented_pc               : out array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
+    mepc_interrupt_pc                 : out array_2D(THREAD_POOL_SIZE - 1 downto 0)(31 downto 0);
+    irq_pending                       : out std_logic_vector(THREAD_POOL_SIZE - 1 downto 0);
     clk_i                             : in  std_logic;
     rst_ni                            : in  std_logic;
     irq_i                             : in  std_logic;
@@ -63,41 +74,37 @@ entity Program_Counter is
 end entity;
 
 
-
-----------------------------------------------------------------------------------------------------
--- Program Counter Managing Units -- synchronous process, one cycle
--- Note: in the present version, gives priority to branching over trapping, 
--- i.e. branch instructions are not interruptible. This can be changed but may be unsafe.
--- Implements as many hw units as the max number of threads supported
-----------------------------------------------------------------------------------------------------
 architecture PC of Program_counter is
 
+  subtype harc_range is integer range THREAD_POOL_SIZE - 1 downto 0;
+  subtype accl_range is integer range ACCL_NUM - 1 downto 0;
+
   -- pc updater signals
-  signal pc_update_enable                  : replicated_bit;
-  signal taken_branch_replicated           : replicated_bit;
-  signal set_branch_condition_replicated   : replicated_bit;
-  signal set_wfi_condition_replicated      : replicated_bit;
-  signal ls_except_condition_replicated    : replicated_bit;
-  signal ie_except_condition_replicated    : replicated_bit;
-  signal dsp_except_condition_replicated   : replicated_bit;
-  signal set_except_condition_replicated   : replicated_bit;
-  signal set_mret_condition_replicated     : replicated_bit;
-  signal relative_to_PC                    : replicated_32b_reg;
-  signal pc                                : replicated_32b_reg;
+  signal pc_update_enable                  : std_logic_vector(harc_range);
+  signal taken_branch_replicated           : std_logic_vector(harc_range);
+  signal set_branch_condition_replicated   : std_logic_vector(harc_range);
+  signal set_wfi_condition_replicated      : std_logic_vector(harc_range);
+  signal ls_except_condition_replicated    : std_logic_vector(harc_range);
+  signal ie_except_condition_replicated    : std_logic_vector(harc_range);
+  signal dsp_except_condition_replicated   : std_logic_vector(harc_range);
+  signal set_except_condition_replicated   : std_logic_vector(harc_range);
+  signal set_mret_condition_replicated     : std_logic_vector(harc_range);
+  signal relative_to_PC                    : array_2D(harc_range)(31 downto 0);
+  signal pc                                : array_2D(harc_range)(31 downto 0);
   signal boot_pc                           : std_logic_vector(31 downto 0);
   signal harc_IF_internal                  : harc_range;
-  signal mret_condition_pending_internal   : replicated_bit;
-  signal mepc_incremented_pc_internal      : replicated_32b_reg;
-  signal incremented_pc_internal           : replicated_32b_reg;
-  signal mepc_interrupt_pc_internal        : replicated_32b_reg;
-  signal taken_branch_pc_lat_internal      : replicated_32b_reg;
-  signal taken_branch_pc_pending_internal  : replicated_32b_reg;
-  signal taken_branch_pending_internal     : replicated_bit;
-  signal irq_pending_internal              : replicated_bit;
+  signal mret_condition_pending_internal   : std_logic_vector(harc_range);
+  signal mepc_incremented_pc_internal      : array_2D(harc_range)(31 downto 0);
+  signal incremented_pc_internal           : array_2D(harc_range)(31 downto 0);
+  signal mepc_interrupt_pc_internal        : array_2D(harc_range)(31 downto 0);
+  signal taken_branch_pc_lat_internal      : array_2D(harc_range)(31 downto 0);
+  signal taken_branch_pc_pending_internal  : array_2D(harc_range)(31 downto 0);
+  signal taken_branch_pending_internal     : std_logic_vector(harc_range);
+  signal irq_pending_internal              : std_logic_vector(harc_range);
 
-  ---------------------------------------------------------------------------------------------------
-  -- Subroutine implementing pc updating combinat. logic, to be replicated for max threads supported
-  ---------------------------------------------------------------------------------------------------
+  ------------------------------------------------------------------------------------------------------------
+  -- Subroutine implementing pc updating combinational logic, that is replicated for the threads supported  --
+  ------------------------------------------------------------------------------------------------------------
   procedure pc_update(
     signal MTVEC                         : in    std_logic_vector(31 downto 0);
     signal instr_gnt_i, taken_branch     : in    std_logic;
@@ -208,7 +215,7 @@ begin
   pc_update_logic : for h in harc_range generate
 
     mepc_incremented_pc_internal(h) <= MEPC(h);
-    mepc_interrupt_pc_internal(h)   <= MEPC(h) when MCAUSE(h)(30) = '0' else std_logic_vector(unsigned(MEPC(h)) + 4);  -- (MCAUSE(30) = '0') indicates that we weren't executing a WFI instruction
+    mepc_interrupt_pc_internal(h)   <= MEPC(h) when MCAUSE(h)(30) = '0' else std_logic_vector(unsigned(MEPC(h)) + 4);  -- MCAUSE(30) = '0' indicates that we weren't executing a WFI instruction
 
     relative_to_PC(h) <= std_logic_vector(to_unsigned(0, 32)) when (absolute_jump = '1')
                          else pc_IE;
@@ -217,17 +224,17 @@ begin
 
     set_wfi_condition_replicated(h) <= '1' when set_wfi_condition = '1' and (harc_EXEC = h)
                                   else '0';
-    taken_branch_replicated(h) <=      '1' when dsp_taken_branch = '1' and (harc_EXEC = h)
+    taken_branch_replicated(h) <=      '1' when dsp_taken_branch /= (accl_range => '0') and (harc_EXEC = h)
 	                              else '1' when ls_taken_branch  = '1' and (harc_EXEC = h)
 	                              else '1' when ie_taken_branch  = '1' and (harc_EXEC = h)
                                   else '0';
     set_branch_condition_replicated(h) <= '1' when set_branch_condition = '1' and (harc_EXEC = h)
                                      else '0';
-    dsp_except_condition_replicated(h) <= '1' when dsp_except_condition  = '1' and (harc_EXEC  = h)
+    dsp_except_condition_replicated(h) <= '1' when dsp_except_condition  /= (accl_range => '0') and (harc_EXEC  = h)
                                      else '0';
     ls_except_condition_replicated(h)  <= '1' when ls_except_condition   = '1' and (harc_EXEC   = h)
                                      else '0';
-    ie_except_condition_replicated(h) <= '1' when ie_except_condition  = '1' and (harc_EXEC = h)
+    ie_except_condition_replicated(h)  <= '1' when ie_except_condition  = '1' and (harc_EXEC = h)
                                      else '0';
     set_except_condition_replicated(h) <= '1' when dsp_except_condition_replicated(h)  = '1' or ls_except_condition_replicated(h) = '1' or ie_except_condition_replicated(h) = '1'
                                      else '0';
@@ -289,10 +296,13 @@ begin
 
   end generate pc_update_logic;
   -- end of replicated logic --   
-  --------------------------------------------------------------------------------------------
 
 
 
 --------------------------------------------------------------------- end of PC Managing Units ---
 --------------------------------------------------------------------------------------------------  
+
 end PC;
+--------------------------------------------------------------------------------------------------
+-- END of Program Counter architecture -----------------------------------------------------------
+--------------------------------------------------------------------------------------------------

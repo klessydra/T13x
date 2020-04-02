@@ -22,6 +22,8 @@ tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_klessydra-t0-2th.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_klessydra-t0-3th.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_klessydra-t1-3th.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_klessydra-f0-3th.csh || exit 1
+tcsh ${PULP_PATH}/./vsim/vcompile/netlist/vcompile_glbl_netlists.csh || exit 1
+tcsh ${PULP_PATH}/./vsim/vcompile/netlist/vcompile_klessydra_t13_netlists.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_zero-riscy.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_axi_slice_dc.csh || exit 1
 tcsh ${PULP_PATH}/./vsim/vcompile/ips/vcompile_riscv.csh || exit 1

@@ -13,7 +13,7 @@ then
 	if [ -e $1 ]
 	then
 		if [ -e "$1/update-ips.py" ]
-		then 
+		then
 			echo OK!!!
 			KLESS_PATH=$(pwd)
 			cd $1
@@ -39,10 +39,11 @@ then
 
 	export KLESS_PATH
 	export PULP_PATH
-	
+
 	# common patched files
 	cp -r $KLESS_PATH/klessydra-t1-3th $PULP_PATH/ips
 	cp -r $KLESS_PATH/patched_files/common_patched_files/sw		$PULP_PATH/
+	cp -r $KLESS_PATH/patched_files/common_patched_files/ips	$PULP_PATH/
 	cp -r $KLESS_PATH/patched_files/common_patched_files/rtl	$PULP_PATH/
 	cp -r $KLESS_PATH/patched_files/common_patched_files/tb		$PULP_PATH/
 	cp -r $KLESS_PATH/patched_files/common_patched_files/vsim	$PULP_PATH/

@@ -7,16 +7,35 @@ add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_
 add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/*
 add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU/*
 add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/EXECUTE/*
-add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/WRITEBACK/*
-add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/DBG/*
-add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DSP/*
-add wave -group "DSP" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DSP/*
+add wave -group "Core" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/*
+add wave -group "Core" -radix hexadecimal sim:/tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/ACCL_generate/DSP/*
+add wave -group "DSP" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/ACCL_generate/DSP/*
 add wave -group "LSU" -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU/*
-add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SCI/*
-add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SCI/SC/*
+add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/ACCL_generate/SCI/*
+#add wave -group "SC"  -radix hexadecimal sim:tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SCI/SC/*
+
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/clk_i
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU/nextstate_LS
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU/state_LS
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_req_o
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_gnt_i
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_rvalid_i
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_we_o
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_be_o
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_addr_o
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_wdata_o
+add wave -group MEM -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/data_rdata_i
+
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MCYCLE
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MINSTRET
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER3
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER6
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER7
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER8
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER9
+add wave -group Perf_Cnt -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHPMCOUNTER10
 
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MTVEC
-add wave -group CSR -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MCYCLE
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/PCER
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MSTATUS
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MESTATUS
@@ -25,9 +44,12 @@ add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CS
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MIP
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MIRQ
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MHARTID
+add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MVTYPE
 add wave -group CSR -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/MVSIZE
 
-
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/decoded_instruction_LS
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/decoded_instruction_DSP
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/decoded_instruction_IE
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/irq_pending
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/set_branch_condition
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/set_except_condition
@@ -41,26 +63,26 @@ add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/instr_rvalid_i
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/CSR/harc_to_csr
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/regfile
+#add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/regfile_bram
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/harc_IF
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/harc_ID
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/harc_EXEC
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/WRITEBACK/harc_WB
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/WRITEBACK/WB_EN
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/harc_WB
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/WB_EN
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/pc_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RS1_Addr_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RS2_Addr_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RD_Addr_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RS1_Addr_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RS2_Addr_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RD_Addr_IE
 add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/instr_word_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RS1_Data_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RS2_Data_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DECODE/RD_Data_IE
-add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/WRITEBACK/WB_RD
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RS1_Data_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RS2_Data_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/RD_Data_IE
+add wave -group Debug -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RF/WB_RD
 
 #add wave -group Imm -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/S_Imm_IE
 #add wave -group Imm -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/I_Imm_IE
 #add wave -group Imm -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/SB_Imm_IE
 #add wave -group Imm -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/CSR_ADDR_IE
-
 
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/clk_i
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/taken_branch_pc_lat
@@ -83,4 +105,3 @@ configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
 configure wave -timelineunits ns
-

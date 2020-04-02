@@ -13,6 +13,7 @@
 
 module instr_ram_wrap
   #(
+	parameter USE_KLESSYDRA_T13X_NETLIST = 0,
     parameter RAM_SIZE   = 131072,                // in bytes
     parameter ADDR_WIDTH = $clog2(RAM_SIZE) + 1, // one bit more than necessary, for the boot rom
     parameter DATA_WIDTH = 32
@@ -37,7 +38,24 @@ module instr_ram_wrap
 
   assign is_boot = (addr_i[ADDR_WIDTH-1] == 1'b1);
 
+if (USE_KLESSYDRA_T13X_NETLIST) begin : mem_gen_net
+  sp_ram_wrap_netlist
+  #(
+  )
+  sp_ram_wrap_i
+  (
+    .clk         ( clk                        ),
+    .rstn_i      ( rst_n                      ),
 
+    .en_i        ( en_i & (~is_boot)          ),
+    .addr_i      ( addr_i[ADDR_WIDTH-2:0]     ),
+    .wdata_i     ( wdata_i                    ),
+    .rdata_o     ( rdata_ram                  ),
+    .we_i        ( we_i                       ),
+    .be_i        ( be_i                       ),
+    .bypass_en_i ( bypass_en_i                )
+  );
+end else begin : mem_gen
   sp_ram_wrap
   #(
     .RAM_SIZE   ( RAM_SIZE   ),
@@ -56,6 +74,7 @@ module instr_ram_wrap
     .be_i        ( be_i                       ),
     .bypass_en_i ( bypass_en_i                )
   );
+end
 
   boot_rom_wrap
   #(
