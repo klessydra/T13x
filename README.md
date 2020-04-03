@@ -1,4 +1,4 @@
-![](/Logo/Klessydra_Logo.png)
+<img src="/Logo/Klessydra_Logo.png" width="199">
 
 # Merging T13x User Guide
 
