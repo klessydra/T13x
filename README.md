@@ -1,4 +1,4 @@
-<img src="/Logo/Klessydra_Logo.png" width="199">
+<img src="/Logo/Klessydra_Logo.png" width="500">
 
 # Merging T13x User Guide
 
