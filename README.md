@@ -1,3 +1,5 @@
+![] /Logo/Klessydra_Logo.png
+
 # Merging T13x User Guide
 
 Intro: The Klessydra processing core family is a set of processors featuring full compliance with the RISC-V, and pin-to-pin compatible with the PULPino riscy cores. Klessydra cores fully support the RV32IM Base Integer Instruction set, and one instruction from the RV32A extension. 'T1' further extends the instruction set with a set of vector instructions as described above. The only privilege level supported in klessydra is Machine mode "M".
