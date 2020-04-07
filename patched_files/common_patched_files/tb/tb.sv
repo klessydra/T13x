@@ -54,6 +54,7 @@ module tb;
   parameter KLESS_MHPMCOUNTER_EN		     =1;
   parameter KLESS_count_all				       =1;
   parameter KLESS_debug_en				       =1;
+  parameter KLESS_tracer_en              =0;
 
   int           exit_status = `EXIT_ERROR; // modelsim exit code, will be overwritten when successful
 

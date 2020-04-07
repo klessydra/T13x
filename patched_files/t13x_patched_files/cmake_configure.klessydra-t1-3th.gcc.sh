@@ -38,7 +38,7 @@ then
 	KLESS_RV32M=1                   # Enable the M-extension of the risc-v instruction set
 	KLESS_superscalar_exec_en=1		# Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction
 	KLESS_accl_en=1                 # Enable the generation of the special purpose accelerator
-	KLESS_replicate_accl_en=0       # Set to 1 to replicate the accelerator for every thread
+	KLESS_replicate_accl_en=1       # Set to 1 to replicate the accelerator for every thread
 	KLESS_multithreaded_accl_en=0   # Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
 	KLESS_SPM_NUM=4                 # The number of scratchpads available "Minimum allowed is two"
 	KLESS_Addr_Width=14             # This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
@@ -49,7 +49,7 @@ then
 	KLESS_MHPMCOUNTER_EN=1          # Can be set to 1 or 0 only. Setting to zero will disable all performance counters except "MCYCLE/H" and "MINSTRET/H"
 	KLESS_count_all=1               # Perfomance counters count for all the harts instead of there own hart
 	KLESS_debug_en=1                # Generates the debug unit
-
+	KLESS_tracer_en=0				# Generate the instruction tracer used only for debugging purposes
     #  -------------------------------------------------------------------------------------------------------------------------------------------------------
     #  --  ██████╗ ██╗███████╗ ██████╗██╗   ██╗     ██████╗ ██████╗ ██████╗ ███████╗███████╗    ██╗ ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ███████╗  --
     #  --  ██╔══██╗██║██╔════╝██╔════╝╚██╗ ██╔╝    ██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝   ██╔╝██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██╔════╝  --
@@ -245,6 +245,7 @@ cmake "$PULP_GIT_DIRECTORY"/sw/ \
 	-DKLESS_MHPMCOUNTER_EN="$KLESS_MHPMCOUNTER_EN" \
 	-DKLESS_count_all="$KLESS_count_all" \
 	-DKLESS_debug_en="$KLESS_debug_en" \
+	-DKLESS_tracer_en="$KLESS_tracer_en"\
     -DGCC_MARCH="$GCC_MARCH" \
     -DARDUINO_LIB="$ARDUINO_LIB" \
     -DPL_NETLIST="$PL_NETLIST" \

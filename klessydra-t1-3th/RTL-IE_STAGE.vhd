@@ -2,7 +2,7 @@
 --  stage IE -- (Instruction Execute)                                                                       --
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                        --
 --                                                                                                          --
---  Date Modified: 8-12-2019                                                                               --
+--  Date Modified: 01-03-2020                                                                               --
 --------------------------------------------------------------------------------------------------------------
 --  This stage is composed of an fsm unit fsm_IE that executes the incoming operations,                     --
 --  Priveleged and CSR instructions are also executed here, load-store and custom instructions are not      --

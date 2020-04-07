@@ -2,7 +2,7 @@
 --  DSP Unit(s) --                                                                                      --
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                    --
 --                                                                                                      --
---  Date Modified: 17-11-2019                                                                           --
+--  Date Modified: 02-04-2020                                                                           --
 ----------------------------------------------------------------------------------------------------------
 --  The DSP unit executes on vectors fetched from local-low-latency-wide-bus scratchpad memories.       --
 --  The DSP has five functional units, adder/subtractor, multiplier, right arith/logic shifter,         --

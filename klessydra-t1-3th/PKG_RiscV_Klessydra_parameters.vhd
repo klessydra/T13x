@@ -24,7 +24,8 @@ package klessydra_parameters is
 ---------------------------------------------------------------                                                         
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
---generic (
+generic (debug_en              : natural := 1;
+		 LUTRAM_RF             : natural := 0);
 --  THREAD_POOL_SIZE      : integer := 3;   -- Changing the TPS to less than "number of pipeline stages-1" is not allowed. And making it bigger than "pipeline stages-1" is okay but not recommended
 --  RV32E                 : natural := 0;   -- Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1
 --  RV32M                 : natural := 1;   -- Enable the M-extension of the risc-v instruction set

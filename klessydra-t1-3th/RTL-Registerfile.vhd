@@ -1,4 +1,15 @@
-
+----------------------------------------------------------------------------------------------------------------
+--  Stage ID - (Instruction decode and registerfile read)                                                     --
+--  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                          --
+--                                                                                                            --
+--  Date Modified: 07-04-2020                                                                                  --
+----------------------------------------------------------------------------------------------------------------
+--  Registerfiles of the incoming hart are read in this stage in parallel with the decoding                   --
+--  Two types of registerfiles can be generaated for XILINX FPGAs LUTAM based or FF based dpeneding on the    --
+--  setting of the generic variaabble chosen                                                                  --
+--  The scratchpad memory mapper also exists in this stage, which maps the address to the corresponding SPM   --
+--  This pipeline stage always takes one cycle latency                                                        --
+----------------------------------------------------------------------------------------------------------------
 
 -- ieee packages ------------
 library ieee;

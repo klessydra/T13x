@@ -2,17 +2,14 @@
 --  Stage ID - (Instruction decode and registerfile read)                                                     --
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                          --
 --                                                                                                            --
---  Date Modified: 8-12-2019                                                                                  --
+--  Date Modified: 07-04-2020                                                                                  --
 ----------------------------------------------------------------------------------------------------------------
 --  Does operation decoding, and issues the result in a one-hot decoding form to the next stage               --
---  Registerfiles of the incoming hart are read in this stage in parallel with the decoding                   --
---  Comparators for brnahc instructions perform the comparison at this stage and send the result to the next  --
 --  In this stage we detect based on the incoming instruction whether superscalar execution can be enabled.   --
---  The scratchpad memory mapper also exists in this stage, which maps the address to the corresponding SPM   --
 --  This pipeline stage always takes one cycle latency                                                        --
 ----------------------------------------------------------------------------------------------------------------
 
---package riscv_kless is new work.riscv_klessydra;
+-- package riscv_kless is new work.riscv_klessydra;
 
 -- ieee packages ------------
 library ieee;

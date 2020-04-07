@@ -3,7 +3,7 @@
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                  --
 --             Gianmarco Cerutti                                                                      --
 --                                                                                                    --
---  Date Modified: 20-11-2019                                                                         --
+--  Date Modified: 02-04-2020                                                                         --
 --------------------------------------------------------------------------------------------------------
 --  Manages CSR instructions and CSR automatic updates following traps and special instructions.      --
 --  Note: In the present version, gives priority to CSR automatic updates over CSR instr. execution   --

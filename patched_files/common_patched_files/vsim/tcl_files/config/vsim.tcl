@@ -34,6 +34,7 @@ set cmd "vsim -quiet $TB \
   -gKLESS_MHPMCOUNTER_EN=$env(KLESS_MHPMCOUNTER_EN) \
   -gKLESS_count_all=$env(KLESS_count_all) \
   -gKLESS_debug_en=$env(KLESS_debug_en) \
+  -gKLESS_tracer_en=$env(KLESS_tracer_en) \
   -t ps \
   -voptargs=\"+acc -suppress 2103\" \
   $VSIM_FLAGS"

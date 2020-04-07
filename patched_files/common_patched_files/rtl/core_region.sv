@@ -52,7 +52,8 @@ module core_region
 	parameter KLESS_MINSTRET_EN            =1,
 	parameter KLESS_MHPMCOUNTER_EN         =1,
 	parameter KLESS_count_all	             =1,
-	parameter KLESS_debug_en               =1  
+	parameter KLESS_debug_en               =1,
+  parameter KLESS_tracer_en              =0
   )
 (
     // Clock and Reset
@@ -414,7 +415,8 @@ module core_region
    		.MINSTRET_EN             (KLESS_MINSTRET_EN),
    		.MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
    		.count_all               (KLESS_count_all),
-   		.debug_en                (KLESS_debug_en)
+   		.debug_en                (KLESS_debug_en),
+      .tracer_en               (KLESS_tracer_en)
       )
       RISCV_CORE
       (

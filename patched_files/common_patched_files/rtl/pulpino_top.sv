@@ -44,7 +44,8 @@ module pulpino_top
 	parameter KLESS_MINSTRET_EN				     =1,
 	parameter KLESS_MHPMCOUNTER_EN			   =1,
 	parameter KLESS_count_all				       =1,
-	parameter KLESS_debug_en				       =1  
+	parameter KLESS_debug_en				       =1,
+  parameter KLESS_tracer_en              =0  
   )
   (
     // Clock and Reset

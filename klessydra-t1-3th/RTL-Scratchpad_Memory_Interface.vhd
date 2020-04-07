@@ -2,7 +2,7 @@
 --  SPI -- (Scratchpad Memory Interface)                                                                       --
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                           --
 --                                                                                                             --
---  Date Modified: 17-11-2019                                                                                  --
+--  Date Modified: 02-04-2019                                                                                  --
 -----------------------------------------------------------------------------------------------------------------
 --  The SPI connects the SPM to the LSU and DSP units. The LSU reads and wirtes one word (32-bits) at a time   --
 --  and a bank interleaver switches between the internal banks of the SPM. The DSP reads and writes one SPM    -- 
