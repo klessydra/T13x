@@ -11,8 +11,10 @@ set(SOURCES
     src/kless_vector_subtraction.c
     src/kless_vector_multiplication.c
 	src/kless_vector_reduction.c
+    src/kless_vector_set_less_than.c
     src/kless_scalar_vect_add.c
     src/kless_scalar_vect_mult.c
+    src/kless_scalar_vect_set_less_than.c
     src/kless_scalar_broadcast.c
 	src/kless_vector_copy.c
     src/kless_vector_right_shift_arith.c

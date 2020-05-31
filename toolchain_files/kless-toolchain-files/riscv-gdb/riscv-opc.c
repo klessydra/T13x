@@ -739,7 +739,7 @@ const struct riscv_opcode riscv_opcodes[] =
 {"kaddv",      "I",   "d,s,t",	MATCH_K_ADDV, MASK_K_ARITH, match_opcode, 0 },
 {"ksubv",      "I",   "d,s,t",	MATCH_K_SUBV, MASK_K_ARITH, match_opcode, 0 },
 {"kvmul",      "I",   "d,s,t",	MATCH_K_VMUL, MASK_K_ARITH, match_opcode, 0 },
-{"kvred",      "I",   "d,s",	MATCH_K_VRED, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
+{"kvred",      "I",   "d,s",    MATCH_K_VRED, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
 {"kdotp",      "I",   "d,s,t",	MATCH_K_DOTP , MASK_K_ARITH, match_opcode, 0 },
 {"ksvaddsc",   "I",   "d,s,t",	MATCH_K_SVADDSC, MASK_K_ARITH, match_opcode, 0 },
 {"ksvaddrf",   "I",   "d,s,t",	MATCH_K_SVADDRF, MASK_K_ARITH, match_opcode, 0 },
@@ -747,10 +747,12 @@ const struct riscv_opcode riscv_opcodes[] =
 {"ksvmulrf",   "I",   "d,s,t",	MATCH_K_SVMULRF, MASK_K_ARITH, match_opcode, 0 },
 {"ksrav",      "I",   "d,s,t",	MATCH_K_SRAV, MASK_K_ARITH, match_opcode, 0 },
 {"ksrlv",      "I",   "d,s,t",	MATCH_K_SRLV, MASK_K_ARITH, match_opcode, 0 },
-{"kbcast",     "I",   "d,s",	MATCH_K_BCAST, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
-{"krelu",      "I",   "d,s",	MATCH_K_RELU, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
+{"kbcast",     "I",   "d,s",    MATCH_K_BCAST, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
+{"krelu",      "I",   "d,s",    MATCH_K_RELU, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
+{"kvslt",      "I",   "d,s,t",  MATCH_K_VSLT, MASK_K_ARITH, match_opcode, 0 },
+{"ksvslt",     "I",   "d,s,t",  MATCH_K_SVSLT, MASK_K_ARITH, match_opcode, 0 },
 {"kdotpps",    "I",   "d,s,t",	MATCH_K_DOTPPS, MASK_K_ARITH, match_opcode, 0 },
-{"kvcp",       "I",   "d,s",	MATCH_K_VCP, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
+{"kvcp",       "I",   "d,s",    MATCH_K_VCP, MASK_K_ARITH | MASK_RS2, match_opcode, 0 },
 
 /* Terminate the list.  */
 {0, 0, 0, 0, 0, 0, 0}

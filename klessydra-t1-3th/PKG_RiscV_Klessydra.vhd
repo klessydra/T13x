@@ -10,14 +10,14 @@ use ieee.math_real.all;
 
 package riscv_klessydra is
 
---package parameters is new work.klessydra_parameters
+ -- package parameters is new work.klessydra_parameters
  -- generic (
  -- RV32E                 : natural -- Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1
  --   );
  -- generic map (
  --             RV32E                 => RV32E
  --             );
---
+ --
  -- constant RF_SIZE : natural := 32-16*RV32E;
  -- constant RF_CEIL : natural := integer(ceil(log2(real(RF_SIZE))));
 
@@ -72,10 +72,10 @@ package riscv_klessydra is
 
   constant EXEC_UNIT_INSTR_SET_SIZE : natural := 52;  -- total number of instructions in the exec unit
   constant LS_UNIT_INSTR_SET_SIZE   : natural := 12;  -- total number of instructions in the ld_str unit
-  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 15;  -- total number of instructions in the dsp unit
+  constant DSP_UNIT_INSTR_SET_SIZE  : natural := 17;  -- total number of instructions in the dsp unit
 
 
-  -- EXEC UNIT INSTR SET ------------------------------------------------------------------------------------------------------------
+  -- EXEC UNIT INSTR SET --------------------------------------------------------------------------------------------------------------------
   constant ADDI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000000000000001";
   constant SLTI_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000000000000010";
   constant SLTIU_pattern   : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "0000000000000000000000000000000000000000000000000100";
@@ -128,9 +128,9 @@ package riscv_klessydra is
   constant DIVU_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "0010000000000000000000000000000000000000000000000000";
   constant REM_pattern     : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "0100000000000000000000000000000000000000000000000000";
   constant REMU_pattern    : std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0) := "1000000000000000000000000000000000000000000000000000";
-  -----------------------------------------------------------------------------------------------------------------------------------
+  -------------------------------------------------------------------------------------------------------------------------------------------
 
-  -- LOAD STORE UNIT INSTR SET ------------------------------------------------------------------
+  -- LOAD STORE UNIT INSTR SET ---------------------------------------------------------------------
   constant LW_pattern       : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000001";
   constant LH_pattern       : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000010";
   constant LHU_pattern      : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000100";
@@ -143,25 +143,27 @@ package riscv_klessydra is
   constant KMEMLD_pattern   : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "001000000000";
   constant KMEMSTR_pattern  : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "010000000000";
   constant KBCASTLD_pattern : std_logic_vector(LS_UNIT_INSTR_SET_SIZE-1 downto 0) := "100000000000";
-  -----------------------------------------------------------------------------------------------
+  --------------------------------------------------------------------------------------------------
 
-  -- DSP UNIT INSTR SET-----------------------------------------------------------------------------------	
-  constant KADDV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000000001";
-  constant KSUBV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000000010";
-  constant KVMUL_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000000100";
-  constant KVRED_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000001000";
-  constant KDOTP_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000010000";
-  constant KSVADDSC_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000000100000";
-  constant KSVADDRF_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000001000000";
-  constant KSVMULSC_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000010000000";
-  constant KSVMULRF_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000000100000000";
-  constant KSRAV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000001000000000";
-  constant KSRLV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000010000000000";
-  constant KBCAST_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "000100000000000";
-  constant KRELU_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "001000000000000";
-  constant KDOTPPS_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "010000000000000";
-  constant KVCP_pattern       : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "100000000000000";
-  --------------------------------------------------------------------------------------------------------
+  -- DSP UNIT INSTR SET-------------------------------------------------------------------------------------
+  constant KADDV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000001";
+  constant KSUBV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000010";
+  constant KVMUL_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000000100";
+  constant KVRED_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000001000";
+  constant KDOTP_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000010000";
+  constant KSVADDSC_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000000100000";
+  constant KSVADDRF_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000001000000";
+  constant KSVMULSC_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000010000000";
+  constant KSVMULRF_pattern   : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000000100000000";
+  constant KSRAV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000001000000000";
+  constant KSRLV_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000010000000000";
+  constant KBCAST_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00000100000000000";
+  constant KRELU_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00001000000000000";
+  constant KDOTPPS_pattern    : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00010000000000000";
+  constant KVSLT_pattern      : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "00100000000000000";
+  constant KSVSLT_pattern     : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "01000000000000000";
+  constant KVCP_pattern       : std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0) := "10000000000000000";
+  ----------------------------------------------------------------------------------------------------------
 
   constant ADDI_bit_position    : natural := 0;
   constant SLTI_bit_position    : natural := 1;
@@ -243,7 +245,9 @@ package riscv_klessydra is
   constant KBCAST_bit_position   : natural := 11;
   constant KRELU_bit_position    : natural := 12;
   constant KDOTPPS_bit_position  : natural := 13;
-  constant KVCP_bit_position     : natural := 14;
+  constant KVSLT_bit_position    : natural := 14;
+  constant KSVSLT_bit_position   : natural := 15;
+  constant KVCP_bit_position     : natural := 16;
 
 -----------------------------------------------------------------------------------------
 --   ██████╗███████╗██████╗     ██████╗ ███████╗███████╗██╗███╗   ██╗███████╗███████╗  --
@@ -497,6 +501,8 @@ package riscv_klessydra is
   constant KSRLV    : std_logic_vector(6 downto 0) := "0010001";
   constant KRELU    : std_logic_vector(6 downto 0) := "0011000";
   constant KDOTPPS  : std_logic_vector(6 downto 0) := "0011001";
+  constant KVSLT    : std_logic_vector(6 downto 0) := "0011010";
+  constant KSVSLT   : std_logic_vector(6 downto 0) := "0011100";
   constant KBCAST   : std_logic_vector(6 downto 0) := "0011110";
   constant KVCP     : std_logic_vector(6 downto 0) := "0011111";
 

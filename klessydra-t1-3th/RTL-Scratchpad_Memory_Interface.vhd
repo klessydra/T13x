@@ -27,7 +27,7 @@ use work.riscv_klessydra.all;
 entity Scratchpad_memory_interface is
   generic(
     accl_en               : natural;
-    SPM_NUM		          : natural; 
+    SPM_NUM		            : natural; 
     Addr_Width            : natural;
     SIMD                  : natural;
     --------------------------------
@@ -38,7 +38,7 @@ entity Scratchpad_memory_interface is
   );
   port (
     clk_i, rst_ni              : in  std_logic;
-	data_rvalid_i              : in  std_logic;
+    data_rvalid_i              : in  std_logic;
     state_LS                   : in  fsm_LS_states;
     sc_word_count_wire         : in  integer;
     spm_bcast                  : in  std_logic;
@@ -55,7 +55,7 @@ entity Scratchpad_memory_interface is
     dsp_sci_we                 : in  array_2d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0);
     kmemld_inflight            : in  std_logic_vector(SPM_NUM-1 downto 0);
     kmemstr_inflight           : in  std_logic_vector(SPM_NUM-1 downto 0);
-	dsp_to_sc                  : in  array_3d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0)(1 downto 0);
+    dsp_to_sc                  : in  array_3d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0)(1 downto 0);
     dsp_sc_read_addr           : in  array_3d(ACCL_NUM-1 downto 0)(1 downto 0)(Addr_Width-1 downto 0);
     dsp_sc_data_read           : out array_3d(ACCL_NUM-1 downto 0)(1 downto 0)(SIMD_Width-1 downto 0);
     ls_sc_data_read_wire       : out std_logic_vector(Data_Width-1 downto 0);
@@ -97,7 +97,7 @@ signal sc_data_rd                      : array_3d(accl_range)(SIMD*SPM_NUM-1 dow
 
 component Scratchpad_memory
   generic(
-    SPM_NUM		          : natural; 
+    SPM_NUM               : natural; 
     Addr_Width            : natural;
     SIMD                  : natural;
     --------------------------------
@@ -197,7 +197,6 @@ begin
   ls_sci_wr_gnt        <= ls_sci_wr_gnt_replicated(harc_LS_wire);
 
   SCI_Exec_Unit_comb : process(all)
-
   begin
     dsp_data_gnt_i(h)  <= '0';
     block_dsp_rd(h)    <= '0';
@@ -210,16 +209,16 @@ begin
     rd_offset(h)                       <= (others => (others => '0'));
     dsp_sc_data_read_int_wire(h)       <= (others => (others => '0'));
     wr_offset(h)                       <= (others => '0');
-	ls_sci_wr_gnt_replicated(h)        <= ls_sci_wr_gnt_lat_replicated(h);
-	dsp_sci_wr_gnt(h)                  <= dsp_sci_wr_gnt_lat(h);
+    ls_sci_wr_gnt_replicated(h)        <= ls_sci_wr_gnt_lat_replicated(h);
+    dsp_sci_wr_gnt(h)                  <= dsp_sci_wr_gnt_lat(h);
     ls_sc_data_read_wire_replicated(h) <= ls_sc_data_read_replicated(h);
-	dsp_sc_data_write_int_wire(h)      <= (others => '0');
+    dsp_sc_data_write_int_wire(h)      <= (others => '0');
     dsp_sc_data_read_wire(h)           <= dsp_sc_data_read(h);
     for i in 0 to SPM_NUM-1 loop	-- Loop through scratchpads A,B,C,D
 
       if data_rvalid_i = '1' then        -- LS write port
         if ls_sci_req(i) = '1' and ls_sci_we(i) = '1' and ls_sci_wr_gnt = '1' then
-		  if harc_LS_wire = h or spm_bcast = '1' then
+          if harc_LS_wire = h or spm_bcast = '1' then
             sc_we(h)((SIMD)*i + sc_word_count(h)) <= '1';
             sc_data_wr(h)(sc_word_count(h) + (SIMD)*i) <= ls_sc_data_write_wire(31 downto 0);
             sc_addr_wr(h)(sc_word_count(h) + (SIMD)*i) <= ls_sc_write_addr;
@@ -228,13 +227,13 @@ begin
       end if;
 
       if ls_data_gnt_internal(h)(i) = '1' then
-		if harc_LS_wire = h then
+        if harc_LS_wire = h then
           ls_sc_data_read_wire_replicated(h) <= sc_data_rd(h)((SIMD)*i + sc_word_count(h));  -- sc_word_count because data being read is delayed one cycle after the request
         end if;
       end if;
 
       if ls_sci_req(i) = '1' then         -- LS read port
-		if harc_LS_wire = h then
+        if harc_LS_wire = h then
           sc_addr_rd(h)(sc_word_count_wire + (SIMD)*i) <= ls_sc_read_addr;
         end if;
       end if;
@@ -271,7 +270,7 @@ begin
 
       if (kmemld_inflight(i) = '1' or kmemstr_inflight(i) = '1') and dsp_sci_req(h)(i) = '1' then
         block_dsp_rd(h) <= '1';
-	  end if;
+      end if;
 
       -- Allow a DSP read only if the SPM(i) being loaded belongs to another thread and the instruction is not a broadcast load (data hazard)
       if kmemld_inflight(i) = '1' and dsp_sci_req(h)(i) = '1' and h /= harc_LS_wire and spm_bcast = '0' then

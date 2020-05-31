@@ -45,13 +45,13 @@ use work.riscv_klessydra.all;
 entity klessydra_t1_3th_core is
   generic (
     THREAD_POOL_SIZE      : integer := 3;   -- Changing the TPS to less than "number of pipeline stages-1" is not allowed. And making it bigger than "pipeline stages-1" is okay but not recommended
-    LUTRAM_RF             : natural := 0;   -- Changes the regfile from flip-flop type into BRAM type
-    RV32E                 : natural := 1;   -- Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1
-    RV32M                 : natural := 0;   -- Enable the M-extension of the risc-v instruction set
+    LUTRAM_RF             : natural := 1;   -- Changes the regfile from flip-flop type into BRAM type
+    RV32E                 : natural := 0;   -- Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1
+    RV32M                 : natural := 1;   -- Enable the M-extension of the risc-v instruction set
     superscalar_exec_en   : natural := 1;   -- Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction
-    accl_en               : natural := 0;   -- Enable the generation of the special purpose accelerator
-    replicate_accl_en     : natural := 0;   -- Set to 1 to replicate the accelerator for every thread
-    multithreaded_accl_en : natural := 0;   -- Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
+    accl_en               : natural := 1;   -- Enable the generation of the special purpose accelerator
+    replicate_accl_en     : natural := 1;   -- Set to 1 to replicate the accelerator for every thread
+    multithreaded_accl_en : natural := 1;   -- Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
     SPM_NUM		          : natural := 3;   -- The number of scratchpads available "Minimum allowed is two"
     Addr_Width            : natural := 13;  -- This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
     SPM_STRT_ADDR         : std_logic_vector(31 downto 0) := x"1000_0000";  -- This is starting address of the spms, it shouldn't overlap any sections in the memory map

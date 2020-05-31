@@ -34,16 +34,16 @@ then
 	#--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	KLESS_THREAD_POOL_SIZE=3        # Changing the TPS to less than "number of pipeline stages-1" is not allowed. And making it bigger than "pipeline stages-1" is okay but not recommended
 	KLESS_LUTRAM_RF=0 				# Changes the regfile from flip-flop type into BRAM type
-	KLESS_RV32E=0                   # Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1
+	KLESS_RV32E=0                   # Regfile size, Can be set to 32 for RV32E being 0 else 16 for RV32E being set to 1, also chnges the RISCV compiler and Klessydra startup file accordingly
 	KLESS_RV32M=1                   # Enable the M-extension of the risc-v instruction set
 	KLESS_superscalar_exec_en=1		# Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction
 	KLESS_accl_en=1                 # Enable the generation of the special purpose accelerator
 	KLESS_replicate_accl_en=1       # Set to 1 to replicate the accelerator for every thread
-	KLESS_multithreaded_accl_en=0   # Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
+	KLESS_multithreaded_accl_en=1   # Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
 	KLESS_SPM_NUM=4                 # The number of scratchpads available "Minimum allowed is two"
-	KLESS_Addr_Width=14             # This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
+	KLESS_Addr_Width=13             # This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
 	#   KLESS_SPM_STRT_ADDR          std_logic_vector(31 downto 0) := x"1000_0000";  -- This is starting address of the spms, it shouldn't overlap any sections in the memory map
-	KLESS_SIMD=8                    # Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
+	KLESS_SIMD=2                    # Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
 	KLESS_MCYCLE_EN=1               # Can be set to 1 or 0 only. Setting to zero will disable MCYCLE and MCYCLEH
 	KLESS_MINSTRET_EN=1             # Can be set to 1 or 0 only. Setting to zero will disable MINSTRET and MINSTRETH
 	KLESS_MHPMCOUNTER_EN=1          # Can be set to 1 or 0 only. Setting to zero will disable all performance counters except "MCYCLE/H" and "MINSTRET/H"

@@ -21,7 +21,7 @@ use ieee.std_logic_misc.all;
 use ieee.numeric_std.all;
 use std.textio.all;
 
--- local packages ------------
+-- local packages -----------------
 use work.riscv_klessydra.all;
 --use work.klessydra_parameters.all;
 
@@ -32,7 +32,7 @@ entity DSP_Unit is
     accl_en               : natural;
     replicate_accl_en     : natural;
     multithreaded_accl_en : natural;
-    SPM_NUM		          : natural; 
+    SPM_NUM	              : natural; 
     Addr_Width            : natural;
     SIMD                  : natural;
     --------------------------------
@@ -58,15 +58,15 @@ entity DSP_Unit is
     MPSCLFAC                   : in  array_2d(THREAD_POOL_SIZE-1 downto 0)(4 downto 0);
     dsp_except_data            : out array_2d(ACCL_NUM-1 downto 0)(31 downto 0);
 	-- Program Counter Signals
-	dsp_taken_branch           : out std_logic_vector(ACCL_NUM-1 downto 0);
-	dsp_except_condition       : out std_logic_vector(ACCL_NUM-1 downto 0);
+    dsp_taken_branch           : out std_logic_vector(ACCL_NUM-1 downto 0);
+    dsp_except_condition       : out std_logic_vector(ACCL_NUM-1 downto 0);
     -- ID_Stage Signals
-	decoded_instruction_DSP    : in  std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
-	harc_EXEC                  : in  integer range THREAD_POOL_SIZE-1 downto 0;
-	pc_IE                      : in  std_logic_vector(31 downto 0);
-	RS1_Data_IE                : in  std_logic_vector(31 downto 0);
-	RS2_Data_IE                : in  std_logic_vector(31 downto 0);
-	RD_Data_IE                 : in  std_logic_vector(Addr_Width -1 downto 0);
+    decoded_instruction_DSP    : in  std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
+    harc_EXEC                  : in  integer range THREAD_POOL_SIZE-1 downto 0;
+    pc_IE                      : in  std_logic_vector(31 downto 0);
+    RS1_Data_IE                : in  std_logic_vector(31 downto 0);
+    RS2_Data_IE                : in  std_logic_vector(31 downto 0);
+    RD_Data_IE                 : in  std_logic_vector(Addr_Width -1 downto 0);
     dsp_instr_req              : in  std_logic_vector(ACCL_NUM-1 downto 0);
     spm_rs1                    : in  std_logic;
     spm_rs2                    : in  std_logic;
@@ -77,14 +77,14 @@ entity DSP_Unit is
 	-- Scratchpad Interface Signals
     dsp_data_gnt_i             : in  std_logic_vector(ACCL_NUM-1 downto 0);
     dsp_sci_wr_gnt             : in  std_logic_vector(ACCL_NUM-1 downto 0);
-	dsp_sc_data_read           : in  array_3d(ACCL_NUM-1 downto 0)(1 downto 0)(SIMD_Width-1 downto 0);
+    dsp_sc_data_read           : in  array_3d(ACCL_NUM-1 downto 0)(1 downto 0)(SIMD_Width-1 downto 0);
     dsp_we_word                : out array_2d(ACCL_NUM-1 downto 0)(SIMD-1 downto 0);
     dsp_sc_read_addr           : out array_3d(ACCL_NUM-1 downto 0)(1 downto 0)(Addr_Width-1 downto 0);
-	dsp_to_sc                  : out array_3d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0)(1 downto 0);
-	dsp_sc_data_write_wire     : out array_2d(ACCL_NUM-1 downto 0)(SIMD_Width-1 downto 0);
+    dsp_to_sc                  : out array_3d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0)(1 downto 0);
+    dsp_sc_data_write_wire     : out array_2d(ACCL_NUM-1 downto 0)(SIMD_Width-1 downto 0);
     dsp_sc_write_addr          : out array_2d(ACCL_NUM-1 downto 0)(Addr_Width-1 downto 0);
-	dsp_sci_we                 : out array_2d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0);
-	dsp_sci_req                : out array_2d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0);
+    dsp_sci_we                 : out array_2d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0);
+    dsp_sci_req                : out array_2d(ACCL_NUM-1 downto 0)(SPM_NUM-1 downto 0);
     -- tracer signals
     state_DSP                  : out array_2d(ACCL_NUM-1 downto 0)(1 downto 0)
 
@@ -102,12 +102,12 @@ architecture DSP of DSP_Unit is
   signal nextstate_DSP : array_2d(accl_range)(1 downto 0);
 
   -- Virtual Parallelism Signals
-  signal relu_en                         : std_logic_vector(accl_range);  -- enables the use of the shifters
+  signal cmp_en                          : std_logic_vector(accl_range);  -- enables the use of the shifters
   signal shift_en                        : std_logic_vector(accl_range);  -- enables the use of the shifters
   signal add_en                          : std_logic_vector(accl_range);  -- enables the use of the adders
   signal mul_en                          : std_logic_vector(accl_range);  -- enables the use of the multipliers
   signal accum_en                        : std_logic_vector(accl_range);  -- enables the use of the accumulator
-  signal relu_en_wire                    : std_logic_vector(accl_range);  -- enables the use of the shifters
+  signal cmp_en_wire                     : std_logic_vector(accl_range);  -- enables the use of the shifters
   signal shift_en_wire                   : std_logic_vector(accl_range);  -- enables the use of the shifters
   signal add_en_wire                     : std_logic_vector(accl_range);  -- enables the use of the adders
   signal mul_en_wire                     : std_logic_vector(accl_range);  -- enables the use of the multipliers
@@ -116,22 +116,22 @@ architecture DSP of DSP_Unit is
   signal shift_en_pending_wire           : std_logic_vector(accl_range);  -- signal to preserve the request to access the shifter "multhithreaded mode" only
   signal mul_en_pending_wire             : std_logic_vector(accl_range);  -- signal to preserve the request to access the multiplier "multhithreaded mode" only
   signal accum_en_pending_wire           : std_logic_vector(accl_range);  -- signal to preserve the request to access the accumulator "multhithreaded mode" only
-  signal relu_en_pending_wire            : std_logic_vector(accl_range);  -- signal to preserve the request to access the ReLU "multhithreaded mode" only
+  signal cmp_en_pending_wire             : std_logic_vector(accl_range);  -- signal to preserve the request to access the ReLU "multhithreaded mode" only
   signal add_en_pending                  : std_logic_vector(accl_range);  -- signal to preserve the request to access the adder "multhithreaded mode" only
   signal shift_en_pending                : std_logic_vector(accl_range);  -- signal to preserve the request to access the shifter "multhithreaded mode" only
   signal mul_en_pending                  : std_logic_vector(accl_range);  -- signal to preserve the request to access the multiplier "multhithreaded mode" only
   signal accum_en_pending                : std_logic_vector(accl_range);  -- signal to preserve the request to access the accumulator "multhithreaded mode" only
-  signal relu_en_pending                 : std_logic_vector(accl_range);  -- signal to preserve the request to access the ReLU "multhithreaded mode" only
+  signal cmp_en_pending                  : std_logic_vector(accl_range);  -- signal to preserve the request to access the ReLU "multhithreaded mode" only
   signal busy_add                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_mul                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_shf                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_acc                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
-  signal busy_rel                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
+  signal busy_cmp                        : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_add_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_mul_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_shf_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal busy_acc_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
-  signal busy_rel_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
+  signal busy_cmp_wire                   : std_logic;  -- busy signal active only when the FU is shared and currently in use 
   signal halt_hart                       : std_logic_vector(accl_range); -- halts the thread when the requested functional unit is in use
   signal fu_req                          : array_2D(accl_range)(4 downto 0); -- Each threa has request bits equal to the total number of FUs
   signal fu_gnt                          : array_2D(accl_range)(4 downto 0); -- Each threa has grant bits equal to the total number of FUs
@@ -144,15 +144,15 @@ architecture DSP of DSP_Unit is
 
   -- Functional Unit Ports ---
   --signal dsp_in_sign_bits               : array_2d(accl_range)(4*SIMD-1 downto 0);               -- vivado unsynthesizable, but more efficient alternative
-  signal dsp_in_shifter_operand          : array_2d(fu_range)(SIMD_Width -1 downto 0);
-  signal dsp_in_shifter_operand_lat      : array_2d(fu_range)(SIMD_Width -1 downto 0);            -- 15 bits because i only want to latch the signed bits
-  signal dsp_in_shifter_operand_lat_wire : array_2d(fu_range)(SIMD_Width -1 downto 0);
-  signal dsp_int_shifter_operand         : array_2d(fu_range)(SIMD_Width -1 downto 0);
-  signal dsp_out_shifter_results         : array_2d(fu_range)(SIMD_Width -1 downto 0);
-  signal dsp_in_relu_operands            : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_in_shifter_operand          : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_in_shifter_operand_lat      : array_2d(fu_range)(SIMD_Width-1 downto 0);            -- 15 bits because i only want to latch the signed bits
+  signal dsp_in_shifter_operand_lat_wire : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_int_shifter_operand         : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_out_shifter_results         : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_in_cmp_operands             : array_2d(fu_range)(SIMD_Width-1 downto 0);
   signal dsp_in_mul_operands             : array_3d(fu_range)(1 downto 0)(SIMD_Width-1 downto 0);
   signal dsp_out_mul_results             : array_2d(fu_range)(SIMD_Width-1 downto 0);
-  signal dsp_out_relu_results            : array_2d(fu_range)(SIMD_Width-1 downto 0);
+  signal dsp_out_cmp_results             : array_2d(fu_range)(SIMD_Width-1 downto 0);
   signal dsp_in_accum_operands           : array_2d(fu_range)(SIMD_Width-1 downto 0);
   signal dsp_out_accum_results           : array_2d(fu_range)(31 downto 0);
   signal dsp_in_adder_operands           : array_3d(fu_range)(1 downto 0)(SIMD_Width-1 downto 0);
@@ -180,7 +180,7 @@ architecture DSP of DSP_Unit is
 
   signal carry_pass                      : array_2d(accl_range)(2 downto 0);  -- carry enable signal, depending on it's configuration, we can do KADDV8, KADDV16, KADDV32
   signal FUNCT_SELECT_MASK               : array_2d(accl_range)(31 downto 0); -- when the mask is set to "FFFFFFFF" we enable KDOTP32 execution using the 16-bit muls
-  signal twos_complement	             : array_2d(accl_range)(31 downto 0);
+  signal twos_complement                 : array_2d(accl_range)(31 downto 0);
   signal dsp_shift_enabler               : array_2d(accl_range)(15 downto 0);
   signal dsp_in_shift_amount             : array_2d(accl_range)(4 downto 0);
 
@@ -193,6 +193,7 @@ architecture DSP of DSP_Unit is
   signal vec_read_rs2_DSP                : std_logic_vector(accl_range);  -- Indicates whether the operand being read is a vector or a scalar
   signal dotp                            : std_logic_vector(accl_range);  -- indicator used in the pipeline handler to switch functional units
   signal dotpps                          : std_logic_vector(accl_range);  -- indicator used in the pipeline handler to switch functional units
+  signal slt                             : std_logic_vector(accl_range);  -- indicator used in the pipeline handler to switch functional units
   signal wb_ready                        : std_logic_vector(accl_range);
   signal halt_dsp                        : std_logic_vector(accl_range);
   signal halt_dsp_lat                    : std_logic_vector(accl_range);
@@ -208,12 +209,15 @@ architecture DSP of DSP_Unit is
   signal mul_stage_1_en                  : std_logic_vector(accl_range);
   signal mul_stage_2_en                  : std_logic_vector(accl_range);
   signal mul_stage_3_en                  : std_logic_vector(accl_range);
-  signal relu_stage_1_en                 : std_logic_vector(accl_range);
-  signal relu_stage_2_en                 : std_logic_vector(accl_range);
+  signal cmp_stage_1_en                  : std_logic_vector(accl_range);
+  signal cmp_stage_2_en                  : std_logic_vector(accl_range);
   signal accum_stage_1_en                : std_logic_vector(accl_range);
   signal accum_stage_2_en                : std_logic_vector(accl_range);
   signal accum_stage_3_en                : std_logic_vector(accl_range);
   signal dsp_except_data_wire            : array_2d(accl_range)(31 downto 0);
+  signal MSB_stage_1                     : array_3d(accl_range)(1 downto 0)(4*SIMD-1 downto 0);
+  signal MSB_stage_2                     : array_3d(accl_range)(1 downto 0)(4*SIMD-1 downto 0);
+  signal MSB_stage_3                     : array_3d(accl_range)(1 downto 0)(4*SIMD-1 downto 0);
 
   signal decoded_instruction_DSP_lat     : array_2d(accl_range)(DSP_UNIT_INSTR_SET_SIZE -1 downto 0);
   signal overflow_rs1_sc                 : array_2d(accl_range)(Addr_Width downto 0);
@@ -233,6 +237,7 @@ architecture DSP of DSP_Unit is
   signal busy_dsp_internal               : std_logic_vector(accl_range);
   signal busy_DSP_internal_lat           : std_logic_vector(accl_range);
   signal rf_rs2                          : std_logic_vector(accl_range);
+  signal relu_instr                      : std_logic_vector(accl_range);
   signal SIMD_RD_BYTES_wire              : array_2d_int(accl_range);
   signal SIMD_RD_BYTES                   : array_2d_int(accl_range);
 
@@ -273,12 +278,13 @@ begin
 
   ------------ Sequential Stage of DSP Unit -------------------------------------------------------------------------
   DSP_Exec_Unit : process(clk_i, rst_ni)  -- single cycle unit, fully synchronous 
-
   begin
     if rst_ni = '0' then
-      rf_rs2(h)   <= '0';
-      dotpps(h)   <= '0';
-      dotp(h)     <= '0';
+      relu_instr(h) <= '0';
+      rf_rs2(h)     <= '0';
+      dotpps(h)     <= '0';
+      dotp(h)       <= '0';
+      slt(h)        <= '0';
       recover_state(h) <= '0';
     elsif rising_edge(clk_i) then
       if dsp_instr_req(h) = '1' or busy_DSP_internal_lat(h) = '1' then  
@@ -286,9 +292,9 @@ begin
         case state_DSP(h) is
 
           when dsp_init =>
-                                                  
+
             -------------------------------------------------------------
-			--  ██╗███╗   ██╗██╗████████╗    ██████╗ ███████╗██████╗   --
+            --  ██╗███╗   ██╗██╗████████╗    ██████╗ ███████╗██████╗   --
             --  ██║████╗  ██║██║╚══██╔══╝    ██╔══██╗██╔════╝██╔══██╗  --
             --  ██║██╔██╗ ██║██║   ██║       ██║  ██║███████╗██████╔╝  --
             --  ██║██║╚██╗██║██║   ██║       ██║  ██║╚════██║██╔═══╝   --
@@ -298,9 +304,11 @@ begin
 
             FUNCT_SELECT_MASK(h) <= (others => '0');
             twos_complement(h)   <= (others => '0');
-            rf_rs2(h)   <= '0';
-            dotpps(h)   <= '0';
-            dotp(h)     <= '0';
+            relu_instr(h) <= '0';
+            rf_rs2(h)     <= '0';
+            dotpps(h)     <= '0';
+            dotp(h)       <= '0';
+            slt(h)        <= '0';
             -- Set signals to enable correct virtual parallelism operation
             if (decoded_instruction_DSP(KADDV_bit_position)    = '1'  or 
                 decoded_instruction_DSP(KSVADDSC_bit_position) = '1') and
@@ -326,18 +334,36 @@ begin
                   MVTYPE(harc_EXEC)(3 downto 2) = "00" then
               carry_pass(h) <= "000";  -- don't pass carry_outs and keep addition 8-bit
               rf_rs2(h) <= '1';
-            elsif decoded_instruction_DSP(KSUBV_bit_position) = '1' and
-                  MVTYPE(harc_EXEC)(3 downto 2) = "10" then
+            elsif (decoded_instruction_DSP(KSUBV_bit_position)  = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "10" then
               carry_pass(h) <= "111";  -- pass all carry_outs
               twos_complement(h) <= "00010001000100010001000100010001";
-            elsif decoded_instruction_DSP(KSUBV_bit_position) = '1' and 
-                  MVTYPE(harc_EXEC)(3 downto 2) = "01" then
+            elsif (decoded_instruction_DSP(KSUBV_bit_position)  = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "01" then
               carry_pass(h) <= "101";  -- pass carrries 9, and 25
               twos_complement(h) <= "01010101010101010101010101010101";
-            elsif decoded_instruction_DSP(KSUBV_bit_position)  = '1' and 
-                  MVTYPE(harc_EXEC)(3 downto 2) = "00" then
+            elsif (decoded_instruction_DSP(KSUBV_bit_position)  = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "00" then
               carry_pass(h) <= "000";  -- don't pass carry_outs and keep addition 8-bit
               twos_complement(h) <= "11111111111111111111111111111111";
+            elsif (decoded_instruction_DSP(KVSLT_bit_position)  = '1'  or
+                   decoded_instruction_DSP(KSVSLT_bit_position) = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "10" then
+              carry_pass(h) <= "111";  -- pass all carry_outs
+              twos_complement(h) <= "00010001000100010001000100010001";
+              slt(h) <= '1';
+            elsif (decoded_instruction_DSP(KVSLT_bit_position)  = '1'  or
+                   decoded_instruction_DSP(KSVSLT_bit_position) = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "01" then
+              carry_pass(h) <= "101";  -- pass carrries 9, and 25
+              twos_complement(h) <= "01010101010101010101010101010101";
+              slt(h) <= '1';
+            elsif (decoded_instruction_DSP(KVSLT_bit_position)  = '1'  or
+                   decoded_instruction_DSP(KSVSLT_bit_position) = '1') and
+                   MVTYPE(harc_EXEC)(3 downto 2) = "00" then
+              carry_pass(h) <= "000";  -- don't pass carry_outs and keep addition 8-bit
+              twos_complement(h) <= "11111111111111111111111111111111";
+              slt(h) <= '1';
             elsif decoded_instruction_DSP(KDOTP_bit_position) = '1' and
                   MVTYPE(harc_EXEC)(3 downto 2) = "10" then
               -- KDOTP32 does not use the adders of KADDV instructions but rather adds the mul_acc results using it's own adders
@@ -370,9 +396,11 @@ begin
                   MVTYPE(harc_EXEC)(3 downto 2) = "00" then
               rf_rs2(h)  <= '1';
             elsif (decoded_instruction_DSP(KVMUL_bit_position)    = '1'  or
-				   decoded_instruction_DSP(KSVMULSC_bit_position) = '1') and
+                   decoded_instruction_DSP(KSVMULSC_bit_position) = '1') and
                    MVTYPE(harc_EXEC)(3 downto 2) = "10" then
               FUNCT_SELECT_MASK(h) <= (others => '1');
+            elsif decoded_instruction_DSP(KRELU_bit_position) = '1' then
+              relu_instr(h) <= '1';
             end if;
 
            -- We backup data from decode stage since they will get updated
@@ -387,7 +415,7 @@ begin
             vec_read_rs2_DSP(h) <= vec_read_rs2_ID;
             dsp_rs1_to_sc(h) <= rs1_to_sc;
             dsp_rs2_to_sc(h) <= rs2_to_sc;
-	        dsp_rd_to_sc(h)  <= rd_to_sc;
+            dsp_rd_to_sc(h)  <= rd_to_sc;
             RD_Data_IE_lat(h) <= RD_Data_IE;
             -- Increment the read addresses
             if dsp_data_gnt_i(h) = '1' then
@@ -432,9 +460,9 @@ begin
 
             if halt_dsp(h) = '0' then
               -- Increment the write address when we have a result as a vector
-			  if vec_write_rd_DSP(h) = '1' and wb_ready(h) = '1' then
+              if vec_write_rd_DSP(h) = '1' and wb_ready(h) = '1' then
                 RD_Data_IE_lat(h)  <= std_logic_vector(unsigned(RD_Data_IE_lat(h))  + SIMD_RD_BYTES(h)); -- destination address increment
-			  end if;
+              end if;
               if wb_ready(h) = '1' then
                 if to_integer(unsigned(MVSIZE_WRITE(h))) >= SIMD_RD_BYTES(h) then
                   MVSIZE_WRITE(h) <= std_logic_vector(unsigned(MVSIZE_WRITE(h)) - SIMD_RD_BYTES(h));       -- decrement by SIMD_BYTE Execution Capability 
@@ -590,6 +618,12 @@ begin
            --   ╚═════╝╚═╝  ╚═══╝   ╚═╝   ╚═╝  ╚═╝╚══════╝    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝   --
            -----------------------------------------------------------------------------------------------------------------------
 
+           ------ SMP BANK ENABLER --------------------------------------------------------------------------------------------------
+           -- the following enables the appropriate banks to write the SIMD output, depending whether the result is a vector or a  --
+           -- scalar, and adjusts the enabler appropriately based on the SIMD size. If the bytes to write are greater than SIMD*4  --
+           -- then all banks are enabaled, else we perform the selective bank enabling as shown below under the 'elsif' clause     --
+           --------------------------------------------------------------------------------------------------------------------------
+
            if (dsp_sci_wr_gnt(h) = '0' and wb_ready(h) = '1') then
              halt_dsp(h) <= '1';
              recover_state_wires(h) <= '1';
@@ -614,6 +648,8 @@ begin
            elsif vec_write_rd_DSP(h) = '0' and  dsp_sci_we(h)(to_integer(unsigned(dsp_rd_to_sc(h)))) = '1' then
              dsp_we_word(h)(to_integer(unsigned(dsp_sc_write_addr(h)(SIMD_BITS+1 downto 0))/4)) <= '1';
            end if;
+           -------------------------------------------------------------------------------------------------------------------------
+
 
            if decoded_instruction_DSP_lat(h)(KBCAST_bit_position)  = '1' then
              -- KBCAST signals are handeled here
@@ -650,7 +686,7 @@ begin
 
            if decoded_instruction_DSP_lat(h)(KRELU_bit_position) = '1' then
              -- KRELU signals are handeled here
-             if relu_stage_2_en(h) = '1' then
+             if cmp_stage_2_en(h) = '1' then
                wb_ready(h) <= '1';
              elsif recover_state(h) = '1' then
                wb_ready(h) <= '1';	
@@ -659,6 +695,53 @@ begin
                dsp_to_sc(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))(0) <= '1';
                dsp_sci_req(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))  <= '1';
                dsp_sc_read_addr(h)(0) <= RS1_Data_IE_lat(h)(Addr_Width - 1 downto 0);
+             end if;
+             if MVSIZE_WRITE(h) > (0 to Addr_Width => '0') then
+               nextstate_DSP(h) <= dsp_exec;
+               busy_DSP_internal_wires := '1';
+             end if;
+             if wb_ready(h) = '1' then
+               dsp_sci_we(h)(to_integer(unsigned(dsp_rd_to_sc(h)))) <= '1';
+               dsp_sc_write_addr(h) <= RD_Data_IE_lat(h);
+             end if;
+           end if;
+
+           if decoded_instruction_DSP_lat(h)(KVSLT_bit_position)  = '1' then
+             -- KADDV and KSUBV signals are handeled here
+             if cmp_stage_2_en(h) = '1' then
+               wb_ready(h) <= '1';
+             elsif recover_state(h) = '1' then
+               wb_ready(h) <= '1';  
+             end if;
+             if MVSIZE_READ(h) > (0 to Addr_Width => '0') then
+               dsp_to_sc(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))(0) <= '1';
+               dsp_to_sc(h)(to_integer(unsigned(dsp_rs2_to_sc(h))))(1) <= '1';
+               dsp_sci_req(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))  <= '1';
+               dsp_sci_req(h)(to_integer(unsigned(dsp_rs2_to_sc(h))))  <= '1';
+               dsp_sc_read_addr(h)(0)  <= RS1_Data_IE_lat(h)(Addr_Width - 1 downto 0);
+               dsp_sc_read_addr(h)(1)  <= RS2_Data_IE_lat(h)(Addr_Width - 1 downto 0);
+             end if;
+             if MVSIZE_WRITE(h) > (0 to Addr_Width => '0') then
+               nextstate_DSP(h) <= dsp_exec;
+               busy_DSP_internal_wires := '1';
+             end if;
+             if wb_ready(h) = '1' then
+               dsp_sci_we(h)(to_integer(unsigned(dsp_rd_to_sc(h)))) <= '1';
+               dsp_sc_write_addr(h) <= RD_Data_IE_lat(h);
+             end if;
+           end if;
+
+           if decoded_instruction_DSP_lat(h)(KSVSLT_bit_position) = '1' then
+             -- KADDV and KSUBV signals are handeled here
+             if cmp_stage_2_en(h) = '1' then
+               wb_ready(h) <= '1';
+             elsif recover_state(h) = '1' then
+               wb_ready(h) <= '1';  
+             end if;
+             if MVSIZE_READ(h) > (0 to Addr_Width => '0') then
+               dsp_to_sc(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))(0) <= '1';
+               dsp_sci_req(h)(to_integer(unsigned(dsp_rs1_to_sc(h))))  <= '1';
+               dsp_sc_read_addr(h)(0)  <= RS1_Data_IE_lat(h)(Addr_Width - 1 downto 0);
              end if;
              if MVSIZE_WRITE(h) > (0 to Addr_Width => '0') then
                nextstate_DSP(h) <= dsp_exec;
@@ -820,33 +903,34 @@ begin
       accum_stage_1_en(h)      <= '0';
       accum_stage_2_en(h)      <= '0';
       accum_stage_3_en(h)      <= '0';
-      relu_stage_1_en(h)       <= '0';
-      relu_stage_2_en(h)       <= '0';
-	  busy_DSP_internal_lat(h) <= '0';
+      cmp_stage_1_en(h)        <= '0';
+      cmp_stage_2_en(h)        <= '0';
+	    busy_DSP_internal_lat(h) <= '0';
       state_DSP(h)             <= dsp_init;
     elsif rising_edge(clk_i) then
-      dsp_data_gnt_i_lat(h) <= dsp_data_gnt_i(h);
-      adder_stage_1_en(h)   <= dsp_data_gnt_i_lat(h) and add_en(h);
-      adder_stage_2_en(h)   <= adder_stage_1_en(h);
-      adder_stage_3_en(h)   <= adder_stage_2_en(h);
-      mul_stage_1_en(h)     <= dsp_data_gnt_i_lat(h) and mul_en(h);
-      mul_stage_2_en(h)     <= mul_stage_1_en(h);
-      mul_stage_3_en(h)     <= mul_stage_2_en(h);
-      relu_stage_1_en(h)    <= dsp_data_gnt_i_lat(h) and relu_en(h);
-      relu_stage_2_en(h)    <= relu_stage_1_en(h);
-      accum_stage_2_en(h)   <= accum_stage_1_en(h);
-      accum_stage_3_en(h)   <= accum_stage_2_en(h);
+      dsp_data_gnt_i_lat(h)   <= dsp_data_gnt_i(h);
+      adder_stage_1_en(h)     <= dsp_data_gnt_i_lat(h) and add_en(h);
+      adder_stage_2_en(h)     <= adder_stage_1_en(h);
+      adder_stage_3_en(h)     <= adder_stage_2_en(h);
+      mul_stage_1_en(h)       <= dsp_data_gnt_i_lat(h) and mul_en(h);
+      mul_stage_2_en(h)       <= mul_stage_1_en(h);
+      mul_stage_3_en(h)       <= mul_stage_2_en(h);
+      accum_stage_2_en(h)     <= accum_stage_1_en(h);
+      accum_stage_3_en(h)     <= accum_stage_2_en(h);
+      shifter_stage_2_en(h)   <= shifter_stage_1_en(h);
+      shifter_stage_3_en(h)   <= shifter_stage_2_en(h);
+      cmp_stage_2_en(h)       <= cmp_stage_1_en(h);
       if dotpps(h) = '1' then
         shifter_stage_1_en(h) <= mul_stage_2_en(h);
-        shifter_stage_2_en(h) <= shifter_stage_1_en(h);
         accum_stage_1_en(h)   <= shifter_stage_2_en(h);
       elsif dotp(h) = '1' then
         accum_stage_1_en(h)   <= mul_stage_2_en(h);
+      elsif slt(h) = '1' then
+        cmp_stage_1_en(h)     <= adder_stage_2_en(h);
       else
         shifter_stage_1_en(h) <= dsp_data_gnt_i_lat(h) and shift_en(h);
-        shifter_stage_2_en(h) <= shifter_stage_1_en(h);
-        shifter_stage_3_en(h) <= shifter_stage_2_en(h);
         accum_stage_1_en(h)   <= dsp_data_gnt_i_lat(h) and accum_en(h);
+        cmp_stage_1_en(h)     <= dsp_data_gnt_i_lat(h) and cmp_en(h);
       end if;
       halt_dsp_lat(h)          <= halt_dsp(h);
       state_DSP(h)             <= nextstate_DSP(h);
@@ -861,25 +945,25 @@ begin
     if rst_ni = '0' then
       shift_en(h)         <= '0'; 
       add_en(h)           <= '0'; 
-      relu_en(h)          <= '0';
+      cmp_en(h)           <= '0';
       accum_en(h)         <= '0'; 
       mul_en(h)           <= '0';
       add_en_pending(h)   <= '0';
       shift_en_pending(h) <= '0';
       mul_en_pending(h)   <= '0';
       accum_en_pending(h) <= '0';
-      relu_en_pending(h)  <= '0';
+      cmp_en_pending(h)   <= '0';
     elsif rising_edge(clk_i) then
       shift_en(h)         <= shift_en_wire(h); 
       add_en(h)           <= add_en_wire(h); 
-      relu_en(h)          <= relu_en_wire(h); 
+      cmp_en(h)           <= cmp_en_wire(h); 
       accum_en(h)         <= accum_en_wire(h); 
       mul_en(h)           <= mul_en_wire(h); 
       add_en_pending(h)   <= add_en_pending_wire(h);
       shift_en_pending(h) <= shift_en_pending_wire(h);
       mul_en_pending(h)   <= mul_en_pending_wire(h);
       accum_en_pending(h) <= accum_en_pending_wire(h);
-      relu_en_pending(h)  <= relu_en_pending_wire(h);
+      cmp_en_pending(h)   <= cmp_en_pending_wire(h);
     end if;
 
   end process;
@@ -901,7 +985,7 @@ FU_HANDLER_MC : if multithreaded_accl_en = 0 generate
     for h in accl_range loop
       shift_en_wire(h) <= shift_en(h); 
       add_en_wire(h)   <= add_en(h); 
-      relu_en_wire(h)  <= relu_en(h); 
+      cmp_en_wire(h)   <= cmp_en(h); 
       accum_en_wire(h) <= accum_en(h); 
       mul_en_wire(h)   <= mul_en(h); 
       halt_hart(h)     <= '0';
@@ -918,8 +1002,8 @@ FU_HANDLER_MC : if multithreaded_accl_en = 0 generate
       if accum_en(h) = '1' and busy_DSP_internal(h) = '0' then
         accum_en_wire(h) <= '0';
       end if;
-      if relu_en(h) = '1' and busy_DSP_internal(h) = '0' then
-        relu_en_wire(h) <= '0';
+      if cmp_en(h) = '1' and busy_DSP_internal(h) = '0' then
+        cmp_en_wire(h) <= '0';
       end if;
 
       if dsp_instr_req(h) = '1' or busy_DSP_internal_lat(h) = '1' then
@@ -942,6 +1026,10 @@ FU_HANDLER_MC : if multithreaded_accl_en = 0 generate
               mul_en_wire(h)   <= '1';
               shift_en_wire(h) <= '1';
               accum_en_wire(h) <= '1';
+            elsif decoded_instruction_DSP(KVSLT_bit_position)  = '1' or
+                  decoded_instruction_DSP(KSVSLT_bit_position) = '1' then
+              add_en_wire(h) <= '1';
+              cmp_en_wire(h) <= '1';
             elsif decoded_instruction_DSP(KVRED_bit_position) = '1' then
               accum_en_wire(h) <= '1';
             elsif decoded_instruction_DSP(KSVMULRF_bit_position) = '1' or
@@ -951,8 +1039,8 @@ FU_HANDLER_MC : if multithreaded_accl_en = 0 generate
             elsif decoded_instruction_DSP(KSRAV_bit_position) = '1' or
                   decoded_instruction_DSP(KSRLV_bit_position) = '1' then
               shift_en_wire(h) <= '1';
-            elsif decoded_instruction_DSP(KRELU_bit_position) = '1' then
-              relu_en_wire(h) <= '1';
+            elsif decoded_instruction_DSP(KRELU_bit_position)  = '1' then
+              cmp_en_wire(h) <= '1';
             end if;
           when others =>
             null;
@@ -970,14 +1058,14 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
 
       shift_en_wire(h)               <= shift_en(h); 
       add_en_wire(h)                 <= add_en(h); 
-      relu_en_wire(h)                <= relu_en(h); 
+      cmp_en_wire(h)                 <= cmp_en(h); 
       accum_en_wire(h)               <= accum_en(h); 
       mul_en_wire(h)                 <= mul_en(h); 
       add_en_pending_wire(h)         <= add_en_pending(h);
       shift_en_pending_wire(h)       <= shift_en_pending(h);
       mul_en_pending_wire(h)         <= mul_en_pending(h);
       accum_en_pending_wire(h)       <= accum_en_pending(h);
-      relu_en_pending_wire(h)        <= relu_en_pending(h);
+      cmp_en_pending_wire(h)         <= cmp_en_pending(h);
       fu_req(h)                      <= (others => '0');
       halt_hart(h)                   <= '0';
 
@@ -994,8 +1082,8 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
       if accum_en(h) = '1' and busy_DSP_internal(h) = '0' then
         accum_en_wire(h) <= '0';
       end if;
-      if relu_en(h) = '1' and busy_DSP_internal(h) = '0' then
-        relu_en_wire(h) <= '0';
+      if cmp_en(h) = '1' and busy_DSP_internal(h) = '0' then
+        cmp_en_wire(h) <= '0';
       end if;
 
       if dsp_instr_req(h) = '1' or busy_DSP_internal_lat(h) = '1' then
@@ -1070,11 +1158,23 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
                 fu_req(h)(1) <= '1';
               end if;
             elsif decoded_instruction_DSP(KRELU_bit_position) = '1' then
-              if busy_rel = '0' and relu_en_pending = (accl_range => '0') then 
-                relu_en_wire(h) <= '1';
+              if busy_cmp = '0' and cmp_en_pending = (accl_range => '0') then 
+                cmp_en_wire(h) <= '1';
               else
-                relu_en_pending_wire(h) <= '1';
+                cmp_en_pending_wire(h) <= '1';
                 halt_hart(h) <= '1';
+                fu_req(h)(4) <= '1';
+              end if;
+            elsif decoded_instruction_DSP(KVSLT_bit_position)  = '1' or
+                  decoded_instruction_DSP(KSVSLT_bit_position) = '1' then
+              if busy_cmp = '0' and busy_add = '0' and cmp_en_pending = (accl_range => '0') and add_en_pending = (accl_range => '0') then 
+                add_en_wire(h)   <= '1';
+                cmp_en_wire(h) <= '1';
+              else
+                add_en_pending_wire(h) <= '1';
+                cmp_en_pending_wire(h) <= '1';
+                halt_hart(h) <= '1';
+                fu_req(h)(0) <= '1';
                 fu_req(h)(4) <= '1';
               end if;
             end if;
@@ -1110,9 +1210,9 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
             end if;
 
             if fu_gnt(h)(4) = '1' then
-              relu_en_wire(h) <= '1';
-              relu_en_pending_wire(h) <= '0';
-            elsif relu_en_pending(h) = '1' and fu_gnt(h)(4) = '0'  then
+              cmp_en_wire(h) <= '1';
+              cmp_en_pending_wire(h) <= '0';
+            elsif cmp_en_pending(h) = '1' and fu_gnt(h)(4) = '0'  then
               halt_hart(h) <= '1';
             end if;
 
@@ -1177,7 +1277,7 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
       if accum_en_pending_wire(h) = '1' and busy_acc_wire = '0' then
         fu_gnt_en(h)(3) <= '1';
       end if;
-      if relu_en_pending_wire(h) = '1' and busy_rel_wire = '0' then
+      if cmp_en_pending_wire(h) = '1' and busy_cmp_wire = '0' then
         fu_gnt_en(h)(4) <= '1';
       end if;
       case state_DSP(h) is
@@ -1202,7 +1302,7 @@ FU_HANDLER_MT : if multithreaded_accl_en = 1 generate
       busy_mul    <= busy_mul_wire;
       busy_shf    <= busy_shf_wire;
       busy_acc    <= busy_acc_wire;
-      busy_rel    <= busy_rel_wire;
+      busy_cmp    <= busy_cmp_wire;
     end if;
   end process;
 
@@ -1212,7 +1312,7 @@ busy_add_wire <= '1' when multithreaded_accl_en = 1 and add_en_wire   /= (accl_r
 busy_mul_wire <= '1' when multithreaded_accl_en = 1 and mul_en_wire   /= (accl_range => '0') else '0';
 busy_shf_wire <= '1' when multithreaded_accl_en = 1 and shift_en_wire /= (accl_range => '0') else '0';
 busy_acc_wire <= '1' when multithreaded_accl_en = 1 and accum_en_wire /= (accl_range => '0') else '0';
-busy_rel_wire <= '1' when multithreaded_accl_en = 1 and relu_en_wire  /= (accl_range => '0') else '0';
+busy_cmp_wire <= '1' when multithreaded_accl_en = 1 and cmp_en_wire   /= (accl_range => '0') else '0';
 
 
   -----------------------------------------------------------------
@@ -1268,7 +1368,7 @@ MAPPER_replicated : for h in fu_range generate
               dsp_sc_data_write_wire_int(h)(31 downto 0) <= dsp_out_accum_results(h);  -- AAA add a mask in order to store the lower half word when 16-bit or entire word when 32-bit
             end if;
 
-            if (decoded_instruction_DSP_lat(h)(KVMUL_bit_position)     = '1'  or  
+            if (decoded_instruction_DSP_lat(h)(KVMUL_bit_position)    = '1'  or  
                 decoded_instruction_DSP_lat(h)(KSVMULRF_bit_position) = '1'  or  
                 decoded_instruction_DSP_lat(h)(KSVMULSC_bit_position) = '1') and
                MVTYPE_DSP(h) = "00" then
@@ -1293,13 +1393,15 @@ MAPPER_replicated : for h in fu_range generate
                decoded_instruction_DSP_lat(h)(KSVADDRF_bit_position)   = '1' or
                decoded_instruction_DSP_lat(h)(KADDV_bit_position)      = '1' or
                decoded_instruction_DSP_lat(h)(KSUBV_bit_position)      = '1' or
-               decoded_instruction_DSP_lat(h)(KVCP_bit_position)        = '1' then
+               decoded_instruction_DSP_lat(h)(KVCP_bit_position)       = '1' then
               dsp_sc_data_write_wire_int(h) <= dsp_out_adder_results(h);
             end if;
 
 
-            if decoded_instruction_DSP_lat(h)(KRELU_bit_position)  = '1' then
-              dsp_sc_data_write_wire_int(h)   <= dsp_out_relu_results(h);
+            if decoded_instruction_DSP_lat(h)(KRELU_bit_position)  = '1' or
+               decoded_instruction_DSP_lat(h)(KVSLT_bit_position)  = '1' or
+               decoded_instruction_DSP_lat(h)(KSVSLT_bit_position) = '1' then
+              dsp_sc_data_write_wire_int(h) <= dsp_out_cmp_results(h);
             end if;
 
             if    decoded_instruction_DSP_lat(h)(KBCAST_bit_position) = '1'  and MVTYPE_DSP(h) = "10" then
@@ -1400,8 +1502,10 @@ MULTITHREAD_OUT_MAPPER : if multithreaded_accl_en = 1 generate
             end if;
 
 
-            if decoded_instruction_DSP_lat(h)(KRELU_bit_position)  = '1' then
-              dsp_sc_data_write_wire_int(h) <= dsp_out_relu_results(0);
+            if decoded_instruction_DSP_lat(h)(KRELU_bit_position)  = '1' or
+               decoded_instruction_DSP_lat(h)(KVSLT_bit_position)  = '1' or
+               decoded_instruction_DSP_lat(h)(KSVSLT_bit_position) = '1' then
+              dsp_sc_data_write_wire_int(h) <= dsp_out_cmp_results(0);
             end if;
 
             if decoded_instruction_DSP_lat(h)(KBCAST_bit_position) = '1' and MVTYPE_DSP(h) = "10" then
@@ -1438,12 +1542,13 @@ FU_replicated : for f in fu_range generate
   variable h : integer;
   begin
 
+    MSB_stage_1(f)                 <= (others => (others => '0')); 
     dsp_in_mul_operands(f)         <= (others => (others => '0'));
     dsp_in_adder_operands(f)       <= (others => (others => '0'));
     dsp_in_shift_amount(f)         <= (others => '0');
     dsp_in_shifter_operand(f)      <= (others => '0');
-    dsp_in_relu_operands(f)        <= (others => '0');
     dsp_in_accum_operands(f)       <= (others => '0');
+    dsp_in_cmp_operands(f)         <= (others => '0');
 
     for g in 0 to (ACCL_NUM - FU_NUM) loop
 
@@ -1600,8 +1705,8 @@ FU_replicated : for f in fu_range generate
             end if;
 
             if decoded_instruction_DSP_lat(h)(KSUBV_bit_position)  = '1' then
-              dsp_in_adder_operands(f)(0)     <= dsp_sc_data_read(h)(0);
-              dsp_in_adder_operands(f)(1)     <= (not dsp_sc_data_read(h)(1));
+              dsp_in_adder_operands(f)(0) <= dsp_sc_data_read(h)(0);
+              dsp_in_adder_operands(f)(1) <= (not dsp_sc_data_read(h)(1));
             end if;
 
             if decoded_instruction_DSP_lat(h)(KVRED_bit_position)  = '1' and MVTYPE_DSP(h) = "00" then
@@ -1614,13 +1719,57 @@ FU_replicated : for f in fu_range generate
             end if;
 
             if decoded_instruction_DSP_lat(h)(KRELU_bit_position)  = '1' then
-              dsp_in_relu_operands(f) <= dsp_sc_data_read(h)(0);
+              dsp_in_cmp_operands(f) <= dsp_sc_data_read(h)(0);
+            end if;
+
+            if decoded_instruction_DSP_lat(h)(KVSLT_bit_position) = '1' then
+              dsp_in_adder_operands(f)(0) <= dsp_sc_data_read(h)(0);
+              dsp_in_adder_operands(f)(1) <= (not dsp_sc_data_read(h)(1));
+              dsp_in_cmp_operands(f)      <= dsp_out_adder_results(f);
+              for i in 0 to 1 loop -- loops through both read busses for operands rs1, and rs2
+                for j in 0 to 4*SIMD-1 loop -- loop transfers all the MSBs from the input to the output
+                  MSB_stage_1(f)(i)(j) <= dsp_sc_data_read(h)(i)(7+8*(j));
+                end loop;
+              end loop;
+            end if;
+
+            if decoded_instruction_DSP_lat(h)(KSVSLT_bit_position) = '1'then
+              dsp_in_adder_operands(f)(0) <= dsp_sc_data_read(h)(0);
+              dsp_in_cmp_operands(f)      <= dsp_out_adder_results(f);
+              if MVTYPE_DSP(h) = "10" then
+                for i in 0 to SIMD-1 loop
+                  dsp_in_adder_operands(f)(1)(31+32*(i) downto 32*(i)) <= not(RS2_Data_IE_lat(h)(31 downto 0));
+                end loop;
+                for j in 0 to SIMD-1 loop -- this index loops throughout the SIMD lanes
+                  MSB_stage_1(f)(1)(4*(j)+3) <= RS2_Data_IE_lat(h)(31); -- Save the MSB in an array to be used for comparator results
+                end loop;
+              elsif MVTYPE_DSP(h) = "01" then
+                for i in 0 to 2*SIMD-1 loop
+                  dsp_in_adder_operands(f)(1)(15+16*(i) downto 16*(i)) <= not(RS2_Data_IE_lat(h)(15 downto 0));
+                end loop;
+                for i in 0 to 1 loop -- this index loops throughout the MSBs in the 8-bit subwords in the 32-bit word "RS2_Data_IE_lat"
+                  for j in 0 to SIMD-1 loop -- this index loops throughout the SIMD lanes
+                    MSB_stage_1(f)(1)(4*(j)+1+2*(i)) <= RS2_Data_IE_lat(h)(15); -- Save the MSB in an array to be used for comparator results
+                  end loop;
+                end loop;
+              elsif MVTYPE_DSP(h) = "00" then
+                for i in 0 to 4*SIMD-1 loop
+                  dsp_in_adder_operands(f)(1)(7+8*(i)   downto 8*(i))  <= not(RS2_Data_IE_lat(h)(7 downto 0));
+                end loop;
+                for i in 0 to 3 loop -- this index loops throughout the MSBs in the 8-bit subwords in the 32-bit word "RS2_Data_IE_lat"
+                  for j in 0 to SIMD-1 loop -- this index loops throughout the SIMD lanes
+                    MSB_stage_1(f)(1)(4*(j)+i) <= RS2_Data_IE_lat(h)(7); -- Save the MSB in an array to be used for comparator results
+                  end loop;
+                end loop;
+              end if;
+              for i in 0 to 4*SIMD-1 loop -- loop transfers all the MSBs from the input to the output
+                MSB_stage_1(f)(0)(i) <= dsp_sc_data_read(h)(0)(7+8*(i));
+              end loop;
             end if;
 
             if decoded_instruction_DSP_lat(h)(KVCP_bit_position) = '1' then
               dsp_in_adder_operands(f)(0) <= dsp_sc_data_read(h)(0);
             end if;
-
 
           when others =>
             null;
@@ -1664,8 +1813,8 @@ FU_replicated : for f in fu_range generate
            -- (a) If we pass all the carries in the 32-bit word, we will have executed KADDV32 (4*32-bit parallel additions)
            -- (b) If we pass the 9th and 25th carries we would have executed KADDV16 (8*16-bit parallel additions)
            -- (c) If we pass none of the carries then we would have executed KADDV8 (16*8-bit parallel additions)
-          dsp_add_8_0_wire(f)(i)   <= std_logic_vector('0' & unsigned(dsp_in_adder_operands(f)(0)(7+8*(4*i)  downto 8*(4*i)))    + unsigned(dsp_in_adder_operands(f)(1)(7+8*(4*i)  downto 8*(4*i))) + twos_complement(h)(0+(4*i)));
-          dsp_add_16_8_wire(f)(i)  <= std_logic_vector('0' & unsigned(dsp_in_adder_operands(f)(0)(15+8*(4*i) downto 8+8*(4*i)))  + unsigned(dsp_in_adder_operands(f)(1)(15+8*(4*i) downto 8+8*(4*i))) + carry_8_wire(f)(i) + twos_complement(h)(1+(4*i)));
+          dsp_add_8_0_wire(f)(i)   <= std_logic_vector('0' & unsigned(dsp_in_adder_operands(f)(0)(7+8*(4*i)  downto 8*(4*i)))   + unsigned(dsp_in_adder_operands(f)(1)(7+8*(4*i)  downto 8*(4*i))) + twos_complement(h)(0+(4*i)));
+          dsp_add_16_8_wire(f)(i)  <= std_logic_vector('0' & unsigned(dsp_in_adder_operands(f)(0)(15+8*(4*i) downto 8+8*(4*i))) + unsigned(dsp_in_adder_operands(f)(1)(15+8*(4*i) downto 8+8*(4*i))) + carry_8_wire(f)(i) + twos_complement(h)(1+(4*i)));
           -- All the 8-bit adders are lumped into one output write signal that will write to the scratchpads
           -- Carries are either passed or blocked for the 9-th, 17-th, and 25-th bits
           carry_8_wire(f)(i)  <= dsp_add_8_0_wire(f)(i)(8)   and carry_pass(h)(0);
@@ -1729,22 +1878,23 @@ FU_replicated : for f in fu_range generate
         end if;
         -- Addition is here
         if add_en(h) = '1' and halt_dsp_lat(h) = '0' then
-          carry_16(f) <= carry_16_wire(f);
+          carry_16(f)     <= carry_16_wire(f);
           dsp_add_8_0(f)  <= dsp_add_8_0_wire(f);
           dsp_add_16_8(f) <= dsp_add_16_8_wire(f);
+          MSB_stage_2(f)  <= MSB_stage_1(f);
           --  Addition in SIMD Virtual Parallelism is executed here, if the carries are blocked, we will have a chain of 8-bit or 16-bit adders, else we have normal 32-bit adders
           for i in 0 to SIMD-1 loop
             if (adder_stage_2_en(h) = '1' or recover_state_wires(h) = '1') then
-                -- All the 8-bit adders are lumped into one output signal that will write to the scratchpads
+                -- All the 8-bit adders are lumped into one output signal
               dsp_out_adder_results(f)(31+32*(i) downto 32*(i)) <= dsp_add_32_24_wire(f)(i)(7 downto 0) & dsp_add_24_16_wire(f)(i)(7 downto 0) & dsp_add_16_8(f)(i)(7 downto 0) & dsp_add_8_0(f)(i)(7 downto 0);
             end if;
           end loop;
-        end if;
-        for i in 0 to SIMD-1 loop
-          for j in 0 to 1 loop
-            dsp_in_adder_operands_lat(f)(j)(15 +16*(i) downto 16*(i)) <= dsp_in_adder_operands(f)(j)(31+32*(i) downto 16+32*(i));
+          for i in 0 to SIMD-1 loop
+            for j in 0 to 1 loop
+              dsp_in_adder_operands_lat(f)(j)(15 +16*(i) downto 16*(i)) <= dsp_in_adder_operands(f)(j)(31+32*(i) downto 16+32*(i));
+            end loop;
           end loop;
-        end loop;
+        end if;
       end loop;
     end if;
   end process;
@@ -1984,14 +2134,14 @@ FU_replicated : for f in fu_range generate
     end if;
   end process;
 
-  -----------------------------------------
-  --  ██████╗ ███████╗██╗     ██╗   ██╗  --
-  --  ██╔══██╗██╔════╝██║     ██║   ██║  --
-  --  ██████╔╝█████╗  ██║     ██║   ██║  --
-  --  ██╔══██╗██╔══╝  ██║     ██║   ██║  --
-  --  ██║  ██║███████╗███████╗╚██████╔╝  --
-  --  ╚═╝  ╚═╝╚══════╝╚══════╝ ╚═════╝   --
-  -----------------------------------------
+  ----------------------------------------------------------------------------------------------------
+  -- ██████╗ ██████╗ ███╗   ███╗██████╗  █████╗ ██████╗  █████╗ ████████╗ ██████╗ ██████╗ ███████╗  --
+  --██╔════╝██╔═══██╗████╗ ████║██╔══██╗██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔═══██╗██╔══██╗██╔════╝  --
+  --██║     ██║   ██║██╔████╔██║██████╔╝███████║██████╔╝███████║   ██║   ██║   ██║██████╔╝███████╗  --
+  --██║     ██║   ██║██║╚██╔╝██║██╔═══╝ ██╔══██║██╔══██╗██╔══██║   ██║   ██║   ██║██╔══██╗╚════██║  --
+  --╚██████╗╚██████╔╝██║ ╚═╝ ██║██║     ██║  ██║██║  ██║██║  ██║   ██║   ╚██████╔╝██║  ██║███████║  --
+  -- ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚══════╝  --
+  ----------------------------------------------------------------------------------------------------
 
   fsm_RELU : process(clk_i, rst_ni)
   variable h : integer;
@@ -2004,36 +2154,79 @@ FU_replicated : for f in fu_range generate
         elsif multithreaded_accl_en = 0 then
           h := f;  -- set the spm rd/wr ports equal to the "for-generate" 
         end if;
-        if relu_en(h) = '1' then
-          if (relu_stage_1_en(h) = '1' or recover_state_wires(h) = '1') and halt_dsp_lat(h) = '0' then
-            if    MVTYPE_DSP(h) = "10" then
+        if cmp_en(h) = '1' and halt_dsp_lat(h) = '0' then
+          MSB_stage_3(f)  <= MSB_stage_2(f);
+          if cmp_stage_1_en(h) = '1' or recover_state_wires(h) = '1' then
+            if MVTYPE_DSP(h) = "10" then
               for i in 0 to SIMD-1 loop
-                if dsp_in_relu_operands(f)(31+32*(i)) = '1' then
-                  dsp_out_relu_results(f)(31+32*(i) downto 32*(i)) <= (others => '0');
+                if relu_instr(h) = '1' then
+                  if dsp_in_cmp_operands(f)(31+32*(i)) = '1' then
+                    dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= (others => '0');
+                  else
+                    dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= dsp_in_cmp_operands(f)(31+32*(i) downto 32*(i));
+                  end if;
                 else
-                  dsp_out_relu_results(f)(31+32*(i) downto 32*(i)) <= dsp_in_relu_operands(f)(31+32*(i) downto 32*(i));
+                  if MSB_stage_3(f)(1)(4*(i)+3) = MSB_stage_3(f)(0)(4*(i)+3) then -- if both signs are equal, than read the MSB from the subtractor
+                    if dsp_in_cmp_operands(f)(31+32*(i)) = '1' then
+                      dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= (31+32*(i) downto 32*(i)+1 => '0') & '1';
+                    else
+                      dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= (others => '0');
+                    end if;
+                  elsif MSB_stage_3(f)(1)(4*(i)+3) /= MSB_stage_3(f)(0)(4*(i)+3) and MSB_stage_3(f)(0)(4*(i)+3) = '1' then
+                    dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= (31+32*(i) downto 32*(i)+1 => '0') & '1';
+                  else
+                    dsp_out_cmp_results(f)(31+32*(i) downto 32*(i)) <= (others => '0');
+                  end if;
                 end if;
               end loop;
             elsif MVTYPE_DSP(h) = "01" then
               for i in 0 to 2*SIMD-1 loop
-                if dsp_in_relu_operands(f)(15+16*(i)) = '1' then
-                  dsp_out_relu_results(f)(15+16*(i) downto 16*(i)) <= (others => '0');
+                if relu_instr(h) = '1' then
+                  if dsp_in_cmp_operands(f)(15+16*(i)) = '1' then
+                      dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= (others => '0');
+                  else
+                      dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= dsp_in_cmp_operands(f)(15+16*(i) downto 16*(i));
+                  end if;
                 else
-                  dsp_out_relu_results(f)(15+16*(i) downto 16*(i)) <= dsp_in_relu_operands(f)(15+16*(i) downto 16*(i));
+                  if MSB_stage_3(f)(1)(2*(i)+1) = MSB_stage_3(f)(0)(2*(i)+1) then -- if both signs are equal, than read the MSB from the subtractor
+                    if dsp_in_cmp_operands(f)(15+16*(i)) = '1' then
+                      dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= (15+16*(i) downto 16*(i)+1 => '0') & '1';
+                    else
+                      dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= (others => '0');
+                    end if;
+                  elsif MSB_stage_3(f)(1)(2*(i)+1) /= MSB_stage_3(f)(0)(2*(i)+1) and MSB_stage_3(f)(0)(2*(i)+1) = '1' then
+                    dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= (15+16*(i) downto 16*(i)+1 => '0') & '1';
+                  else
+                    dsp_out_cmp_results(f)(15+16*(i) downto 16*(i)) <= (others => '0');
+                  end if;
                 end if;
               end loop;
             elsif MVTYPE_DSP(h) = "00" then
               for i in 0 to 4*SIMD-1 loop
-                if dsp_in_relu_operands(f)(7+8*(i)) = '1' then
-                  dsp_out_relu_results(f)(7+8*(i) downto 8*(i)) <= (others => '0');
+                if relu_instr(h) = '1' then
+                  if dsp_in_cmp_operands(f)(7+8*(i)) = '1' then
+                      dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= (others => '0');
+                  else
+                    dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= dsp_in_cmp_operands(f)(7+8*(i) downto 8*(i));
+                  end if;
                 else
-                  dsp_out_relu_results(f)(7+8*(i) downto 8*(i)) <= dsp_in_relu_operands(f)(7+8*(i) downto 8*(i));
+                  if MSB_stage_3(f)(1)(i) = MSB_stage_3(f)(0)(i) then -- if both signs are equal, than read the MSB from the subtractor
+                    if dsp_in_cmp_operands(f)(7+8*(i)) = '1' then
+                      dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= (7+8*(i) downto 8*(i)+1 => '0') & '1';
+                    else
+                      dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= (others => '0');
+                    end if;
+                  elsif MSB_stage_3(f)(1)(i) /= MSB_stage_3(f)(0)(i) and MSB_stage_3(f)(0)(i) = '1' then
+                    dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= (7+8*(i) downto 8*(i)+1 => '0') & '1';
+                  else
+                    dsp_out_cmp_results(f)(7+8*(i) downto 8*(i)) <= (others => '0');
+                  end if;
                 end if;
-              end loop;
+              end loop;  -- SIMD LOOP
             end if;
           end if;
         end if;
-      end loop;
+      end loop; -- ACCL NUM LOOP
     end if;
   end process;
 

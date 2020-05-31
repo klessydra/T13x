@@ -483,6 +483,56 @@ __attribute__ ((always_inline)) inline int krelu_v2(void* rd, void* rs1, int siz
 	return 1;
 }
 
+__attribute__ ((always_inline)) inline int kvslt(void* rd, void* rs1)
+{
+	__asm__(
+		"krelu %[rd], %[rs1];"
+		://no output register
+		:[rd] "r" (rd), [rs1] "r" (rs1)
+		:/*no clobbered registers*/
+	);
+	
+	return sizeof(rd);
+}
+
+__attribute__ ((always_inline)) inline int kvslt_v2(void* rd, void* rs1, int size)
+{
+	__asm__(
+        "csrw 0xBF0, %[size];"
+		"krelu %[rd], %[rs1];"
+		://no output register
+		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1)
+		:/*no clobbered registers*/
+	);
+	
+	return 1;
+}
+
+__attribute__ ((always_inline)) inline int ksvslt(void* rd, void* rs1)
+{
+	__asm__(
+		"krelu %[rd], %[rs1];"
+		://no output register
+		:[rd] "r" (rd), [rs1] "r" (rs1)
+		:/*no clobbered registers*/
+	);
+	
+	return sizeof(rd);
+}
+
+__attribute__ ((always_inline)) inline int ksvslt_v2(void* rd, void* rs1, int size)
+{
+	__asm__(
+        "csrw 0xBF0, %[size];"
+		"krelu %[rd], %[rs1];"
+		://no output register
+		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1)
+		:/*no clobbered registers*/
+	);
+	
+	return 1;
+}
+
 __attribute__ ((always_inline)) inline int kbcast(void* rd, void* rs1)
 {
 	__asm__(
@@ -658,6 +708,9 @@ thread 2 then stores the value back in the main memory at the address in "result
 */
 void*  kless_rectify_linear_unit(void* result, void* src1, int size);
 
+void*  kless_vector_set_less_than(void* result, void* src1, void* src2, int size);
+
+void*  kless_scalar_vect_set_less_than(void* result, void* src1, void* src2, int size);
 /*
 The three functions below perfrom vector broadcast
 there are no vector loads in this function

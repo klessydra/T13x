@@ -25,7 +25,7 @@ use work.riscv_klessydra.all;
 ---------------------------------------------------------------------------------------------------
 entity Scratchpad_memory is
   generic(
-    SPM_NUM		          : natural; 
+    SPM_NUM               : natural; 
     Addr_Width            : natural;
     SIMD                  : natural;
     --------------------------------

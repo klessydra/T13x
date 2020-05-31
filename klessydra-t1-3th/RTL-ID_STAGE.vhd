@@ -2,7 +2,7 @@
 --  Stage ID - (Instruction decode and registerfile read)                                                     --
 --  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                          --
 --                                                                                                            --
---  Date Modified: 07-04-2020                                                                                  --
+--  Date Modified: 07-04-2020                                                                                 --
 ----------------------------------------------------------------------------------------------------------------
 --  Does operation decoding, and issues the result in a one-hot decoding form to the next stage               --
 --  In this stage we detect based on the incoming instruction whether superscalar execution can be enabled.   --
@@ -31,7 +31,7 @@ entity ID_STAGE is
     superscalar_exec_en        : natural;
     accl_en                    : natural;
     replicate_accl_en          : natural;
-    SPM_NUM		               : natural;  
+    SPM_NUM		                 : natural;  
     Addr_Width                 : natural;
     SPM_STRT_ADDR              : std_logic_vector(31 downto 0);
     ACCL_NUM                   : natural;
@@ -50,18 +50,18 @@ entity ID_STAGE is
     decoded_instruction_DSP    : out std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
     data_be_ID                 : out std_logic_vector(3 downto 0);
     data_width_ID              : out std_logic_vector(1 downto 0);
-	amo_store                  : in  std_logic;
-	amo_load                   : out std_logic;
-	amo_load_skip              : out std_logic;
-	load_op                    : out std_logic;
-	store_op                   : out std_logic;
+    amo_store                  : in  std_logic;
+    amo_load                   : out std_logic;
+    amo_load_skip              : out std_logic;
+    load_op                    : out std_logic;
+    store_op                   : out std_logic;
     instr_word_IE              : out std_logic_vector(31 downto 0);
-	harc_ID                    : in  integer range THREAD_POOL_SIZE-1 downto 0;
+    harc_ID                    : in  integer range THREAD_POOL_SIZE-1 downto 0;
     pc_ID                      : in  std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
-	core_busy_IE               : in  std_logic;
-	core_busy_LS               : in  std_logic;
-	busy_LS                    : in  std_logic;
-	busy_DSP                   : in  std_logic_vector(ACCL_NUM-1 downto 0);
+    core_busy_IE               : in  std_logic;
+    core_busy_LS               : in  std_logic;
+    busy_LS                    : in  std_logic;
+    busy_DSP                   : in  std_logic_vector(ACCL_NUM-1 downto 0);
     busy_ID                    : out std_logic;
     ls_parallel_exec           : out std_logic;
     dsp_parallel_exec          : out std_logic;
@@ -71,10 +71,9 @@ entity ID_STAGE is
     instr_rvalid_IE            : out std_logic;  -- validity bit at IE input
     halt_IE                    : out std_logic;
     halt_LSU                   : out std_logic;
-	instr_word_ID_lat          : in  std_logic_vector(31 downto 0);
+    instr_word_ID_lat          : in  std_logic_vector(31 downto 0);
     spm_rs1                    : out std_logic;
     spm_rs2                    : out std_logic;
-    --sw_mip                     : out std_logic;
     signed_op                  : out std_logic;
     harc_EXEC                  : out integer range THREAD_POOL_SIZE-1 downto 0;
     vec_read_rs1_ID            : out std_logic;
@@ -120,27 +119,22 @@ architecture DECODE of ID_STAGE is
 begin
 
   fsm_ID_sync : process(clk_i, rst_ni, instr_word_ID_lat)  -- synch single state process
-
     variable OPCODE_wires  : std_logic_vector (6 downto 0);
     variable FUNCT3_wires  : std_logic_vector (2 downto 0);
     variable FUNCT7_wires  : std_logic_vector (6 downto 0);
     variable FUNCT12_wires : std_logic_vector (11 downto 0);
-
   begin
-
     OPCODE_wires  := OPCODE(instr_word_ID_lat);
     FUNCT3_wires  := FUNCT3(instr_word_ID_lat);
     FUNCT7_wires  := FUNCT7(instr_word_ID_lat);
     FUNCT12_wires := FUNCT12(instr_word_ID_lat);
-		
     if rst_ni = '0' then
-      pc_IE <= (others => '0');
+      pc_IE           <= (others => '0');
       harc_EXEC       <= 0;
       instr_rvalid_IE <= '0';
-	  ie_instr_req    <= '0';
-	  ls_instr_req    <= '0';
+      ie_instr_req    <= '0';
+      ls_instr_req    <= '0';
       comparator_en   <= '0'; 
-
     elsif rising_edge(clk_i) then
       ls_instr_req <= '0';
       if core_busy_IE = '1' or core_busy_LS = '1' or ls_parallel_exec = '0'  or dsp_parallel_exec = '0' then -- the instruction pipeline is halted
@@ -163,14 +157,14 @@ begin
         -- pc propagation
         pc_IE            <= pc_ID;
         -- harc propagation
-        harc_EXEC             <= harc_ID;
+        harc_EXEC        <= harc_ID;
         --S_Imm_IE           <= std_logic_vector(to_unsigned(S_immediate(instr_word_ID_lat), 12));
         --I_Imm_IE           <= std_logic_vector(to_unsigned(to_integer(unsigned(I_immediate(instr_word_ID_lat))), 12));
         --B_Imm_IE           <= std_logic_vector(to_unsigned(to_integer(unsigned(B_immediate(instr_word_ID_lat))), 12));
         --CSR_ADDR_IE        <= std_logic_vector(to_unsigned(to_integer(unsigned(CSR_ADDR(instr_word_ID_lat))), 12));
 
         comparator_en    <= '0';
-	    ie_instr_req     <= '0';
+        ie_instr_req     <= '0';
         amo_load_skip    <= '0';
         amo_load         <= '0';
         load_op          <= '0';
@@ -235,7 +229,7 @@ begin
             end if;  -- if rd(instr_word_ID_lat) /=0
 				
           when LUI =>                   -- LUI instruction
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             if (rd(instr_word_ID_lat) /= 0) then
               decoded_instruction_IE <= LUI_pattern;
             else                        -- R0_INSTRUCTION
@@ -243,7 +237,7 @@ begin
             end if;
 				
           when AUIPC =>                 -- AUIPC instruction
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             if (rd(instr_word_ID_lat) /= 0) then
               decoded_instruction_IE <= AUIPC_pattern;
             else                        -- R0_INSTRUCTION
@@ -251,7 +245,7 @@ begin
             end if;
 
           when OP =>
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             if (rd(instr_word_ID_lat) /= 0) then
               case FUNCT7_wires is
                 when OP_I1 =>
@@ -279,7 +273,7 @@ begin
                   end case;
                 when OP_I2 =>
                   case FUNCT3_wires is
-					when SUB7 =>
+                    when SUB7 =>
                       decoded_instruction_IE <= SUB7_pattern;
                     when SRAA =>
                       decoded_instruction_IE <= SRAA7_pattern;
@@ -304,8 +298,8 @@ begin
                         comparator_en <= '1';
                         decoded_instruction_IE <= MULHU_pattern;
                       when DIV =>
-                       comparator_en <= '1';
-                       signed_op <= '1';
+                        comparator_en <= '1';
+                        signed_op <= '1';
                         decoded_instruction_IE <= DIV_pattern;
                       when DIVU =>
                         comparator_en <= '1';
@@ -339,7 +333,7 @@ begin
             decoded_instruction_IE <= JALR_pattern;
 
           when BRANCH =>      -- BRANCH instruction         
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             case FUNCT3_wires is
               when BEQ =>               -- BEQ instruction   
                 comparator_en <= '1';
@@ -368,36 +362,36 @@ begin
             if (rd(instr_word_ID_lat) /= 0) then  -- is all in the next_state process
               case FUNCT3_wires is
                 when LW =>
-				  ls_instr_req <= '1';
-				  data_width_ID <= "10";
-				  data_be_ID   <= "1111";
+                  ls_instr_req <= '1';
+                  data_width_ID <= "10";
+                  data_be_ID   <= "1111";
                   decoded_instruction_LS <= LW_pattern;
                 when LH =>
-				  ls_instr_req <= '1';
-				  data_width_ID <= "01";
-				  data_be_ID <= "0011";
+                  ls_instr_req <= '1';
+                  data_width_ID <= "01";
+                  data_be_ID <= "0011";
                   decoded_instruction_LS <= LH_pattern;
                 when LHU =>
-				  ls_instr_req <= '1';
-				  data_width_ID <= "01";
-				  data_be_ID <= "0011";
+                  ls_instr_req <= '1';
+                  data_width_ID <= "01";
+                  data_be_ID <= "0011";
                   decoded_instruction_LS <= LHU_pattern;
                 when LB =>
-				  ls_instr_req <= '1';
-				  data_width_ID <= "00";
-				  data_be_ID <= "0001";
+                  ls_instr_req <= '1';
+                  data_width_ID <= "00";
+                  data_be_ID <= "0001";
                   decoded_instruction_LS <= LB_pattern;
                 when LBU =>
-				  ls_instr_req <= '1';
-				  data_width_ID <= "00";
-				  data_be_ID <= "0001";
+                  ls_instr_req <= '1';
+                  data_width_ID <= "00";
+                  data_be_ID <= "0001";
                   decoded_instruction_LS <= LBU_pattern;
                 when others =>          -- ILLEGAL_INSTRUCTION
-				  ie_instr_req <= '1';
+                  ie_instr_req <= '1';
                   decoded_instruction_IE <= ILL_pattern;
               end case;
             else                        -- R0_INSTRUCTION
-			  ie_instr_req <= '1';
+              ie_instr_req <= '1';
               decoded_instruction_IE <= NOP_pattern;
             end if;
 
@@ -405,29 +399,29 @@ begin
             store_op <= '1';
             case FUNCT3_wires is
               when SW =>                -- is all in the next_state process
-				ls_instr_req <= '1';
-				ie_instr_req <= '1';
-				data_width_ID <= "10";
-				data_be_ID <= "1111";
+                ls_instr_req <= '1';
+                ie_instr_req <= '1';
+                data_width_ID <= "10";
+                data_be_ID <= "1111";
                 decoded_instruction_LS <= SW_pattern;
                 decoded_instruction_IE <= SW_MIP_pattern;
               when SH =>
-				ls_instr_req <= '1';
-				data_width_ID <= "01";
-				data_be_ID <= "0011";
+                ls_instr_req <= '1';
+                data_width_ID <= "01";
+                data_be_ID <= "0011";
                 decoded_instruction_LS <= SH_pattern;
               when SB =>
-				ls_instr_req <= '1';
+                ls_instr_req <= '1';
                 data_width_ID <= "00";
-				data_be_ID <= "0001";
+                data_be_ID <= "0001";
                 decoded_instruction_LS <= SB_pattern;
               when others =>  -- ILLEGAL_INSTRUCTION
-				ie_instr_req <= '1';
+                ie_instr_req <= '1';
                 decoded_instruction_IE <= ILL_pattern;
             end case;
 
           when MISC_MEM =>
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             case FUNCT3_wires is
               when FENCE =>             -- FENCE instruction
                 decoded_instruction_IE <= FENCE_pattern;
@@ -493,7 +487,7 @@ begin
             data_width_ID <= "10";
             case FUNCT3_wires is
               when SINGLE =>
-				ls_instr_req <= '1';
+                ls_instr_req <= '1';
                 decoded_instruction_LS <= AMOSWAP_pattern;
                 if(rd(instr_word_ID_lat) /= 0) then
                   amo_load_skip          <= '0';
@@ -514,13 +508,13 @@ begin
             if accl_en = 1 then
               case FUNCT7_wires is
                 when KMEMLD =>          -- KMEMLD_INSTRUCTION
-			      ls_instr_req <= '1';
+                  ls_instr_req <= '1';
                   decoded_instruction_LS <= KMEMLD_pattern;
-			    when KMEMSTR =>         -- KMEMSTR_INSTRUCTION
-			      ls_instr_req <= '1';
+                when KMEMSTR =>         -- KMEMSTR_INSTRUCTION
+                  ls_instr_req <= '1';
                   decoded_instruction_LS <= KMEMSTR_pattern;
-			    when KBCASTLD =>         -- KBCASTLD_INSTRUCTION
-			      ls_instr_req <= '1';
+                when KBCASTLD =>         -- KBCASTLD_INSTRUCTION
+                  ls_instr_req <= '1';
                   decoded_instruction_LS <= KBCASTLD_pattern;
                 when others =>            -- ILLEGAL_INSTRUCTION
                   ie_instr_req <= '1';
@@ -609,6 +603,18 @@ begin
                   when KBCAST =>           -- KBCAST_INSTRUCTION
                     vec_write_rd_ID <= '1';
                     decoded_instruction_DSP <= KBCAST_pattern;
+                  when KVSLT =>
+                    vec_write_rd_ID <= '1';
+                    vec_read_rs1_ID <= '1';
+                    vec_read_rs2_ID <= '1';
+                    spm_rs1 <= '1';
+                    spm_rs2 <= '1';
+                    decoded_instruction_DSP <= KVSLT_pattern;
+                  when KSVSLT =>
+                    vec_write_rd_ID <= '1';
+                    vec_read_rs1_ID <= '1';
+                    spm_rs1 <= '1';
+                    decoded_instruction_DSP <= KSVSLT_pattern;
                   when KVCP =>           -- KVCP_INSTRUCTION
                     spm_rs1 <= '1';
                     vec_read_rs1_ID  <= '1';

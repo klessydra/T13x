@@ -32,7 +32,7 @@ entity Pipeline is
     accl_en                    : natural;
     replicate_accl_en          : natural;
     multithreaded_accl_en      : natural;
-    SPM_NUM		               : natural;  
+    SPM_NUM	                   : natural;  
     Addr_Width                 : natural;
     SPM_STRT_ADDR              : std_logic_vector(31 downto 0);
     SIMD                       : natural;
@@ -1709,6 +1709,10 @@ begin
                 write(row0, string'("    kdotpps x"));
               elsif decoded_instruction_DSP(KRELU_bit_position)    = '1' then
                 write(row0, string'("    krelu x"));
+              elsif decoded_instruction_DSP(KVSLT_bit_position)    = '1' then
+                write(row0, string'("    kvslt x"));
+              elsif decoded_instruction_DSP(KSVSLT_bit_position)   = '1' then
+                write(row0, string'("    ksvslt x"));
               elsif decoded_instruction_DSP(KBCAST_bit_position)   = '1' then
                 write(row0, string'("    kbcast x"));
               elsif decoded_instruction_DSP(KVCP_bit_position)     = '1' then
@@ -1733,7 +1737,7 @@ begin
               write(row0, string'("      SPM_rd("));
               write(row0, to_integer(unsigned(rd_to_sc)));
               write(row0, string'(")=0x"));
-              hwrite(row0, RD_Data_IE(Addr_Width downto 0));
+              hwrite(row0, RD_Data_IE);
               if spm_rs1 = '1' then
                 write(row0, string'("      SPM_rs1("));
                 write(row0, to_integer(unsigned(rs1_to_sc)));
