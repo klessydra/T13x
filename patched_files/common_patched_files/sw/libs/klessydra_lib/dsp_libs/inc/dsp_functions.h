@@ -44,24 +44,36 @@ If the user changes the starting address of the scratchpads in the rtl, he must 
 
 int Klessydra_get_coreID();
 
-__attribute__ ((always_inline)) inline void CSR_MVTYPE(int rs1)
-{
-	__asm__(
-		"csrw 0xBF8, %0;"
-		://no output register
-		:"r" (rs1)
-		:/*no clobbered register*/
-	);	
-}
-
-__attribute__ ((always_inline)) inline void CSR_MVSIZE(int rs1)
+__attribute__ ((always_inline)) inline void CSR_MVSIZE(int MYSIZE)
 {
 	__asm__(
 		"csrw 0xBF0, %0;"
 		://no output register
-		:"r" (rs1)
+		:"r" (MYSIZE)
 		:/*no clobbered register*/
 	);	
+}
+
+__attribute__ ((always_inline)) inline void CSR_MVTYPE(int MVTYPE)
+{
+	__asm__(
+		"csrw 0xBF8, %0;"
+		://no output register
+		:"r" (MVTYPE)
+		:/*no clobbered register*/
+	);	
+}
+
+__attribute__ ((always_inline)) inline int CSR_MPSCLFAC(int MPSCLFAC)
+{
+	__asm__(
+        "csrw 0xBE0, %[p_scal];"
+		://no output register
+		:[p_scal] "r" (MPSCLFAC)
+		:/*no clobbered registers*/
+	);
+	
+	return 1;
 }
 
 __attribute__ ((always_inline)) inline int kmemld(void* rd, void* rs1, int rs2)
@@ -167,6 +179,31 @@ __attribute__ ((always_inline)) inline int ksvaddsc_v2(void* rd, void* rs1, void
 	__asm__(
         "csrw 0xBF0, %[size];"
 		"ksvaddsc %[rd], %[rs1], %[rs2];"
+		://no output register
+		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
+		:/*no clobbered registers*/
+	);
+	
+	return 1;
+}
+
+__attribute__ ((always_inline)) inline int ksubv(void* rd, void* rs1, void* rs2)
+{
+	__asm__(
+		"ksubv %[rd], %[rs1], %[rs2];"
+		://no output register
+		:[rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
+		:/*no clobbered registers*/
+	);
+	
+	return sizeof(rd);
+}
+
+__attribute__ ((always_inline)) inline int ksubv_v2(void* rd, void* rs1, void* rs2, int size)
+{
+	__asm__(
+        "csrw 0xBF0, %[size];"
+		"ksubv %[rd], %[rs1], %[rs2];"
 		://no output register
 		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
 		:/*no clobbered registers*/
@@ -354,7 +391,7 @@ __attribute__ ((always_inline)) inline int kdotpps_v4(void* rd, void* rs1, void*
 	return 1;
 }
 
-__attribute__ ((always_inline)) inline int kdotpps_emul(void* rd, void* rs1, void* rs2, void* p_scal)
+__attribute__ ((always_inline)) inline int kdotpps_emul_v3(void* rd, void* rs1, void* rs2, void* p_scal)
 {
 	__asm__(
         "kvmul %[rd], %[rs1], %[rs2];"
@@ -368,7 +405,7 @@ __attribute__ ((always_inline)) inline int kdotpps_emul(void* rd, void* rs1, voi
 	return sizeof(rd);
 }
 
-__attribute__ ((always_inline)) inline int kdotpps_emul_v2(void* rd, void* rs1, void* rs2, void* p_scal, int size)
+__attribute__ ((always_inline)) inline int kdotpps_emul_v4(void* rd, void* rs1, void* rs2, void* p_scal, int size)
 {
 	__asm__(
         "csrw 0xBF0, %[size];"
@@ -483,50 +520,50 @@ __attribute__ ((always_inline)) inline int krelu_v2(void* rd, void* rs1, int siz
 	return 1;
 }
 
-__attribute__ ((always_inline)) inline int kvslt(void* rd, void* rs1)
+__attribute__ ((always_inline)) inline int kvslt(void* rd, void* rs1, void* rs2)
 {
 	__asm__(
-		"krelu %[rd], %[rs1];"
+		"kvslt %[rd], %[rs1], %[rs2];"
 		://no output register
-		:[rd] "r" (rd), [rs1] "r" (rs1)
+		:[rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
 		:/*no clobbered registers*/
 	);
 	
 	return sizeof(rd);
 }
 
-__attribute__ ((always_inline)) inline int kvslt_v2(void* rd, void* rs1, int size)
+__attribute__ ((always_inline)) inline int kvslt_v2(void* rd, void* rs1, void* rs2, int size)
 {
 	__asm__(
         "csrw 0xBF0, %[size];"
-		"krelu %[rd], %[rs1];"
+		"kvslt %[rd], %[rs1], %[rs2];"
 		://no output register
-		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1)
+		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
 		:/*no clobbered registers*/
 	);
 	
 	return 1;
 }
 
-__attribute__ ((always_inline)) inline int ksvslt(void* rd, void* rs1)
+__attribute__ ((always_inline)) inline int ksvslt(void* rd, void* rs1, void* rs2)
 {
 	__asm__(
-		"krelu %[rd], %[rs1];"
+		"ksvslt %[rd], %[rs1], %[rs2];"
 		://no output register
-		:[rd] "r" (rd), [rs1] "r" (rs1)
+		:[rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
 		:/*no clobbered registers*/
 	);
 	
 	return sizeof(rd);
 }
 
-__attribute__ ((always_inline)) inline int ksvslt_v2(void* rd, void* rs1, int size)
+__attribute__ ((always_inline)) inline int ksvslt_v2(void* rd, void* rs1, void* rs2, int size)
 {
 	__asm__(
         "csrw 0xBF0, %[size];"
-		"krelu %[rd], %[rs1];"
+		"ksvslt %[rd], %[rs1], %[rs2];"
 		://no output register
-		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1)
+		:[size] "r" (size), [rd] "r" (rd), [rs1] "r" (rs1), [rs2] "r" (rs2)
 		:/*no clobbered registers*/
 	);
 	
@@ -670,7 +707,7 @@ void*  kless_vector_right_shift_logic(void* result, void* src1, void* src2, int 
 /*
 The three functions below perfrom full scalar vector addition using multi-threading
 thread 1 loads vector 1 (of size int size) from main memory into spmA and exits
-thread 2 does scalar vector addition between vect1 and the scalar in src2 (src2 is not an index)
+thread 2 does scalar vector addition between vect1 and the scalar in src2 (src2 is not pointer)
 thread 2 then stores the value back in the main memory at the address in "result"
 */
 void*  kless_scalar_vect_add_rf(void* result, void* src1, void* src2, int size);
@@ -686,7 +723,7 @@ void*  kless_scalar_vect_add_sc(void* result, void* src1, void* src2, int size);
 /*
 The three functions below perfrom full scalar vector multiplication using multi-threading
 thread 1 loads vector 1 (of size int size) from main memory into spmA and exits
-thread 2 does scalar vector multiplication between vect1 and the scalar in src2 (src2 is not an index)
+thread 2 does scalar vector multiplication between vect1 and the scalar in src2 (src2 is not a pointer)
 thread 2 then stores the value back in the main memory at the address in "result"
 */
 void*  kless_scalar_vect_mult_rf(void* result, void* src1, void* src2, int size);
@@ -714,7 +751,7 @@ void*  kless_scalar_vect_set_less_than(void* result, void* src1, void* src2, int
 /*
 The three functions below perfrom vector broadcast
 there are no vector loads in this function
-thread 1 does vector broadcast of the "src" (src is a scalar and not an index) into "dest
+thread 1 does vector broadcast of the "src" (src is a scalar and not a pointer) into "dest
 thread 1 then stores the value of "dest" back in the main memory at the address in "result"
 */
 void*  kless_scalar_broadcast(void *result, void *dest, void* src, int size);
