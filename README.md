@@ -103,7 +103,10 @@ Supplimentary Information:
 
 # T13x Extensions illustration
 
-This small section illustrates briefly the extensions of the T13
+The following illustrates briefly the parameters of the T13, and their usage settings.
+
+- For more details about the Klessydra processing cores, please refer to the technincal manual in Docs
+- For more details about the Klessydra runtime libraries, please refer to the software runtime manual in Docs
 
 Extensions of T13x core:
 
