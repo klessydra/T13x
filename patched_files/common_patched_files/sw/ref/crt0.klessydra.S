@@ -1,4 +1,4 @@
-#include "klessydra.h"
+#include "klessydra_defs.h"
 #define EXCEPTION_STACK_SIZE 96
 #define KLESSYDRA_EXC_STACK_SIZE 12
 
@@ -7,7 +7,7 @@
 reset_handler:
 
   li t4, 0x94
-  csrrw x0, mtvec, t4 			
+  csrrw x0, mtvec, t4
   mv  x1, x0
   mv  x2, x1
   mv  x3, x1

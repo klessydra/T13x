@@ -1,0 +1,2 @@
+add_application(convolution_test_riscy_zeropadded convolution_test_riscy_zeropadded.c LABELS "klessydra_tests")
+

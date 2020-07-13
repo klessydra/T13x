@@ -23,10 +23,29 @@ module pulpino_top
     parameter USE_KLESSYDRA_T0_3TH = 0,
     parameter USE_KLESSYDRA_T1_3TH = 0,
     parameter USE_KLESSYDRA_F0_3TH = 0,
+    parameter USE_KLESSYDRA_T13X_NETLIST = 0,
     parameter USE_ZERO_RISCY       = 0,
     parameter RISCY_RV32F          = 0,
     parameter ZERO_RV32M           = 1,
-    parameter ZERO_RV32E           = 0
+    parameter ZERO_RV32E           = 0,
+	//Klessydra Parameters
+	parameter KLESS_THREAD_POOL_SIZE		   =3,
+  parameter KLESS_LUTRAM_RF              =1,
+	parameter KLESS_RV32E					         =0,
+	parameter KLESS_RV32M					         =1,
+  parameter KLESS_superscalar_exec_en    =1,
+	parameter KLESS_accl_en					       =1,
+	parameter KLESS_replicate_accl_en		   =1,
+	parameter KLESS_multithreaded_accl_en	 =0,
+	parameter KLESS_SPM_NUM					       =3,
+	parameter KLESS_Addr_Width				     =12,
+	parameter KLESS_SIMD					         =2,
+	parameter KLESS_MCYCLE_EN				       =1,
+	parameter KLESS_MINSTRET_EN				     =1,
+	parameter KLESS_MHPMCOUNTER_EN			   =1,
+	parameter KLESS_count_all				       =1,
+	parameter KLESS_debug_en				       =1,
+  parameter KLESS_tracer_en              =0  
   )
   (
     // Clock and Reset
@@ -180,10 +199,28 @@ module pulpino_top
     .USE_KLESSYDRA_T0_3TH (  USE_KLESSYDRA_T0_3TH),
     .USE_KLESSYDRA_T1_3TH (  USE_KLESSYDRA_T1_3TH),
     .USE_KLESSYDRA_F0_3TH (  USE_KLESSYDRA_F0_3TH),
+	  .USE_KLESSYDRA_T13X_NETLIST ( USE_KLESSYDRA_T13X_NETLIST ),
     .USE_ZERO_RISCY       (  USE_ZERO_RISCY      ),
     .RISCY_RV32F          (  RISCY_RV32F         ),
     .ZERO_RV32M           (  ZERO_RV32M          ),
-    .ZERO_RV32E           (  ZERO_RV32E          )
+    .ZERO_RV32E           (  ZERO_RV32E          ),
+	//Klessydra Parameters
+   	.KLESS_THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+    .KLESS_LUTRAM_RF               (KLESS_LUTRAM_RF),
+   	.KLESS_RV32E                   (KLESS_RV32E),
+   	.KLESS_RV32M                   (KLESS_RV32M),
+    .KLESS_superscalar_exec_en     (KLESS_superscalar_exec_en),
+   	.KLESS_accl_en                 (KLESS_accl_en),
+   	.KLESS_replicate_accl_en       (KLESS_replicate_accl_en),
+   	.KLESS_multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+   	.KLESS_SPM_NUM                 (KLESS_SPM_NUM),
+   	.KLESS_Addr_Width              (KLESS_Addr_Width),
+   	.KLESS_SIMD                    (KLESS_SIMD),
+   	.KLESS_MCYCLE_EN               (KLESS_MCYCLE_EN),
+   	.KLESS_MINSTRET_EN             (KLESS_MINSTRET_EN),
+   	.KLESS_MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+   	.KLESS_count_all               (KLESS_count_all),
+   	.KLESS_debug_en                (KLESS_debug_en)
   )
   core_region_i
   (

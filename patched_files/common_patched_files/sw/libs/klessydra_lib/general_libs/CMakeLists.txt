@@ -6,6 +6,7 @@ set(SOURCES
     src/klessydra_lock_release.c
     src/Klessydra_WFI.c
     src/load_mem.c
+	src/performance_counters.c
     src/send_sw_irq.c
     src/sync_barrier.c
     src/sync_barrier_reset.c

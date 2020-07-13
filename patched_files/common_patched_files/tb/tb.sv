@@ -12,7 +12,8 @@
 `include "tb_jtag_pkg.sv"
 
 `define REF_CLK_PERIOD   (2*15.25us)  // 32.786 kHz --> FLL reset value --> 50 MHz
-`define CLK_PERIOD       40.00ns      // 25 MHz
+//`define CLK_PERIOD       40.00ns      // 25 MHz
+`define CLK_PERIOD       10.00ns      // 100 MHz   
 
 `define EXIT_SUCCESS  0
 `define EXIT_FAIL     1
@@ -24,7 +25,7 @@ module tb;
 
   // +MEMLOAD= valid values are "SPI", "STANDALONE" "PRELOAD", "" (no load of L2)
   parameter  SPI            = "QUAD";    // valid values are "SINGLE", "QUAD"
-  parameter  BAUDRATE       = 781250;    // 1562500
+  parameter  BAUDRATE       = (781250*4);    // 1562500
   parameter  CLK_USE_FLL    = 0;  // 0 or 1
   parameter  TEST           = ""; //valid values are "" (NONE), "DEBUG"
   parameter  USE_ZERO_RISCY = 0;
@@ -32,9 +33,28 @@ module tb;
   parameter  USE_KLESSYDRA_T0_3TH = 0;
   parameter  USE_KLESSYDRA_T1_3TH = 0;
   parameter  USE_KLESSYDRA_F0_3TH = 0;
+  parameter	 USE_KLESSYDRA_T13X_NETLIST = 0;
   parameter  RISCY_RV32F    = 0;
   parameter  ZERO_RV32M     = 1;
   parameter  ZERO_RV32E     = 0;
+  //Klessydra Parameters
+  parameter KLESS_THREAD_POOL_SIZE		   =3;
+  parameter KLESS_LUTRAM_RF              =1;
+  parameter KLESS_RV32E					         =0;
+  parameter KLESS_RV32M					         =1;
+  parameter KLESS_superscalar_exec_en    =1;
+  parameter KLESS_accl_en				         =1;
+  parameter KLESS_replicate_accl_en	     =1;
+  parameter KLESS_multithreaded_accl_en  =0;
+  parameter KLESS_SPM_NUM				         =3;
+  parameter KLESS_Addr_Width			       =12;
+  parameter KLESS_SIMD					         =4;
+  parameter KLESS_MCYCLE_EN			         =1;
+  parameter KLESS_MINSTRET_EN			       =1;
+  parameter KLESS_MHPMCOUNTER_EN		     =1;
+  parameter KLESS_count_all				       =1;
+  parameter KLESS_debug_en				       =1;
+  parameter KLESS_tracer_en              =0;
 
   int           exit_status = `EXIT_ERROR; // modelsim exit code, will be overwritten when successful
 
@@ -130,9 +150,27 @@ module tb;
     .USE_KLESSYDRA_T0_3TH    ( USE_KLESSYDRA_T0_3TH ),
     .USE_KLESSYDRA_T1_3TH    ( USE_KLESSYDRA_T1_3TH ),
     .USE_KLESSYDRA_F0_3TH    ( USE_KLESSYDRA_F0_3TH ),
+	  .USE_KLESSYDRA_T13X_NETLIST ( USE_KLESSYDRA_T13X_NETLIST ),
     .RISCY_RV32F             ( RISCY_RV32F    ),
     .ZERO_RV32M              ( ZERO_RV32M     ),
-    .ZERO_RV32E              ( ZERO_RV32E     )
+    .ZERO_RV32E              ( ZERO_RV32E     ),
+	//Klessydra Parameters
+   	.KLESS_THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+    .KLESS_LUTRAM_RF               (KLESS_LUTRAM_RF),
+   	.KLESS_RV32E                   (KLESS_RV32E),
+   	.KLESS_RV32M                   (KLESS_RV32M),
+    .KLESS_superscalar_exec_en     (KLESS_superscalar_exec_en),
+   	.KLESS_accl_en                 (KLESS_accl_en),
+   	.KLESS_replicate_accl_en       (KLESS_replicate_accl_en),
+   	.KLESS_multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+   	.KLESS_SPM_NUM                 (KLESS_SPM_NUM),
+   	.KLESS_Addr_Width              (KLESS_Addr_Width),
+   	.KLESS_SIMD                    (KLESS_SIMD),
+   	.KLESS_MCYCLE_EN               (KLESS_MCYCLE_EN),
+   	.KLESS_MINSTRET_EN             (KLESS_MINSTRET_EN),
+   	.KLESS_MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+   	.KLESS_count_all               (KLESS_count_all),
+   	.KLESS_debug_en                (KLESS_debug_en)
    )
   top_i
   (

@@ -41,24 +41,24 @@ vmap $LIB_NAME $LIB_PATH
 ##############################################################################
 
 if (-d $IP_PATH ) then
-else	
+else
 	exit 0
 endif
 
 echo "${Green}--> Compiling ${IP}... ${NC}"
 echo "${Green}Compiling component: ${Brown} klessydra-t1-3th ${NC}"
 echo "${Red}"
-vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra_thread_parameters.vhd || goto error
+vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra_parameters.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-CSR_Unit.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Debug_Unit.vhd || goto error
-vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Dotp_Accumulator.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-IF_STAGE.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-ID_STAGE.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-IE_STAGE.vhd || goto error
-vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-WB_STAGE.vhd || goto error
+vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Registerfile.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Load_Store_Unit.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-DSP_Unit.vhd || goto error
+vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Accumulator.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Scratchpad_Memory.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Scratchpad_Memory_Interface.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Processing_Pipeline.vhd || goto error

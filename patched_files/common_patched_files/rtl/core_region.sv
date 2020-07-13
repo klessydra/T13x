@@ -29,12 +29,31 @@ module core_region
     parameter USE_KLESSYDRA_T0_2TH = 0,
     parameter USE_KLESSYDRA_T0_3TH = 0,
     parameter USE_KLESSYDRA_T1_3TH = 0,
-	parameter USE_KLESSYDRA_F0_3TH = 0,
+    parameter USE_KLESSYDRA_F0_3TH = 0,
+    parameter USE_KLESSYDRA_T13X_NETLIST = 0,
     parameter USE_ZERO_RISCY       = 0,
     parameter RISCY_RV32F          = 0,
     parameter ZERO_RV32M           = 1,
-    parameter ZERO_RV32E           = 0
+    parameter ZERO_RV32E           = 0,
 
+	//Klessydra Parameters
+	parameter KLESS_THREAD_POOL_SIZE       =3,
+  parameter KLESS_LUTRAM_RF              =1,
+	parameter KLESS_RV32E                  =0,
+	parameter KLESS_RV32M					         =1,
+  parameter KLESS_superscalar_exec_en    =1,
+	parameter KLESS_accl_en                =1,
+	parameter KLESS_replicate_accl_en	     =1,
+	parameter KLESS_multithreaded_accl_en	 =0,
+	parameter KLESS_SPM_NUM					       =3,
+	parameter KLESS_Addr_Width				     =12,
+	parameter KLESS_SIMD					         =2,
+	parameter KLESS_MCYCLE_EN	             =1,
+	parameter KLESS_MINSTRET_EN            =1,
+	parameter KLESS_MHPMCOUNTER_EN         =1,
+	parameter KLESS_count_all	             =1,
+	parameter KLESS_debug_en               =1,
+  parameter KLESS_tracer_en              =0
   )
 (
     // Clock and Reset
@@ -271,7 +290,59 @@ module core_region
         .core_busy_o     ( core_busy_o       ),
         .ext_perf_counters_i (               )
       );
-  
+    end else if (USE_KLESSYDRA_T13X_NETLIST) begin: CORE
+      klessydra_t1_3th_core_netlist
+      #(
+      )
+
+      RISCV_CORE
+      (
+        .clk_i           ( clk               ),
+        .rst_ni          ( rst_n             ),
+
+        .clock_en_i      ( clock_gating_i    ),
+        .test_en_i       ( testmode_i        ),
+
+        .boot_addr_i     ( boot_addr_i       ),
+        .core_id_i       ( 4'h0              ),
+        .cluster_id_i    ( 6'h0              ),
+
+        .instr_addr_o    ( core_instr_addr   ),
+        .instr_req_o     ( core_instr_req    ),
+        .instr_rdata_i   ( core_instr_rdata  ),
+        .instr_gnt_i     ( core_instr_gnt    ),
+        .instr_rvalid_i  ( core_instr_rvalid ),
+
+        .data_addr_o     ( core_lsu_addr     ),
+        .data_wdata_o    ( core_lsu_wdata    ),
+        .data_we_o       ( core_lsu_we       ),
+        .data_req_o      ( core_lsu_req      ),
+        .data_be_o       ( core_lsu_be       ),
+        .data_rdata_i    ( core_lsu_rdata    ),
+        .data_gnt_i      ( core_lsu_gnt      ),
+        .data_rvalid_i   ( core_lsu_rvalid   ),
+        .data_err_i      ( 1'b0              ),
+
+        .irq_i           ( (|irq_i)          ),
+        .irq_id_i        ( irq_id            ),
+        .irq_ack_o       (                   ),
+        .irq_id_o        (                   ),
+
+        .debug_req_i     ( debug.req         ),
+        .debug_gnt_o     ( debug.gnt         ),
+        .debug_rvalid_o  ( debug.rvalid      ),
+        .debug_addr_i    ( debug.addr        ),
+        .debug_we_i      ( debug.we          ),
+        .debug_wdata_i   ( debug.wdata       ),
+        .debug_rdata_o   ( debug.rdata       ),
+        .debug_halted_o  (                   ),
+        .debug_halt_i    ( 1'b0              ),
+        .debug_resume_i  ( 1'b0              ),
+
+        .fetch_enable_i  ( fetch_enable_i    ),
+        .core_busy_o     ( core_busy_o       ),
+        .ext_perf_counters_i (               )
+      );
   end else if (USE_KLESSYDRA_T0_3TH) begin: CORE
       klessydra_t0_3th_core
       #(
@@ -329,8 +400,24 @@ module core_region
   end else if (USE_KLESSYDRA_T1_3TH) begin: CORE
       klessydra_t1_3th_core
       #(
+   		.THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+      .LUTRAM_RF               (KLESS_LUTRAM_RF),
+   		.RV32E                   (KLESS_RV32E),
+   		.RV32M                   (KLESS_RV32M),
+   		.accl_en                 (KLESS_accl_en),
+      .superscalar_exec_en     (KLESS_superscalar_exec_en),
+   		.replicate_accl_en       (KLESS_replicate_accl_en),
+   		.multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+   		.SPM_NUM                 (KLESS_SPM_NUM),
+   		.Addr_Width              (KLESS_Addr_Width),
+   		.SIMD                    (KLESS_SIMD),
+   		.MCYCLE_EN               (KLESS_MCYCLE_EN),
+   		.MINSTRET_EN             (KLESS_MINSTRET_EN),
+   		.MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+   		.count_all               (KLESS_count_all),
+   		.debug_en                (KLESS_debug_en),
+      .tracer_en               (KLESS_tracer_en)
       )
-
       RISCV_CORE
       (
         .clk_i           ( clk               ),
@@ -563,7 +650,8 @@ module core_region
   //----------------------------------------------------------------------------//
   // DEMUX
   //----------------------------------------------------------------------------//
-  assign is_axi_addr     = (core_lsu_addr[31:20] != 12'h001);
+  assign is_axi_addr     = ((core_lsu_addr[31:20] != 12'h0ef) & (core_lsu_addr[31:24] != 8'h0f) & (core_lsu_addr[31:20] != 12'h001));
+  //assign is_axi_addr     = ((core_lsu_addr[31:20] != 12'h0ef) & (core_lsu_addr[31:20] != 12'h001));
   assign core_data_req   = (~is_axi_addr) & core_lsu_req;
   assign core_axi_req    =   is_axi_addr  & core_lsu_req;
 
@@ -615,6 +703,7 @@ module core_region
 
   instr_ram_wrap
   #(
+    .USE_KLESSYDRA_T13X_NETLIST ( USE_KLESSYDRA_T13X_NETLIST ), 
     .RAM_SIZE   ( INSTR_RAM_SIZE ),
     .DATA_WIDTH ( AXI_DATA_WIDTH )
   )
@@ -698,6 +787,7 @@ module core_region
   //----------------------------------------------------------------------------//
   // Data RAM
   //----------------------------------------------------------------------------//
+/*
   sp_ram_wrap
   #(
     .RAM_SIZE   ( DATA_RAM_SIZE  ),
@@ -715,6 +805,42 @@ module core_region
     .be_i         ( data_mem_be    ),
     .bypass_en_i  ( testmode_i     )
   );
+*/
+if (USE_KLESSYDRA_T13X_NETLIST) begin : mem_gen_net
+  sp_ram_wrap_netlist
+  #(
+  )
+  data_mem
+  (
+    .clk          ( clk            ),
+    .rstn_i       ( rst_n          ),
+    .en_i         ( data_mem_en    ),
+    .addr_i       ( data_mem_addr  ),
+    .wdata_i      ( data_mem_wdata ),
+    .rdata_o      ( data_mem_rdata ),
+    .we_i         ( data_mem_we    ),
+    .be_i         ( data_mem_be    ),
+    .bypass_en_i  ( testmode_i     )
+  );
+  end else begin : mem_gen
+  sp_ram_wrap
+  #(
+    .RAM_SIZE   ( DATA_RAM_SIZE  ),
+    .DATA_WIDTH ( AXI_DATA_WIDTH )
+  )
+  data_mem
+  (
+    .clk          ( clk            ),
+    .rstn_i       ( rst_n          ),
+    .en_i         ( data_mem_en    ),
+    .addr_i       ( data_mem_addr  ),
+    .wdata_i      ( data_mem_wdata ),
+    .rdata_o      ( data_mem_rdata ),
+    .we_i         ( data_mem_we    ),
+    .be_i         ( data_mem_be    ),
+    .bypass_en_i  ( testmode_i     )
+  );
+end
 
   axi_mem_if_SP_wrap
   #(

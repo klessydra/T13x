@@ -1,3 +1,13 @@
+--------------------------------------------------------------------------------------------------------------
+--  stage IF -- (Instruction Fetch)                                                                       --
+--  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                        --
+--                                                                                                          --
+--  Date Modified: 17-11-2019                                                                               --
+--------------------------------------------------------------------------------------------------------------
+--  The fetch stage requests an instruction from the program memory, and the instruction arrives in the     --
+--  next cycle going directly to the decode stage. The fetch stage does not hold any buffers                --
+--------------------------------------------------------------------------------------------------------------
+
 -- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -7,17 +17,19 @@ use std.textio.all;
 
 -- local packages ------------
 use work.riscv_klessydra.all;
-use work.thread_parameters_klessydra.all;
+--use work.klessydra_parameters.all;
 
 -- pipeline  pinout --------------------
 entity IF_STAGE is
-  port (
+  generic(
+    THREAD_POOL_SIZE           : integer
+    );
+  port(
     pc_IF                      : in  std_logic_vector(31 downto 0);
-    harc_IF                    : in  harc_range;
-    dbg_halted_o               : in  std_logic; 
+    harc_IF                    : in  integer range THREAD_POOL_SIZE-1 downto 0;
 	busy_ID                    : in  std_logic;
 	instr_rvalid_i             : in  std_logic;  
-    harc_ID                    : out harc_range;
+    harc_ID                    : out integer range THREAD_POOL_SIZE-1 downto 0;
     pc_ID                      : out std_logic_vector(31 downto 0);  -- pc_ID is PC entering ID stage
     instr_rvalid_ID            : out std_logic; 
 	instr_word_ID_lat          : out std_logic_vector(31 downto 0);
@@ -27,9 +39,7 @@ entity IF_STAGE is
     -- program memory interface
     instr_req_o                : out std_logic;
     instr_gnt_i                : in  std_logic;
-    instr_rdata_i              : in  std_logic_vector(31 downto 0);
-    -- debug interface
-    debug_halted_o             : out std_logic
+    instr_rdata_i              : in  std_logic_vector(31 downto 0)
     );
 end entity;  ------------------------------------------
 
@@ -45,7 +55,6 @@ architecture FETCH of IF_STAGE is
 ----------------------- ARCHITECTURE BEGIN -------------------------------------------------------
 begin
 
-  --debug_halted_o <= dbg_halted_o;
 ----------------------------------------------------------------------------------------------------
 -- stage IF -- (instruction fetch)
 ----------------------------------------------------------------------------------------------------
@@ -94,7 +103,10 @@ begin
   -- latch ir on program memory output, because memory output remains for 1 cycle only
   instr_word_ID_lat  <= instr_rdata_i when instr_rvalid_i = '1' else instr_word_ID;
 
---------------------------------------------------------------------- end of IF stage ---------------
------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------- end of IF stage -------------
+---------------------------------------------------------------------------------------------------
+
 end FETCH;
------------------------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
+-- END of IE architecture ------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------

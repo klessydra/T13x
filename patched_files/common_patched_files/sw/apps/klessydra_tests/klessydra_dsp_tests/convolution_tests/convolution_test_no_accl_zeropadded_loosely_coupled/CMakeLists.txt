@@ -1,0 +1,2 @@
+add_application(convolution_test_no_accl_zeropadded_loosely_coupled convolution_test_no_accl_zeropadded_loosely_coupled.c LABELS "klessydra_tests")
+

@@ -1,3 +1,20 @@
+--------------------------------------------------------------------------------------------------------
+--  Control and Status Units --                                                                       --
+--  Author(s): Abdallah Cheikh abdallah.cheikh@uniroma1.it (abdallah93.as@gmail.com)                  --
+--             Gianmarco Cerutti                                                                      --
+--                                                                                                    --
+--  Date Modified: 02-04-2020                                                                         --
+--------------------------------------------------------------------------------------------------------
+--  Manages CSR instructions and CSR automatic updates following traps and special instructions.      --
+--  Note: In the present version, gives priority to CSR automatic updates over CSR instr. execution   --
+--  Note: The CSRegisters are replicated along with the related logic, as in the pc update logic.     --
+--  The CSR has a set of performance counters such that when enabled can count the number of cycles,  --
+--  instructions, load-store instructions, jumps, branches, and taken branches                        --
+--  Custom CSRs are implemented for the accelerator unit                                              --
+--------------------------------------------------------------------------------------------------------
+
+--package riscv_kless is new work.riscv_klessydra;
+
 -- ieee packages ------------
 library ieee;
 use ieee.std_logic_1164.all;
@@ -7,29 +24,41 @@ use std.textio.all;
 
 -- local packages ------------
 use work.riscv_klessydra.all;
-use work.thread_parameters_klessydra.all;
+--use work.riscv_kless.all;
+
 
 entity CSR_Unit is
+  generic (
+    THREAD_POOL_SIZE      : integer;
+    ACCL_NUM              : natural;
+    Addr_Width            : natural;
+    replicate_accl_en     : natural;
+    accl_en               : natural;
+    MCYCLE_EN             : natural;
+    MINSTRET_EN           : natural;
+    MHPMCOUNTER_EN        : natural;
+    RF_CEIL               : natural;
+    count_all             : natural
+  );
   port (
     pc_IE                       : in  std_logic_vector(31 downto 0);
     ie_except_data              : in  std_logic_vector(31 downto 0);
     ls_except_data              : in  std_logic_vector(31 downto 0);
-    dsp_except_data             : in  std_logic_vector(31 downto 0);
-    served_ie_except_condition  : in  replicated_bit;
-    served_ls_except_condition  : in  replicated_bit;
-    served_dsp_except_condition : in  replicated_bit;
-    harc_EXEC                   : in  harc_range;
-    harc_to_csr                 : in  harc_range;
+    dsp_except_data             : in  array_2d(ACCL_NUM - 1 downto 0)(31 downto 0);
+    served_ie_except_condition  : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    served_ls_except_condition  : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    served_dsp_except_condition : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    harc_EXEC                   : in  integer range THREAD_POOL_SIZE -1 downto 0;
+    harc_to_csr                 : in  integer range THREAD_POOL_SIZE -1 downto 0;
     instr_word_IE               : in  std_logic_vector(31 downto 0);
-    served_except_condition     : in  replicated_bit;
-    served_mret_condition       : in  replicated_bit;
-    served_irq                  : in  replicated_bit;
-    pc_except_value_wire        : in  replicated_32b_reg;
+    served_except_condition     : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    served_mret_condition       : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    served_irq                  : in  std_logic_vector(THREAD_POOL_SIZE -1 downto 0);
+    pc_except_value_wire        : in  array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
     dbg_req_o                   : in  std_logic;
     data_addr_internal          : in  std_logic_vector(31 downto 0);
     jump_instr                  : in  std_logic;
     branch_instr                : in  std_logic;
-    data_valid_waiting_counter  : in  std_logic;
     set_branch_condition        : in  std_logic;
     csr_instr_req               : in  std_logic;
     misaligned_err              : in  std_logic;
@@ -40,18 +69,20 @@ entity CSR_Unit is
     csr_instr_done              : out std_logic;
     csr_access_denied_o         : out std_logic;
     csr_rdata_o                 : out std_logic_vector (31 downto 0);
-    MVSIZE                      : out array_2d(THREAD_POOL_SIZE-1 downto 0)(Addr_Width downto 0);
-    MPSCLFAC                    : out array_2d(THREAD_POOL_SIZE-1 downto 0)(4 downto 0);
-    MSTATUS                     : out array_2d(harc_range)(1 downto 0);
-    MEPC                        : out replicated_32b_reg;
-    MCAUSE                      : out replicated_32b_reg;
-    MIP                         : out replicated_32b_reg;
-    MTVEC                       : out replicated_32b_reg;
+    MVSIZE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(Addr_Width downto 0); 
+    MVTYPE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(3 downto 0); -- CSR Size follows the RVV standard
+    MPSCLFAC                    : out array_2d(THREAD_POOL_SIZE -1 downto 0)(4 downto 0);
+    MSTATUS                     : out array_2d(THREAD_POOL_SIZE -1 downto 0)(1 downto 0);
+    MEPC                        : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
+    MCAUSE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
+    MIP                         : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
+    MTVEC                       : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
     fetch_enable_i              : in  std_logic;
     clk_i                       : in  std_logic;
     rst_ni                      : in  std_logic;
     cluster_id_i                : in  std_logic_vector(5 downto 0);
     instr_rvalid_i              : in  std_logic;
+    instr_rvalid_IE             : in  std_logic;
     data_we_o                   : in  std_logic;
     data_req_o                  : in  std_logic;
     data_gnt_i                  : in  std_logic;
@@ -65,37 +96,40 @@ end entity;
 
 architecture CSR of CSR_Unit is
 
-  signal pc_IE_replicated	: replicated_32b_reg;	
+  subtype harc_range is integer range THREAD_POOL_SIZE - 1 downto 0;
+  subtype accl_range is integer range ACCL_NUM - 1 downto 0;
+
+  signal pc_IE_replicated	: array_2d(harc_range)(31 downto 0);	
 	
   -- Control Status Register (CSR) signals 
-  signal PCCRs       : replicated_32b_reg;  -- still not implemented
-  signal PCER        : replicated_32b_reg;  -- still not implemented
-  signal PCMR        : replicated_32b_reg;  -- still not implemented
+  signal PCCRs       : array_2d(harc_range)(31 downto 0);  -- still not implemented
+  signal PCER        : array_2d(harc_range)(31 downto 0);  -- still not implemented
+  signal PCMR        : array_2d(harc_range)(31 downto 0);  -- still not implemented
   signal MESTATUS    : array_2d(harc_range)(2  downto 0);
   signal MCPUID      : array_2d(harc_range)(8  downto 0);
   signal MIMPID      : array_2d(harc_range)(15 downto 0);
   signal MHARTID     : array_2d(harc_range)(9  downto 0);
-  signal MIRQ        : replicated_32b_reg;  -- extension, maps external irqs
-  signal MBADADDR    : replicated_32b_reg;  -- misaligned address containers
+  signal MIRQ        : array_2d(harc_range)(31 downto 0);  -- extension, maps external irqs
+  signal MBADADDR    : array_2d(harc_range)(31 downto 0);  -- misaligned address containers
 
-  signal MCYCLE        : replicated_32b_reg;
-  signal MINSTRET      : replicated_32b_reg;
-  signal MHPMCOUNTER3  : replicated_32b_reg;
-  signal MHPMCOUNTER6  : replicated_32b_reg;
-  signal MHPMCOUNTER7  : replicated_32b_reg;
-  signal MHPMCOUNTER8  : replicated_32b_reg;
-  signal MHPMCOUNTER9  : replicated_32b_reg;
-  signal MHPMCOUNTER10 : replicated_32b_reg;
-  signal MHPMCOUNTER11 : replicated_32b_reg;
-  signal MCYCLEH       : replicated_32b_reg;
-  signal MINSTRETH     : replicated_32b_reg;
-  signal MHPMEVENT3    : replicated_bit;       
-  signal MHPMEVENT6    : replicated_bit;
-  signal MHPMEVENT7    : replicated_bit;
-  signal MHPMEVENT8    : replicated_bit;
-  signal MHPMEVENT9    : replicated_bit;
-  signal MHPMEVENT10   : replicated_bit;
-  signal MHPMEVENT11   : replicated_bit;
+  signal MCYCLE        : array_2d(harc_range)(31 downto 0);
+  signal MINSTRET      : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER3  : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER6  : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER7  : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER8  : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER9  : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER10 : array_2d(harc_range)(31 downto 0);
+  signal MHPMCOUNTER11 : array_2d(harc_range)(31 downto 0);
+  signal MCYCLEH       : array_2d(harc_range)(31 downto 0);
+  signal MINSTRETH     : array_2d(harc_range)(31 downto 0);
+  signal MHPMEVENT3    : std_logic_vector(harc_range);       
+  signal MHPMEVENT6    : std_logic_vector(harc_range);
+  signal MHPMEVENT7    : std_logic_vector(harc_range);
+  signal MHPMEVENT8    : std_logic_vector(harc_range);
+  signal MHPMEVENT9    : std_logic_vector(harc_range);
+  signal MHPMEVENT10   : std_logic_vector(harc_range);
+  signal MHPMEVENT11   : std_logic_vector(harc_range);
   -- auxiliary irq fixed connection signals
   signal MIP_7         : std_logic;
   signal MIP_11        : std_logic;
@@ -103,31 +137,38 @@ architecture CSR of CSR_Unit is
   -- Interface signals from EXEC unit to CSR management unit
 
   -- CSR management unit internal signal
-  signal csr_instr_req_replicated       : replicated_bit;
-  signal csr_instr_done_replicated      : replicated_bit;
-  signal csr_access_denied_o_replicated : replicated_bit;
-  signal csr_rdata_o_replicated         : replicated_32b_reg;
+  signal csr_instr_req_replicated       : std_logic_vector(harc_range);
+  signal csr_instr_done_replicated      : std_logic_vector(harc_range);
+  signal csr_access_denied_o_replicated : std_logic_vector(harc_range);
+  signal csr_rdata_o_replicated         : array_2d(harc_range)(31 downto 0);
 
   -- wire only signals (For Synopsis Comaptibility)
   signal MSTATUS_internal       : array_2d(harc_range)(1 downto 0);
-  signal MEPC_internal          : replicated_32b_reg;
-  signal MCAUSE_internal        : replicated_32b_reg;
-  signal MIP_internal           : replicated_32b_reg;
-  signal MTVEC_internal         : replicated_32b_reg;
+  signal MEPC_internal          : array_2d(harc_range)(31 downto 0);
+  signal MCAUSE_internal        : array_2d(harc_range)(31 downto 0);
+  signal MIP_internal           : array_2d(harc_range)(31 downto 0);
+  signal MTVEC_internal         : array_2d(harc_range)(31 downto 0);
   signal irq_ack_o_internal     : std_logic;
-  signal trap_hndlr         	: replicated_bit;
-  
+  signal trap_hndlr         	: std_logic_vector(harc_range);
 
+  function rs1 (signal instr : in std_logic_vector(31 downto 0)) return integer is
+  begin
+    return to_integer(unsigned(instr(15+(RF_CEIL-1) downto 15)));
+  end;
 
-----------------------------------------------------------------------------------------------------
--- Control and Status Units -- 
-----------------------------------------------------------------------------------------------------
--- Manages CSR instructions and CSR automatic updates following traps and special instructions.
--- Note: in the present version, gives priority to CSR automatic updates over CSR instr. execution
--- Note: the CSRegisters are replicated along with the related logic, as in the pc update logic,
--- because events coming from different sources may require to update the CSRs concurrently.
-----------------------------------------------------------------------------------------------------
+  function rs2 (signal instr : in std_logic_vector(31 downto 0)) return integer is
+  begin
+    return to_integer(unsigned(instr(20+(RF_CEIL-1) downto 20)));
+  end;
+
+  function rd (signal instr : in std_logic_vector(31 downto 0)) return integer is
+  begin
+    return to_integer(unsigned(instr(7+(RF_CEIL-1) downto 7)));
+  end;
+
 begin
+
+
 
   MSTATUS       <= MSTATUS_internal;
   MEPC          <= MEPC_internal;
@@ -148,24 +189,24 @@ begin
     MIRQ(h) <= "0000000000000000000000000" & irq_id_i & "00";
 	pc_IE_replicated(h) <= pc_IE when harc_EXEC = h else (others =>'0');
     csr_instr_req_replicated(h) <= '1' when csr_instr_req = '1' and harc_to_csr = h else '0';
-    trap_hndlr(h)               <= '1' when pc_IE_replicated(h) = MTVEC_RESET_VALUE(h)  else '0';
+    trap_hndlr(h)               <= '1' when pc_IE_replicated(h) = MTVEC_RESET_VALUE  else '0';
     MHARTID(h)                  <= std_logic_vector(resize(unsigned(cluster_id_i) & to_unsigned(h, THREAD_ID_SIZE), 10));
 
     CSR_unit_op : process(clk_i, rst_ni)  -- single cycle unit, one process, fully synchronous 
-
-      variable MIP_3_wire : replicated_bit;
-
     begin
 
       if rst_ni = '0' then
-        MSTATUS_internal(h)                   <= MSTATUS_RESET_VALUE;
-        MVSIZE(h)                             <= MVSIZE_RESET_VALUE;
-        MPSCLFAC(h)                           <= MPSCLFAC_RESET_VALUE;
-        MESTATUS(h)                           <= MESTATUS_RESET_VALUE;
-        MEPC_internal(h)                      <= MEPC_RESET_VALUE;
-        MCAUSE_internal(h)                    <= MCAUSE_RESET_VALUE;
-        MTVEC_internal(h)                     <= MTVEC_RESET_VALUE(h);
-        PCER(h)                               <= PCER_RESET_VALUE(h);
+        if accl_en = 1 then
+          MVSIZE(h)                         <= (others => '0');
+          MVTYPE(h)                         <= MVTYPE_RESET_VALUE;
+          MPSCLFAC(h)                       <= MPSCLFAC_RESET_VALUE;
+        end if;
+        MSTATUS_internal(h)                 <= MSTATUS_RESET_VALUE;
+        MESTATUS(h)                         <= MESTATUS_RESET_VALUE;
+        MEPC_internal(h)                    <= MEPC_RESET_VALUE;
+        MCAUSE_internal(h)                  <= MCAUSE_RESET_VALUE;
+        MTVEC_internal(h)                   <= MTVEC_RESET_VALUE;
+        PCER(h)                             <= PCER_RESET_VALUE;
         --Reset of counters and related registers
         if (MCYCLE_EN = 1) then
           MCYCLE(h)                         <= x"00000000";
@@ -182,12 +223,12 @@ begin
           MHPMCOUNTER8(h)                   <= x"00000000";
           MHPMCOUNTER9(h)                   <= x"00000000";
           MHPMCOUNTER10(h)                  <= x"00000000";
-          MHPMEVENT3(h)                     <= PCER_RESET_VALUE(h)(2);
-          MHPMEVENT6(h)                     <= PCER_RESET_VALUE(h)(5);
-          MHPMEVENT7(h)                     <= PCER_RESET_VALUE(h)(6);
-          MHPMEVENT8(h)                     <= PCER_RESET_VALUE(h)(7);
-          MHPMEVENT9(h)                     <= PCER_RESET_VALUE(h)(8);
-          MHPMEVENT10(h)                    <= PCER_RESET_VALUE(h)(9);
+          MHPMEVENT3(h)                     <= PCER_RESET_VALUE(2);
+          MHPMEVENT6(h)                     <= PCER_RESET_VALUE(5);
+          MHPMEVENT7(h)                     <= PCER_RESET_VALUE(6);
+          MHPMEVENT8(h)                     <= PCER_RESET_VALUE(7);
+          MHPMEVENT9(h)                     <= PCER_RESET_VALUE(8);
+          MHPMEVENT10(h)                    <= PCER_RESET_VALUE(9);
         end if;
         MIP_internal(h)                   <= MIP_RESET_VALUE;
 
@@ -196,15 +237,36 @@ begin
         csr_rdata_o_replicated(h)         <= (others => '0');
 
       elsif rising_edge(clk_i) then
-        -- CSR updating for all possibe sources follows.
-        -- NOTE: PRIV ISA Manual v1.9.1, decreasing priority order: 
+        -- CSR updating for all possible sources follows.
         --       ext. int., sw int., timer int., exceptions.
         --       We update CSR following this order, the software interrupt vector manager follows
         --       the same order, so that CSRs are consistent with interrupt service.
-
-
-        --  Interrupt-caused CSR updating  ---------------------------------
+        -- Interrupt-caused CSR updating  ---------------------------------
         -- note: PC just udpdated, MIP_internals can't have been cleared yet.
+
+        --------------------------------------------------------------------------------------------------------------------------------------------------
+        --  ██╗██████╗  ██████╗     ██╗███████╗██╗  ██╗ ██████╗███████╗██████╗ ████████╗    ██╗  ██╗ █████╗ ███╗   ██╗██████╗ ██╗     ███████╗██████╗   --
+        --  ██║██╔══██╗██╔═══██╗   ██╔╝██╔════╝╚██╗██╔╝██╔════╝██╔════╝██╔══██╗╚══██╔══╝    ██║  ██║██╔══██╗████╗  ██║██╔══██╗██║     ██╔════╝██╔══██╗  --
+        --  ██║██████╔╝██║   ██║  ██╔╝ █████╗   ╚███╔╝ ██║     █████╗  ██████╔╝   ██║       ███████║███████║██╔██╗ ██║██║  ██║██║     █████╗  ██████╔╝  --
+        --  ██║██╔══██╗██║▄▄ ██║ ██╔╝  ██╔══╝   ██╔██╗ ██║     ██╔══╝  ██╔═══╝    ██║       ██╔══██║██╔══██║██║╚██╗██║██║  ██║██║     ██╔══╝  ██╔══██╗  --
+        --  ██║██║  ██║╚██████╔╝██╔╝   ███████╗██╔╝ ██╗╚██████╗███████╗██║        ██║       ██║  ██║██║  ██║██║ ╚████║██████╔╝███████╗███████╗██║  ██║  --
+        --  ╚═╝╚═╝  ╚═╝ ╚══▀▀═╝ ╚═╝    ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚═╝        ╚═╝       ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝  --
+        --------------------------------------------------------------------------------------------------------------------------------------------------        
+                                                                                                                    
+        -- synchronous assignment to MIP_internal bits:
+        -- this is Pulpino-specific assignment, i.e. the timer-related IRQ vector value
+        if h = 0 and unsigned(irq_id_i) >= 28 and irq_i = '1' then
+          MIP_internal(h)(7) <= '1';
+        else
+          MIP_internal(h)(7) <= '0';        -- only harc 0 interruptible
+        end if;
+        -- this detects the other IRQ vector values in Pulpino
+        if h = 0 and unsigned(irq_id_i) < 28 and irq_i = '1' then
+          MIP_internal(h)(11) <= '1';
+        else
+          MIP_internal(h)(11) <= '0';       -- only harc 0 interruptible
+        end if;
+        -- the MIP_internal(h)(3), MSIP bit, software interrupt, is assigned above
 
         if served_irq(h) = '1' and MIP_internal(h)(11) = '1' then
           -- it is the MEIP bit, ext. irq
@@ -253,7 +315,11 @@ begin
         --  Exception-caused CSR updating ----------------------------------
         elsif served_except_condition(h) = '1' then
 		  if served_dsp_except_condition(h) = '1' then
-            MCAUSE_internal(h)     <= dsp_except_data;  -- passed from DSP Unit
+			if replicate_accl_en = 1 then
+              MCAUSE_internal(h)     <= dsp_except_data(h);  -- passed from DSP Unit
+            elsif replicate_accl_en = 0 then
+              MCAUSE_internal(h)     <= dsp_except_data(0);  -- passed from DSP Unit
+            end if;
           elsif served_ls_except_condition(h) = '1' then
             MCAUSE_internal(h)     <= ls_except_data;  -- passed from LS unit
           elsif served_ie_except_condition(h) = '1' then
@@ -261,8 +327,8 @@ begin
           end if;
           MESTATUS(h)(2 downto 1)        <= MSTATUS_internal(h);
           MEPC_internal(h)   <= pc_except_value_wire(h);
-          MSTATUS_internal(h)(0) <= '0';  -- interrupt disabled, xx this is to be checked           
-          MSTATUS_internal(h)(1) <= '1';  -- interrupt disabled, xx this is to be checked           
+          MSTATUS_internal(h)(0) <= '0';  -- interrupt disabled      
+          MSTATUS_internal(h)(1) <= '1';
           if misaligned_err = '1' then
             MBADADDR(h) <= data_addr_internal;
           end if;
@@ -277,52 +343,93 @@ begin
           csr_access_denied_o_replicated(h) <= '0';
         elsif csr_instr_req_replicated(h) = '1' then
           csr_instr_done_replicated(h) <= '1';
+
+          -----------------------------------------------------------------------------
+          --   ██████╗███████╗██████╗     ██████╗ ██████╗     ██╗██╗    ██╗██████╗   --
+          --  ██╔════╝██╔════╝██╔══██╗    ██╔══██╗██╔══██╗   ██╔╝██║    ██║██╔══██╗  --
+          --  ██║     ███████╗██████╔╝    ██████╔╝██║  ██║  ██╔╝ ██║ █╗ ██║██████╔╝  --
+          --  ██║     ╚════██║██╔══██╗    ██╔══██╗██║  ██║ ██╔╝  ██║███╗██║██╔══██╗  --
+          --  ╚██████╗███████║██║  ██║    ██║  ██║██████╔╝██╔╝   ╚███╔███╔╝██║  ██║  --
+          --   ╚═════╝╚══════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚═════╝ ╚═╝     ╚══╝╚══╝ ╚═╝  ╚═╝  --
+          -----------------------------------------------------------------------------
+
           if (csr_op_i /= "000" and csr_op_i /= "100") then  -- check for valid operation 
             case csr_addr_i is
 
+              -- Vector size register, custom CSR reg for the hardware accelerator that defines the vector size in bytes
               when MVSIZE_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
-                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
-                    MVSIZE(h) <= csr_wdata_i(Addr_Width downto 0);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
-                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MVSIZE(h) <= (MVSIZE(h) or csr_wdata_i(Addr_Width downto 0));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
-                    csr_rdata_o_replicated(h)(31 downto Addr_Width +1)    <= (others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MVSIZE(h) <= (MVSIZE(h) and not(csr_wdata_i(Addr_Width downto 0)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if accl_en = 1 then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                      csr_rdata_o_replicated(h)(31 downto Addr_Width +1) <= (others => '0');
+                      MVSIZE(h) <= csr_wdata_i(Addr_Width downto 0);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                      csr_rdata_o_replicated(h)(31 downto Addr_Width +1) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MVSIZE(h) <= (MVSIZE(h) or csr_wdata_i(Addr_Width downto 0));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h)(Addr_Width downto 0) <= MVSIZE(h);
+                      csr_rdata_o_replicated(h)(31 downto Addr_Width +1) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MVSIZE(h) <= (MVSIZE(h) and not(csr_wdata_i(Addr_Width downto 0)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                end if;
 
+              -- Vector type register, custom CSR reg for the hardware accelerator that defines the vector type (8-bit, 16-bit, 32-bit)
+              when MVTYPE_addr =>
+                if accl_en = 1 then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h)(3 downto 0) <= MVTYPE(h);
+                      csr_rdata_o_replicated(h)(31 downto 4) <= (others => '0');
+                      MVTYPE(h)(3 downto 2) <= csr_wdata_i(1 downto 0);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h)(3 downto 0) <= MVTYPE(h);
+                      csr_rdata_o_replicated(h)(31 downto 4) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MVTYPE(h)(3 downto 2) <= (MVTYPE(h)(3 downto 2) or csr_wdata_i(1 downto 0));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h)(3 downto 0) <= MVTYPE(h);
+                      csr_rdata_o_replicated(h)(31 downto 4) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MVTYPE(h)(3 downto 2) <= (MVTYPE(h)(3 downto 2) and not(csr_wdata_i(1 downto 0)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                end if;
+
+              -- Vector scaling register, custom CSR reg for the hardware accelerator that defines how much the vector needs to be scaled
               when MPSCLFAC_addr =>
-                case csr_op_i is
-                  when CSRRW|CSRRWI =>
-                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
-                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
-                    MPSCLFAC(h) <= csr_wdata_i(4 downto 0);
-                  when CSRRS|CSRRSI =>
-                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
-                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MPSCLFAC(h) <= (MPSCLFAC(h) or csr_wdata_i(4 downto 0));
-                    end if;
-                  when CSRRC|CSRRCI =>
-                    csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
-                    csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
-                    if(rs1(instr_word_IE) /= 0) then
-                      MPSCLFAC(h) <= (MPSCLFAC(h) and not(csr_wdata_i(4 downto 0)));
-                    end if;
-                  when others =>
-                    null;
-                end case;
+                if accl_en = 1 then
+                  case csr_op_i is
+                    when CSRRW|CSRRWI =>
+                      csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                      csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                      MPSCLFAC(h) <= csr_wdata_i(4 downto 0);
+                    when CSRRS|CSRRSI =>
+                      csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                      csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MPSCLFAC(h) <= (MPSCLFAC(h) or csr_wdata_i(4 downto 0));
+                      end if;
+                    when CSRRC|CSRRCI =>
+                      csr_rdata_o_replicated(h)(4 downto 0)  <= MPSCLFAC(h);
+                      csr_rdata_o_replicated(h)(31 downto 5) <= (others => '0');
+                      if(rs1(instr_word_IE) /= 0) then
+                        MPSCLFAC(h) <= (MPSCLFAC(h) and not(csr_wdata_i(4 downto 0)));
+                      end if;
+                    when others =>
+                      null;
+                  end case;
+                end if;
 
               when MSTATUS_addr =>
                 case csr_op_i is
@@ -963,26 +1070,31 @@ begin
           end if;  -- csr_op_i
         end if;  -- trap conditions, csr_instr_done, csr_instr_req
 
+        ------------------------------------------------------------------------------------------------------------------------------------------------------
+        --  ██████╗ ███████╗██████╗ ███████╗     ██████╗███╗   ██╗████████╗    ██╗███╗   ██╗ ██████╗██████╗ ███████╗███╗   ███╗███████╗███╗   ██╗████████╗  --
+        --  ██╔══██╗██╔════╝██╔══██╗██╔════╝    ██╔════╝████╗  ██║╚══██╔══╝    ██║████╗  ██║██╔════╝██╔══██╗██╔════╝████╗ ████║██╔════╝████╗  ██║╚══██╔══╝  --
+        --  ██████╔╝█████╗  ██████╔╝█████╗      ██║     ██╔██╗ ██║   ██║       ██║██╔██╗ ██║██║     ██████╔╝█████╗  ██╔████╔██║█████╗  ██╔██╗ ██║   ██║     --
+        --  ██╔═══╝ ██╔══╝  ██╔══██╗██╔══╝      ██║     ██║╚██╗██║   ██║       ██║██║╚██╗██║██║     ██╔══██╗██╔══╝  ██║╚██╔╝██║██╔══╝  ██║╚██╗██║   ██║     --
+        --  ██║     ███████╗██║  ██║██║         ╚██████╗██║ ╚████║   ██║       ██║██║ ╚████║╚██████╗██║  ██║███████╗██║ ╚═╝ ██║███████╗██║ ╚████║   ██║     --
+        --  ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝          ╚═════╝╚═╝  ╚═══╝   ╚═╝       ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝   ╚═╝     --
+        ------------------------------------------------------------------------------------------------------------------------------------------------------                                                                                                                                      
+
         -- PERFORMANCE COUNTER AUTOMATIC UPDATING --
 
         if dbg_req_o = '0' then
-          --THIS BIG CONDITION CHECKS WRITING TO THE CSR. IF A COUNTER IS WRITTEN, YOU DON'T HAVE TO INCREMENT IT.  (pag 22 riscv-public-v2.1.pdf)
+          --THIS BIG CONDITION CHECKS WRITING TO THE CSR. IF A COUNTER IS WRITTEN, YOU DON'T HAVE TO INCREMENT IT.
           --The problems are only during writing on MCYCLE/H and MINSTRET/H or on any other counters that count csr instructions.
+
           if (MCYCLE_EN = 1) then
             if (PCER(h)(0) = '1'
-                and not(csr_instr_req = '1'
-                        and (csr_addr_i = (MCYCLE_addr)
-                             or csr_addr_i = MCYCLEH_addr)
-                        and (csr_op_i = CSRRWI
-                             or csr_op_i = CSRRW
-                             or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
-                             )
-                        )
-                )
-            then                          --cycle counter
+                    and not(csr_instr_req = '1'
+                    and (csr_addr_i = (MCYCLE_addr) or csr_addr_i = MCYCLEH_addr)
+                    and (csr_op_i = CSRRWI
+                    or   csr_op_i = CSRRW
+                    or  (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)))) then  --cycle counter
               if(MCYCLE(h) = x"FFFFFFFF") then
                 MCYCLEH(h) <= std_logic_vector(unsigned(MCYCLEH(h))+1);
                 MCYCLE(h)  <= x"00000000";
@@ -991,22 +1103,18 @@ begin
               end if;
             end if;
           end if;
+
           if (MINSTRET_EN = 1) then
             if (PCER(h)(1) = '1'
-                and not(csr_instr_req = '1'
-                        and (csr_addr_i = (MINSTRET_addr)
-                             or csr_addr_i = MINSTRETH_addr)
-                        and (csr_op_i = CSRRWI
-                             or csr_op_i = CSRRW
-                             or (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
-                             or (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)
-                             )
-                        )
-                )
-            then                          --instruction counter
-              if(instr_rvalid_i = '1') then
+                    and not(csr_instr_req = '1'
+                    and (csr_addr_i = (MINSTRET_addr) or csr_addr_i = MINSTRETH_addr)
+                    and (csr_op_i = CSRRWI
+                    or   csr_op_i = CSRRW
+                    or  (csr_op_i = CSRRS and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
+                    or  (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)))) then --instruction counter
+              if(instr_rvalid_IE = '1' ) then
                 if (MINSTRET(h) = x"FFFFFFFF") then
                   MINSTRETH(h) <= std_logic_vector(unsigned(MINSTRETH(h))+1);
                   MINSTRET(h)  <= x"00000000";
@@ -1019,69 +1127,64 @@ begin
 
           if (PCER(h)(2) = '1') then    --load/store access stall
             if (MHPMCOUNTER_EN = 1) then
-              if (((data_req_o = '1' and data_gnt_i = '0') and data_valid_waiting_counter = '0') or ((not(data_req_o = '1' and data_gnt_i = '0')) and data_valid_waiting_counter = '1')) then
+              if (data_req_o = '1' and data_gnt_i = '0') then
                 MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+1);
-              elsif((data_req_o = '1' and data_gnt_i = '0') and (data_valid_waiting_counter = '1')) then
-                MHPMCOUNTER3(h) <= std_logic_vector(unsigned(MHPMCOUNTER3(h))+2);
               end if;
             end if;
           end if;
 
           if(PCER(h)(5) = '1') then     --load access 
             if (MHPMCOUNTER_EN = 1) then
-              if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '0') then
-                MHPMCOUNTER6(h) <= std_logic_vector(unsigned(MHPMCOUNTER6(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing
+                if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '0') then
+                  MHPMCOUNTER6(h) <= std_logic_vector(unsigned(MHPMCOUNTER6(h))+1);
+                end if;
               end if;
             end if;
           end if;
 
           if(PCER(h)(6) = '1') then     --store access 
             if (MHPMCOUNTER_EN = 1) then
-              if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '1') then
-                MHPMCOUNTER7(h) <= std_logic_vector(unsigned(MHPMCOUNTER7(h))+1);
+              if harc_EXEC = h or count_all = 1 then  -- count_all is bypass and enables counting regardless of the hart executing
+                if (data_req_o = '1' and data_gnt_i = '1' and data_we_o = '1') then
+                  MHPMCOUNTER7(h) <= std_logic_vector(unsigned(MHPMCOUNTER7(h))+1);
+                end if;
               end if;
             end if;
           end if;
 
           if(PCER(h)(7) = '1') then     --jump 
             if (MHPMCOUNTER_EN = 1) then
-              if (jump_instr = '1') then
-                MHPMCOUNTER8(h) <= std_logic_vector(unsigned(MHPMCOUNTER8(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing
+                if (jump_instr = '1') then
+                  MHPMCOUNTER8(h) <= std_logic_vector(unsigned(MHPMCOUNTER8(h))+1);
+                end if;
               end if;
             end if;
           end if;
 
           if(PCER(h)(8) = '1') then     --branch 
             if (MHPMCOUNTER_EN = 1) then
-              if (branch_instr = '1') then
-                MHPMCOUNTER9(h) <= std_logic_vector(unsigned(MHPMCOUNTER9(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing
+                if (branch_instr = '1') then
+                  MHPMCOUNTER9(h) <= std_logic_vector(unsigned(MHPMCOUNTER9(h))+1);
+                end if;
               end if;
             end if;
           end if;
 
           if(PCER(h)(9) = '1') then     --btaken
             if (MHPMCOUNTER_EN = 1) then
-              if (branch_instr = '1' and set_branch_condition = '1') then
-                MHPMCOUNTER10(h) <= std_logic_vector(unsigned(MHPMCOUNTER10(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing
+                if (branch_instr = '1' and set_branch_condition = '1') then
+                  MHPMCOUNTER10(h) <= std_logic_vector(unsigned(MHPMCOUNTER10(h))+1);
+                end if;
               end if;
             end if;
           end if;
+
         end if;  --debug_req_o='0'
-        -- synchronous assignment to MIP_internal bits:
-        -- this is Pulpino-specific assignment, i.e. the timer-related IRQ vector value
-        if h = 0 and unsigned(irq_id_i) >= 28 and irq_i = '1' then
-          MIP_internal(h)(7) <= '1';
-        else
-          MIP_internal(h)(7) <= '0';        -- only harc 0 interruptible
-        end if;
-        -- this detects the other IRQ vector values in Pulpino
-        if h = 0 and unsigned(irq_id_i) < 28 and irq_i = '1' then
-          MIP_internal(h)(11) <= '1';
-        else
-          MIP_internal(h)(11) <= '0';       -- only harc 0 interruptible
-        end if;
-        -- the MIP_internal(h)(3), MSIP bit, software interrupt, is assigned above
-      end if;  -- reset or ck'event
+      end if;  -- reset or clk'event
     end process;
 
   end generate CSR_updating_logic;
@@ -1131,10 +1234,10 @@ begin
     end if;
   end process irq_ack_manager;
 
------------------------------------------------------------------------- end of CS Unit ------------
-----------------------------------------------------------------------------------------------------  
+------------------------------------------------------------------------ end of CSE Unit ---------
+--------------------------------------------------------------------------------------------------  
 
 end CSR;
 --------------------------------------------------------------------------------------------------
--- END of CSR Unit core architecture ---------------------------------------------------------
+-- END of CSR Unit  architecture -----------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
