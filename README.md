@@ -23,10 +23,10 @@ The coprocessor can be configured to run in three different modes:
 3) Heterogeneous coprocessor: Where the harts share the functional units in the MFU, but each hart maintains it own dedicated SPMI (SIMD+MIMD coprocessor ver.2).
 
 Parameters:
-•N = Number of SPMs in the SPMI.
-•M = Number of SPMIs, as well as control logic for every hart.
-•D = Number of Functional Units per MFU, and banks per SPM (i.e. determines the SIMD width).
-•F = Number of Functional Units per hart (i.e. determines the MIMD width).
+- N = Number of SPMs in the SPMI.
+- M = Number of SPMIs, as well as control logic for every hart.
+- D = Number of Functional Units per MFU, and banks per SPM (i.e. determines the SIMD width).
+- F = Number of Functional Units per hart (i.e. determines the MIMD width).
 
 <img src="/pics/Vector Coprocessor.png" width="400">
 
