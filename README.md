@@ -11,7 +11,7 @@ Fencing role of the harts: The harts in our IMT archtiecture play an essential f
 The T13 extends further the T0x versions by supporting superscalar execution between the units in the execute stage, it supports some hart bypass logic to minimize the stalls in high latency instructions. It also introduces a custom mathematics coprocessor, to accelerate the executuon of the vector instructions.
 
 <p align="center">
-<img src="/pics/Klessydra-T13x.png" width="400">
+<img src="/pics/Klessydra-T13x.png" width="600">
 </p> 
 
 The Coprocessor is a highly parametrizable accelerator, with up to 256-bit SIMD+MIMD execution capabilities. It comprises the Multipurpose Functional Unit, and the Scratchpad Memory Interface. The custom instruction set supported are listed in the Technincal manuals in the Docs folder. In addition to SIMD execution, the coprocessor supports subword-SIMD to further accelerate 8-bit and 16-bit integer data types.
@@ -31,7 +31,7 @@ Parameters:
 - F = Number of Functional Units per hart (i.e. determines the MIMD width).
 
 <p align="center">
-<img src="/pics/Vector Coprocessor.png" width="400">
+<img src="/pics/Vector Coprocessor.png" width="600">
 </p> 
 
 # Merging T13x User Guide
