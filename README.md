@@ -28,7 +28,9 @@ Parameters:
 - D = Number of Functional Units per MFU, and banks per SPM (i.e. determines the SIMD width).
 - F = Number of Functional Units per hart (i.e. determines the MIMD width).
 
+<div align=”center”>
 <img src="/pics/Vector Coprocessor.png" width="400">
+</div>
 
 # Merging T13x User Guide
 
