@@ -31,7 +31,7 @@ Parameters:
 - F = Number of Functional Units per hart (i.e. determines the MIMD width).
 
 <p align="center">
-<img src="/pics/Vector Coprocessor.png" width="600">
+<img src="/pics/Vector Coprocessor.png" width="500">
 </p> 
 
 # Merging T13x User Guide
