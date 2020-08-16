@@ -1,8 +1,36 @@
-<img src="/Logo/Klessydra_Logo.png" width="400">
+<img src="/pics/Klessydra_Logo.png" width="400">
+
+# KLESSYDRA-T13 INTRELEAVED MULTITHREADED PROCESSOR
+
+Intro: The Klessydra processing core family is a set of processors featuring full compliance with RISC-V, and pin-to-pin compatible with the PULPino Riscy cores. Klessydra-T13 is a bare-metal 32-bit processor fully supporting the RV32IM form the RISC-V ISA, and one instruction from the Atomic "A" extension. 'T1' further extends the instruction set with a set of custom vector instructions.
+
+Architecture: T13 as its T0x predecessor vesions is also an interleaved multithreaded processor (Aka, barrel processor). It interleaves three hardware threads (harts). Each hart has it's own registerfile, CSR-unit, and program counter, and they communicate with each other via software interrupts.
+
+Fencing role of the harts: The harts in our IMT archtiecture play an essential fencing role to avoid pipeline stalls. One role is to fence between registerfile RD & WR accesses, thus never having data-dependency pipeline stalls. The other is to fence between the execution and fetch stage, thus avoiding the need to perform any pipeline flushing.
+
+The T13 extends further the T0x versions by supporting superscalar execution between the units in the execute stage, it supports some hart bypass logic to minimize the stalls in high latency instructions. It also introduces a custom mathematics coprocessor, to accelerate the executuon of the vector instructions.
+
+<img src="/pics/Klessydra-T13x.png" width="400">
+
+The Coprocessor is a highly parametrizable accelerator, with up to 256-bit SIMD+MIMD execution capabilities. It comprises the Multipurpose Functional Unit, and the Scratchpad Memory Interface. The custom instruction set supported are listed in the Technincal manuals in the Docs folder. In addition to SIMD execution, the coprocessor supports subword-SIMD to further accelerate 8-bit and 16-bit integer data types.
+
+The coprocessor features a parametrizable set of Scratchpad memories 'SPMs' (parametrizable being their size and number, and their bank numbers will automatically expand to match the SIMD configuration). 
+
+The coprocessor can be configured to run in three different modes:
+
+1) Shared Coprocessor: Where the coprocessor is shared by all the harts (SIMD Coprocessor).
+2) Fully Symmetrical Coprocessor: Where each hart has its dedicated MFU and SPMI. (SIMD+MIMD Coprocessor ver.1).
+3) Heterogeneous coprocessor: Where the harts share the functional units in the MFU, but each hart maintains it own dedicated SPMI (SIMD+MIMD coprocessor ver.2).
+
+Parameters:
+•N = Number of SPMs in the SPMI.
+•M = Number of SPMIs, as well as control logic for every hart.
+•D = Number of Functional Units per MFU, and banks per SPM (i.e. determines the SIMD width).
+•F = Number of Functional Units per hart (i.e. determines the MIMD width).
+
+<img src="/pics/Vector Coprocessor.png" width="400">
 
 # Merging T13x User Guide
-
-Intro: The Klessydra processing core family is a set of processors featuring full compliance with the RISC-V, and pin-to-pin compatible with the PULPino riscy cores. Klessydra cores fully support the RV32IM Base Integer Instruction set, and one instruction from the RV32A extension. 'T1' further extends the instruction set with a set of custom vector instructions. The only privilege level supported in klessydra is Machine mode "M".
 
 This guide explains how one can download and install Pulpino, and it's 
 modified version of the riscv-gnu toolchain. It also demonstrates
