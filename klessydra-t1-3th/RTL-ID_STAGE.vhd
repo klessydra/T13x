@@ -137,6 +137,7 @@ begin
       comparator_en   <= '0'; 
     elsif rising_edge(clk_i) then
       ls_instr_req <= '0';
+      ie_instr_req <= '0';
       if core_busy_IE = '1' or core_busy_LS = '1' or ls_parallel_exec = '0'  or dsp_parallel_exec = '0' then -- the instruction pipeline is halted
         halt_IE  <= '1';
         halt_LSU <= '1';
@@ -600,9 +601,6 @@ begin
                     vec_write_rd_ID <= '1';
                     spm_rs1 <= '1';
                     decoded_instruction_DSP <= KRELU_pattern;
-                  when KBCAST =>           -- KBCAST_INSTRUCTION
-                    vec_write_rd_ID <= '1';
-                    decoded_instruction_DSP <= KBCAST_pattern;
                   when KVSLT =>
                     vec_write_rd_ID <= '1';
                     vec_read_rs1_ID <= '1';
@@ -615,6 +613,9 @@ begin
                     vec_read_rs1_ID <= '1';
                     spm_rs1 <= '1';
                     decoded_instruction_DSP <= KSVSLT_pattern;
+                  when KBCAST =>           -- KBCAST_INSTRUCTION
+                    vec_write_rd_ID <= '1';
+                    decoded_instruction_DSP <= KBCAST_pattern;
                   when KVCP =>           -- KVCP_INSTRUCTION
                     spm_rs1 <= '1';
                     vec_read_rs1_ID  <= '1';
@@ -631,7 +632,7 @@ begin
             end if;
  
           when others =>                -- ILLEGAL_INSTRUCTION
-			ie_instr_req <= '1';
+            ie_instr_req <= '1';
             decoded_instruction_IE <= ILL_pattern;
 
         end case;  -- OPCODE_wires cases                           
@@ -656,10 +657,10 @@ begin
   fsm_ID_comb : process(all)
   variable OPCODE_wires  : std_logic_vector (6 downto 0);
   begin
-	OPCODE_wires  := OPCODE(instr_word_ID_lat);	
+    OPCODE_wires  := OPCODE(instr_word_ID_lat);	
     -- parallelism enablers, halts the pipeline when it is zero. -------------------
     ls_parallel_exec  <= '0' when (OPCODE_wires = LOAD or OPCODE_wires = STORE or OPCODE_wires = AMO or OPCODE_wires = KMEM) and busy_LS = '1' else '1';
-	dsp_parallel_exec <= '0' when (OPCODE_wires = KMEM or OPCODE_wires = AMO) and busy_DSP(harc_ID_to_DSP) = '1' else '1';
+    dsp_parallel_exec <= '0' when (OPCODE_wires = KMEM or OPCODE_wires = AMO) and busy_DSP(harc_ID_to_DSP) = '1' else '1';
     dsp_to_jump       <= '1' when OPCODE_wires = KDSP and busy_DSP(harc_ID_to_DSP) = '1' else '0';
     if core_busy_IE = '1' or core_busy_LS = '1' or ls_parallel_exec = '0'  or dsp_parallel_exec = '0' then
       busy_ID <= '1';  -- wait for the stall to finish, block new instructions 
@@ -673,9 +674,9 @@ begin
   fsm_ID_comb : process(all)
   variable OPCODE_wires  : std_logic_vector (6 downto 0);
   begin
-	OPCODE_wires  := OPCODE(instr_word_ID_lat);	
+    OPCODE_wires  := OPCODE(instr_word_ID_lat);	
     ls_parallel_exec  <= '0' when busy_LS = '1' else '1';
-	dsp_parallel_exec <= '0' when unsigned(busy_DSP) /= 0 else '1';
+    dsp_parallel_exec <= '0' when unsigned(busy_DSP) /= 0 else '1';
     dsp_to_jump       <= '1' when OPCODE_wires = KDSP and busy_DSP(harc_ID_to_DSP) = '1' else '0';
     if core_busy_IE = '1' or core_busy_LS = '1' or ls_parallel_exec = '0'  or dsp_parallel_exec = '0' then
       busy_ID <= '1';  -- wait for the stall to finish, block new instructions 
@@ -687,7 +688,7 @@ begin
 
   process(all)
   begin
-  dsp_instr_req_wire <= (others => '0');
+    dsp_instr_req_wire <= (others => '0');
     if core_busy_IE = '0' and core_busy_LS = '0' and ls_parallel_exec = '1' and dsp_parallel_exec = '1' and  instr_rvalid_ID = '1' then
       if OPCODE(instr_word_ID_lat) = KDSP then
         dsp_instr_req_wire(harc_ID_to_DSP) <=  '1';

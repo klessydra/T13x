@@ -102,6 +102,7 @@ begin
 
   -- latch ir on program memory output, because memory output remains for 1 cycle only
   instr_word_ID_lat  <= instr_rdata_i when instr_rvalid_i = '1' else instr_word_ID;
+  --instr_word_ID_lat  <= instr_rdata_i when instr_rvalid_i = '1' else (others => '0');
 
 --------------------------------------------------------------------- end of IF stage -------------
 ---------------------------------------------------------------------------------------------------

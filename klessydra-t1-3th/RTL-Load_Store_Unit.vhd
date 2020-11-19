@@ -37,8 +37,8 @@ entity Load_Store_Unit is
   port (
     -- clock, and reset active low
     clk_i, rst_ni              : in std_logic;
-	-- Program Counter Signals
-	irq_pending                : in std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
+    -- Program Counter Signals
+    irq_pending                : in std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
     -- ID_Stage Signals
     RS1_Data_IE                : in  std_logic_vector(31 downto 0);
     RS2_Data_IE                : in  std_logic_vector(31 downto 0);
@@ -171,9 +171,9 @@ begin
         ls_rd_to_sc              <= (others => '0');
       end if;
 	elsif rising_edge(clk_i) then
-	  amo_store  <= '0';
+      amo_store  <= '0';
       misaligned_err <= '0';
-	  LS_WB       <= (others => '0');
+      LS_WB       <= (others => '0');
       busy_LS_lat <= busy_LS or core_busy_LS;
       if accl_en = 1 then
         RS1_Data_IE_lat <= RS1_Data_IE_wire_lat;
@@ -181,12 +181,12 @@ begin
         RD_Data_IE_lat  <= RD_Data_IE_wire_lat;
       end if;
       if ls_instr_req = '0' and busy_LS_lat = '0' then
-	    LS_WB_EN <= '0';
-	  elsif LS_instr_req = '1' or busy_LS_lat = '1' then
+        LS_WB_EN <= '0';
+      elsif LS_instr_req = '1' or busy_LS_lat = '1' then
         if data_rvalid_i = '1' then
           ls_sc_data_write <= data_rdata_i;
         end if;
-	    LS_WB_EN <= '0';
+        LS_WB_EN <= '0';
         case state_LS is	
           when normal =>
 

@@ -52,7 +52,7 @@ entity klessydra_t1_3th_core is
     accl_en               : natural := 1;   -- Enable the generation of the special purpose accelerator
     replicate_accl_en     : natural := 1;   -- Set to 1 to replicate the accelerator for every thread
     multithreaded_accl_en : natural := 1;   -- Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
-    SPM_NUM		          : natural := 3;   -- The number of scratchpads available "Minimum allowed is two"
+    SPM_NUM               : natural := 3;   -- The number of scratchpads available "Minimum allowed is two"
     Addr_Width            : natural := 13;  -- This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
     SPM_STRT_ADDR         : std_logic_vector(31 downto 0) := x"1000_0000";  -- This is starting address of the spms, it shouldn't overlap any sections in the memory map
     SIMD                  : natural := 1;   -- Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
@@ -150,9 +150,10 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
   signal MCAUSE      : array_2d(harc_range)(31 downto 0);
   signal MIP         : array_2d(harc_range)(31 downto 0);
   signal MTVEC       : array_2d(harc_range)(31 downto 0);
+  signal PCER        : array_2d(harc_range)(31 downto 0);
 
   signal irq_pending     : std_logic_vector(harc_range);
-  signal WFI_Instr		 : std_logic;
+  signal WFI_Instr       : std_logic;
   signal except_pc_vec_o : std_logic_vector(31 downto 0);
 
   -- Memory fault signals
@@ -336,7 +337,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     set_branch_condition        : in  std_logic;
     csr_instr_req               : in  std_logic;
     misaligned_err              : in  std_logic;
-    WFI_Instr  		            : in  std_logic;
+    WFI_Instr                   : in  std_logic;
     csr_wdata_i                 : in  std_logic_vector(31 downto 0);
     csr_op_i                    : in  std_logic_vector(2 downto 0);
     csr_addr_i                  : in  std_logic_vector(11 downto 0);
@@ -351,6 +352,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     MCAUSE                      : out array_2d(harc_range)(31 downto 0);
     MIP                         : out array_2d(harc_range)(31 downto 0);
     MTVEC                       : out array_2d(harc_range)(31 downto 0);
+    PCER                        : out array_2d(harc_range)(31 downto 0);
     fetch_enable_i              : in  std_logic;
     clk_i                       : in  std_logic;
     rst_ni                      : in  std_logic;
@@ -425,7 +427,7 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     accl_en                    : natural;
     replicate_accl_en          : natural;
     multithreaded_accl_en      : natural;
-    SPM_NUM		               : natural;  
+    SPM_NUM                    : natural;  
     Addr_Width                 : natural;
     SPM_STRT_ADDR              : std_logic_vector(31 downto 0);
     SIMD                       : natural;
@@ -459,8 +461,9 @@ architecture Klessydra_T1 of klessydra_t1_3th_core is
     MVTYPE                     : in  array_2d(harc_range)(3 downto 0);
     MPSCLFAC                   : in  array_2d(harc_range)(4 downto 0);
     MSTATUS                    : in  array_2d(harc_range)(1 downto 0);
+    PCER                       : in  array_2d(harc_range)(31 downto 0);
     served_irq     	           : out std_logic_vector(harc_range);
-    WFI_Instr		           : out std_logic;
+    WFI_Instr                  : out std_logic;
     reset_state                : out std_logic;
     misaligned_err             : out std_logic;
     pc_ID                      : out std_logic_vector(31 downto 0);
@@ -637,7 +640,7 @@ begin
       set_branch_condition        => set_branch_condition,
       csr_instr_req               => csr_instr_req,
       misaligned_err              => misaligned_err,
-      WFI_Instr		 	          => WFI_Instr,
+      WFI_Instr                   => WFI_Instr,
       csr_wdata_i                 => csr_wdata_i,
       csr_op_i                    => csr_op_i,
       csr_addr_i                  => csr_addr_i,
@@ -652,6 +655,7 @@ begin
       MCAUSE                      => MCAUSE,
       MIP                         => MIP,
       MTVEC                       => MTVEC,
+      PCER                        => PCER,
       fetch_enable_i              => fetch_enable_i,
       clk_i                       => clk_i,
       rst_ni                      => rst_ni,
@@ -767,8 +771,9 @@ begin
       MVTYPE                     => MVTYPE,
       MPSCLFAC                   => MPSCLFAC,
       MSTATUS                    => MSTATUS,
+      PCER                       => PCER,
       served_irq                 => served_irq,
-      WFI_Instr			         => WFI_Instr,
+      WFI_Instr                  => WFI_Instr,
       reset_state                => reset_state,
       misaligned_err             => misaligned_err,
       taken_branch               => taken_branch,

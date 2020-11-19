@@ -33,11 +33,11 @@ entity IE_STAGE is
 	-- clock, and reset active low
     clk_i, rst_ni          : in std_logic;
     irq_i                  : in std_logic;
-	RS1_Data_IE            : in std_logic_vector(31 downto 0);
-	RS2_Data_IE            : in std_logic_vector(31 downto 0);
-	irq_pending            : in std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
-	fetch_enable_i         : in std_logic;
-	csr_instr_done         : in std_logic;
+    RS1_Data_IE            : in std_logic_vector(31 downto 0);
+    RS2_Data_IE            : in std_logic_vector(31 downto 0);
+    irq_pending            : in std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
+    fetch_enable_i         : in std_logic;
+    csr_instr_done         : in std_logic;
     csr_access_denied_o    : in std_logic;
     csr_rdata_o            : in std_logic_vector(31 downto 0);
     pc_IE                  : in std_logic_vector(31 downto 0);
@@ -45,14 +45,14 @@ entity IE_STAGE is
     data_addr_internal_IE  : in std_logic_vector(31 downto 0);
     comparator_en          : in std_logic;
     signed_op              : in std_logic;
-	ie_instr_req           : in std_logic;
-	dbg_req_o              : in std_logic;
+    ie_instr_req           : in std_logic;
+    dbg_req_o              : in std_logic;
     MSTATUS                : in array_2D(THREAD_POOL_SIZE-1 downto 0)(1 downto 0);
-	harc_EXEC              : in integer range THREAD_POOL_SIZE-1 downto 0;
+    harc_EXEC              : in integer range THREAD_POOL_SIZE-1 downto 0;
     instr_rvalid_IE        : in std_logic;  -- validity bit at IE input
     taken_branch           : in std_logic;
     halt_IE                : in std_logic;
-	decoded_instruction_IE : in std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
+    decoded_instruction_IE : in std_logic_vector(EXEC_UNIT_INSTR_SET_SIZE-1 downto 0);
     csr_addr_i             : out std_logic_vector(11 downto 0);
     ie_except_data         : out std_logic_vector(31 downto 0);
     ie_csr_wdata_i         : out std_logic_vector(31 downto 0);
@@ -63,29 +63,29 @@ entity IE_STAGE is
     core_busy_IE           : out std_logic;
     jump_instr             : out std_logic;
     jump_instr_lat         : out std_logic;
-	WFI_Instr		       : out std_logic;
+    WFI_Instr              : out std_logic;
     sleep_state            : out std_logic;
     reset_state            : out std_logic;
-	set_branch_condition   : out std_logic;
-	IE_except_condition    : out std_logic;
+    set_branch_condition   : out std_logic;
+    IE_except_condition    : out std_logic;
     set_mret_condition     : out std_logic;
     set_wfi_condition      : out std_logic;
     ie_taken_branch        : out std_logic;
-	branch_instr           : out std_logic;
-	branch_instr_lat       : out std_logic;
-	PC_offset              : out array_2D(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
-	served_irq     	       : out std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
+    branch_instr           : out std_logic;
+    branch_instr_lat       : out std_logic;
+    PC_offset              : out array_2D(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
+    served_irq     	       : out std_logic_vector(THREAD_POOL_SIZE-1 downto 0);
     dbg_ack_i              : out std_logic;
     ebreak_instr           : out std_logic;
-	absolute_jump          : out std_logic;
+    absolute_jump          : out std_logic;
     instr_rvalid_WB        : out std_logic;
     instr_word_IE_WB       : out std_logic_vector (31 downto 0);
     IE_WB_EN               : out std_logic;
-	IE_WB                  : out std_logic_vector(31 downto 0);
+    IE_WB                  : out std_logic_vector(31 downto 0);
     MUL_WB_EN              : out std_logic;
-	MUL_WB                 : out std_logic_vector(31 downto 0);
-	harc_IE_WB             : out integer range THREAD_POOL_SIZE-1 downto 0;
-	pc_WB                  : out std_logic_vector(31 downto 0);
+    MUL_WB                 : out std_logic_vector(31 downto 0);
+    harc_IE_WB             : out integer range THREAD_POOL_SIZE-1 downto 0;
+    pc_WB                  : out std_logic_vector(31 downto 0);
     state_IE               : out fsm_IE_states
 	   );
 end entity;  ------------------------------------------
@@ -95,6 +95,8 @@ end entity;  ------------------------------------------
 architecture EXECUTE of IE_STAGE is
 
   subtype harc_range is integer range THREAD_POOL_SIZE - 1 downto 0;
+
+  signal core_busy_IE_lat           : std_logic;
 
   signal zero_rs1                   : std_logic;
   signal zero_rs2                   : std_logic;
@@ -166,8 +168,6 @@ architecture EXECUTE of IE_STAGE is
 
 begin
 
-
-
   ----------------------------------------------------------
   --  ██╗███████╗    ███████╗██╗   ██╗███╗   ██╗ ██████╗  --
   --  ██║██╔════╝    ██╔════╝╚██╗ ██╔╝████╗  ██║██╔════╝  --
@@ -176,8 +176,7 @@ begin
   --  ██║███████╗    ███████║   ██║   ██║ ╚████║╚██████╗  --
   --  ╚═╝╚══════╝    ╚══════╝   ╚═╝   ╚═╝  ╚═══╝ ╚═════╝  --
   ----------------------------------------------------------
-  
-	  
+
   fsm_IE_sync : process(clk_i, rst_ni)
   begin
     if rst_ni = '0' then
@@ -191,9 +190,10 @@ begin
       ie_except_data         <= (others => '0');
       ie_csr_wdata_i         <= (others => '0');
       csr_addr_i             <= (others => '0');
+      core_busy_IE_lat       <= '0';
     elsif rising_edge(clk_i) then
-		
-      csr_instr_req  <= '0';
+		  core_busy_IE_lat <= core_busy_IE;
+      csr_instr_req    <= '0';
 
       case state_IE is  -- stage state
         when sleep =>
@@ -204,9 +204,9 @@ begin
           null;
         when normal =>
           -- check if there is a valid instruction and the thread it belongs to is not in a delay slot: 
-          if  ie_instr_req = '0' then
-            IE_WB_EN       <= '0';
-            MUL_WB_EN       <= '0';
+          if  ie_instr_req = '0' and core_busy_IE_lat = '0' then
+            IE_WB_EN  <= '0';
+            MUL_WB_EN <= '0';
             -- in a generic version we would have conditions on busy_WB 
             -- in all states of the IE stage, and similarly in the comb process, just
             -- like we did in the ID stage.
@@ -328,7 +328,7 @@ begin
 
             if decoded_instruction_IE(ECALL_bit_position) = '1' then
               ie_except_data                <= ECALL_EXCEPT_CODE;
-			  csr_wdata_en                  <= '1';
+              csr_wdata_en                  <= '1';
             end if;
             -----------------------------------------------------------
 
@@ -342,11 +342,11 @@ begin
                 ie_csr_wdata_i <= RS2_Data_IE;
                 csr_wdata_en   <= '1';
                 csr_addr_i     <= MIP_ADDR;
-				for i in harc_range loop
+                for i in harc_range loop
                   if data_addr_internal_IE(7 downto 0) = std_logic_vector(to_unsigned((4*i),8)) then
                   	harc_to_csr <= i;
                   end if;
-				end loop;
+                end loop;
               end if;
             end if;
             ---------------------------------------------------------
@@ -535,13 +535,13 @@ begin
     variable branch_instr_wires               : std_logic;
     variable ebreak_instr_wires               : std_logic;
     variable dbg_ack_i_wires                  : std_logic;
-    variable WFI_Instr_wires		          : std_logic;
+    variable WFI_Instr_wires                  : std_logic;
     variable served_irq_wires                 : std_logic_vector(harc_range);
     variable nextstate_IE_wires               : fsm_IE_states;
 
   begin
     PC_offset_wires                  := (others => (others => '0'));
-    served_irq_wires		         := (others => '0');
+    served_irq_wires                 := (others => '0');
     nextstate_IE_wires               := normal;
     absolute_jump_wires              := '0';
     core_busy_IE_wires               := '0';
@@ -616,7 +616,7 @@ begin
 
       when normal =>
 
-        if ie_instr_req = '0' then
+        if ie_instr_req = '0' and core_busy_IE_lat = '0' then
          -- does nothing and wait
         elsif irq_pending(harc_EXEC)= '1' then
           -- manage irq as an absolute branch to MTVEC, also defining mepc value properly in program counter unit

@@ -69,14 +69,15 @@ entity CSR_Unit is
     csr_instr_done              : out std_logic;
     csr_access_denied_o         : out std_logic;
     csr_rdata_o                 : out std_logic_vector (31 downto 0);
-    MVSIZE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(Addr_Width downto 0); 
-    MVTYPE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(3 downto 0); -- CSR Size follows the RVV standard
-    MPSCLFAC                    : out array_2d(THREAD_POOL_SIZE -1 downto 0)(4 downto 0);
-    MSTATUS                     : out array_2d(THREAD_POOL_SIZE -1 downto 0)(1 downto 0);
-    MEPC                        : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
-    MCAUSE                      : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
-    MIP                         : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
-    MTVEC                       : out array_2d(THREAD_POOL_SIZE -1 downto 0)(31 downto 0);
+    MVSIZE                      : out array_2d(THREAD_POOL_SIZE-1 downto 0)(Addr_Width downto 0); 
+    MVTYPE                      : out array_2d(THREAD_POOL_SIZE-1 downto 0)(3 downto 0); -- CSR Size follows the RVV standard
+    MPSCLFAC                    : out array_2d(THREAD_POOL_SIZE-1 downto 0)(4 downto 0);
+    MSTATUS                     : out array_2d(THREAD_POOL_SIZE-1 downto 0)(1 downto 0);
+    MEPC                        : out array_2d(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
+    MCAUSE                      : out array_2d(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
+    MIP                         : out array_2d(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
+    MTVEC                       : out array_2d(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
+    PCER                        : out array_2d(THREAD_POOL_SIZE-1 downto 0)(31 downto 0);
     fetch_enable_i              : in  std_logic;
     clk_i                       : in  std_logic;
     rst_ni                      : in  std_logic;
@@ -103,7 +104,6 @@ architecture CSR of CSR_Unit is
 	
   -- Control Status Register (CSR) signals 
   signal PCCRs       : array_2d(harc_range)(31 downto 0);  -- still not implemented
-  signal PCER        : array_2d(harc_range)(31 downto 0);  -- still not implemented
   signal PCMR        : array_2d(harc_range)(31 downto 0);  -- still not implemented
   signal MESTATUS    : array_2d(harc_range)(2  downto 0);
   signal MCPUID      : array_2d(harc_range)(8  downto 0);
@@ -187,7 +187,7 @@ begin
 
     -- irq request vector shifted by 2 bits, used in interrupt handler routine
     MIRQ(h) <= "0000000000000000000000000" & irq_id_i & "00";
-	pc_IE_replicated(h) <= pc_IE when harc_EXEC = h else (others =>'0');
+    pc_IE_replicated(h) <= pc_IE when harc_EXEC = h else (others =>'0');
     csr_instr_req_replicated(h) <= '1' when csr_instr_req = '1' and harc_to_csr = h else '0';
     trap_hndlr(h)               <= '1' when pc_IE_replicated(h) = MTVEC_RESET_VALUE  else '0';
     MHARTID(h)                  <= std_logic_vector(resize(unsigned(cluster_id_i) & to_unsigned(h, THREAD_ID_SIZE), 10));
@@ -276,9 +276,9 @@ begin
             MEPC_internal(h) <= pc_IE;
           end if;     
           if WFI_Instr = '1' then
-			MCAUSE_internal(h)(30) <= '1'; -- 
+            MCAUSE_internal(h)(30) <= '1'; -- 
           else
-			MCAUSE_internal(h)(30) <= '0';
+            MCAUSE_internal(h)(30) <= '0';
           end if;
           MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
           MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
@@ -291,9 +291,9 @@ begin
             MEPC_internal(h) <= pc_IE;
           end if;     
           if WFI_Instr = '1' then
-			MCAUSE_internal(h)(30) <= '1';
+            MCAUSE_internal(h)(30) <= '1';
           else
-			MCAUSE_internal(h)(30) <= '0';
+            MCAUSE_internal(h)(30) <= '0';
           end if;
           MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
           MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
@@ -305,17 +305,17 @@ begin
             MEPC_internal(h) <= pc_IE;
           end if;   
           if WFI_Instr = '1' then
-			MCAUSE_internal(h)(30) <= '1';
+            MCAUSE_internal(h)(30) <= '1';
           else
-			MCAUSE_internal(h)(30) <= '0';
+            MCAUSE_internal(h)(30) <= '0';
           end if;
           MSTATUS_internal(h)(0) <= '0';    -- interrupt disabled
           MSTATUS_internal(h)(1) <= MSTATUS_internal(h)(0);
           
         --  Exception-caused CSR updating ----------------------------------
         elsif served_except_condition(h) = '1' then
-		  if served_dsp_except_condition(h) = '1' then
-			if replicate_accl_en = 1 then
+          if served_dsp_except_condition(h) = '1' then
+            if replicate_accl_en = 1 then
               MCAUSE_internal(h)     <= dsp_except_data(h);  -- passed from DSP Unit
             elsif replicate_accl_en = 0 then
               MCAUSE_internal(h)     <= dsp_except_data(0);  -- passed from DSP Unit
@@ -1095,11 +1095,13 @@ begin
                     or  (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
                     or  (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
                     or  (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)))) then  --cycle counter
-              if(MCYCLE(h) = x"FFFFFFFF") then
-                MCYCLEH(h) <= std_logic_vector(unsigned(MCYCLEH(h))+1);
-                MCYCLE(h)  <= x"00000000";
-              else
-                MCYCLE(h) <= std_logic_vector(unsigned(MCYCLE(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing
+                if(MCYCLE(h) = x"FFFFFFFF") then
+                  MCYCLEH(h) <= std_logic_vector(unsigned(MCYCLEH(h))+1);
+                  MCYCLE(h)  <= x"00000000";
+                else
+                  MCYCLE(h) <= std_logic_vector(unsigned(MCYCLE(h))+1);
+                end if;
               end if;
             end if;
           end if;
@@ -1114,12 +1116,14 @@ begin
                     or  (csr_op_i = CSRRSI and rs1(instr_word_IE) /= 0)
                     or  (csr_op_i = CSRRC and rs1(instr_word_IE) /= 0)
                     or  (csr_op_i = CSRRCI and rs1(instr_word_IE) /= 0)))) then --instruction counter
-              if(instr_rvalid_IE = '1' ) then
-                if (MINSTRET(h) = x"FFFFFFFF") then
-                  MINSTRETH(h) <= std_logic_vector(unsigned(MINSTRETH(h))+1);
-                  MINSTRET(h)  <= x"00000000";
-                else
-                  MINSTRET(h) <= std_logic_vector(unsigned(MINSTRET(h))+1);
+              if harc_EXEC = h or count_all = 1 then -- count_all is bypass and enables counting regardless of the hart executing            
+                if(instr_rvalid_IE = '1' ) then
+                  if (MINSTRET(h) = x"FFFFFFFF") then
+                    MINSTRETH(h) <= std_logic_vector(unsigned(MINSTRETH(h))+1);
+                    MINSTRET(h)  <= x"00000000";
+                  else
+                    MINSTRET(h) <= std_logic_vector(unsigned(MINSTRET(h))+1);
+                  end if;
                 end if;
               end if;
             end if;

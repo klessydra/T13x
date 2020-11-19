@@ -23,7 +23,7 @@ use std.textio.all;
 use work.riscv_klessydra.all;
 --use work.klessydra_parameters.all;
 
--- SCI  pinout --------------------
+-- SCI pinout --------------------
 entity Scratchpad_memory_interface is
   generic(
     accl_en               : natural;
@@ -106,12 +106,12 @@ component Scratchpad_memory
     Data_Width            : natural
   );
   port(
-       clk_i                         : in  std_logic;
-       sc_we                         : in  array_2d(accl_range)(SIMD*SPM_NUM-1 downto 0);
-       sc_addr_wr                    : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Addr_Width-(SIMD_BITS+3) downto 0);
-       sc_addr_rd                    : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Addr_Width-(SIMD_BITS+3) downto 0);
-       sc_data_wr                    : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Data_Width-1 downto 0);
-       sc_data_rd                    : out array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Data_Width-1 downto 0)
+    clk_i                 : in  std_logic;
+    sc_we                 : in  array_2d(accl_range)(SIMD*SPM_NUM-1 downto 0);
+    sc_addr_wr            : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Addr_Width-(SIMD_BITS+3) downto 0);
+    sc_addr_rd            : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Addr_Width-(SIMD_BITS+3) downto 0);
+    sc_data_wr            : in  array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Data_Width-1 downto 0);
+    sc_data_rd            : out array_3d(accl_range)(SIMD*SPM_NUM-1 downto 0)(Data_Width-1 downto 0)
     );
 end component;
 --------------------------------------------------------------------------------------------------
@@ -184,7 +184,7 @@ begin
         elsif ls_sci_req(i) = '0' then
           ls_data_gnt_internal(h)(i) <= '0';
         end if;
-	    if dsp_sci_req(h)(i) = '1' then 
+        if dsp_sci_req(h)(i) = '1' then 
           for k in 0 to 1 loop
             dsp_sc_read_addr_lat(h)(k) <= dsp_sc_read_addr(h)(k)(SIMD_BITS+1 downto 0);
           end loop;
@@ -239,19 +239,19 @@ begin
       end if;
 
       if dsp_sci_we(h)(i) = '1' and dsp_sci_wr_gnt(h) = '1' then         -- DSP write port;
-        for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpads
+        for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpad banks
           sc_we(h)((SIMD)*i+j)    <= dsp_we_word(h)(j);
-          sc_addr_wr(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_write_addr(h)(Addr_Width - 1 downto SIMD_BITS+2)) + wr_offset(h)(j));
+          sc_addr_wr(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_write_addr(h)(Addr_Width-1 downto SIMD_BITS+2)) + wr_offset(h)(j));
           sc_data_wr(h)((SIMD)*i+j) <= dsp_sc_data_write_int_wire(h)(31+32*j downto 32*j);
         end loop;
       end if;   
 
       if dsp_sci_req(h)(i) = '1' and dsp_to_sc(h)(i)(0) = '1' and dsp_data_gnt_i(h) = '1' then         -- DSP read port 1
-        for j in 0 to SIMD-1 loop      -- Loop through the sub-scratchpads
-          sc_addr_rd(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_read_addr(h)(0)(Addr_Width - 1 downto SIMD_BITS+2)) + rd_offset(h)(0)(j));
+        for j in 0 to SIMD-1 loop      -- Loop through the sub-scratchpad banks
+          sc_addr_rd(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_read_addr(h)(0)(Addr_Width-1 downto SIMD_BITS+2)) + rd_offset(h)(0)(j));
         end loop;
       end if;
-      for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpads
+      for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpad banks
         if dsp_sci_req_lat(h)(i) = '1' and dsp_to_sc_lat(h)(i)(0) = '1' then         -- DSP read port 1
           dsp_sc_data_read_int_wire(h)(0)(31+32*j downto 32*j) <= sc_data_rd(h)((SIMD)*i+j);
         end if;
@@ -259,7 +259,7 @@ begin
 		
       if dsp_sci_req(h)(i) = '1' and dsp_to_sc(h)(i)(1) = '1' and dsp_data_gnt_i(h) = '1' then       -- DSP read port 2
         for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpads
-          sc_addr_rd(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_read_addr(h)(1)(Addr_Width - 1 downto SIMD_BITS+2)) + rd_offset(h)(1)(j));
+          sc_addr_rd(h)((SIMD)*i+j) <= std_logic_vector(unsigned(dsp_sc_read_addr(h)(1)(Addr_Width-1 downto SIMD_BITS+2)) + rd_offset(h)(1)(j));
         end loop;
       end if;
       for j in 0 to SIMD-1 loop        -- Loop through the sub-scratchpads
@@ -306,13 +306,14 @@ begin
       end if;
     end loop;
 
-      ---------------------------------------------------------------------------------------------------------------------------------
-      --  ######       ###      ########      ###          #######   #######         #######   #######   ######   #######  #######   --
-      --  ##    #     #   #        ##        #   #         ##     #  ##             ##     ##  ##     #  ##    #  ##       ##     #  --
-      --  ##    #    #######       ##       #######        #######   #####    ####  ##     ##  #######   ##    #  #####    #######   --
-      --  ##    #   ##     ##      ##      ##     ##       ## ##     ##             ##     ##  ## ##     ##    #  ##       ## ##     -- 
-      --  ######   ##       ##     ##     ##       ##      ##   ##   #######         #######   ##   ##   ######   #######  ##   ##   --  
-      ---------------------------------------------------------------------------------------------------------------------------------  
+ -----------------------------------------------------------------------------------------------
+--  ██████╗  █████╗ ████████╗ █████╗     ██████╗  ██████╗ ████████╗ █████╗ ████████╗███████╗  --
+--  ██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗    ██╔══██╗██╔═══██╗╚══██╔══╝██╔══██╗╚══██╔══╝██╔════╝  --
+--  ██║  ██║███████║   ██║   ███████║    ██████╔╝██║   ██║   ██║   ███████║   ██║   █████╗    --
+--  ██║  ██║██╔══██║   ██║   ██╔══██║    ██╔══██╗██║   ██║   ██║   ██╔══██║   ██║   ██╔══╝    --
+--  ██████╔╝██║  ██║   ██║   ██║  ██║    ██║  ██║╚██████╔╝   ██║   ██║  ██║   ██║   ███████╗  --
+--  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝    ╚═╝  ╚═╝ ╚═════╝    ╚═╝   ╚═╝  ╚═╝   ╚═╝   ╚══════╝  --
+------------------------------------------------------------------------------------------------ 
 
     for i in 0 to SIMD-1 loop
       --if (to_integer(unsigned(dsp_sc_write_addr(h)(SIMD_BITS+1 downto 0))) = 4*i) and (i /= 0) then
@@ -332,6 +333,15 @@ begin
         end loop;
       end if;
     end loop;
+    --for i in 0 to 4*SIMD-1 loop     
+    --  for j in 0 to 4*SIMD-1 loop
+    --    if j <= (4*SIMD-1)-i then
+    --      dsp_sc_data_write_int_wire(h)(7+8*(j+i) downto 8*(j+i)) <= dsp_sc_data_write_wire(h)(7+8*j downto 8*j);
+    --    elsif j > (4*SIMD-1)-i then
+    --      dsp_sc_data_write_int_wire(h)(7+8*(j-(SIMD-1)+(i-1)) downto 8*(j-(SIMD-1)+(i-1))) <= dsp_sc_data_write_wire(h)(7+8*j downto 8*j);
+    --    end if;
+    --  end loop;
+    --end loop;
 	  
     for k in 0 to 1 loop  -- index for the rs1 and rs2 read addresses
       for i in 0 to SIMD-1 loop -- index points to the 
@@ -346,12 +356,21 @@ begin
           for j in 0 to SIMD-1 loop
             if j >= i then
               dsp_sc_data_read_wire(h)(k)(31+32*(j-i) downto 32*(j-i)) <= dsp_sc_data_read_int_wire(h)(k)(31+32*j downto 32*j);
-			elsif j < i then
+            elsif j < i then
               dsp_sc_data_read_wire(h)(k)(31+32*((SIMD-1)-i+(j+1)) downto 32*((SIMD-1)-i+(j+1))) <= dsp_sc_data_read_int_wire(h)(k)(31+32*j downto 32*j);
             end if;
           end loop;
         end if;
       end loop;
+      --for i in 0 to 4*SIMD-1 loop
+      --  for j in 0 to 4*SIMD-1 loop
+      --    if j >= i then
+      --      dsp_sc_data_read_wire(h)(k)(7+8*(j-i) downto 8*(j-i)) <= dsp_sc_data_read_int_wire(h)(k)(7+8*j downto 8*j);
+      --    elsif j < i then
+      --      dsp_sc_data_read_wire(h)(k)(7+8*((SIMD-1)-i+(j+1)) downto 8*((SIMD-1)-i+(j+1))) <= dsp_sc_data_read_int_wire(h)(k)(7+8*j downto 8*j);
+      --    end if;
+      --  end loop;
+      --end loop;
     end loop;
   end process;
 
