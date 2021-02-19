@@ -145,6 +145,7 @@ architecture EXECUTE of IE_STAGE is
   signal logic_op_A                 : std_logic_Vector(31 downto 0);
   signal logic_op_B                 : std_logic_Vector(31 downto 0);
 
+  signal wfi_count                  : std_logic_vector(31 downto 0);
 
   -- signals for counting intructions
   signal clock_cycle         : std_logic_vector(63 downto 0);  -- RDCYCLE
@@ -190,6 +191,7 @@ begin
       ie_except_data         <= (others => '0');
       ie_csr_wdata_i         <= (others => '0');
       csr_addr_i             <= (others => '0');
+      wfi_count              <= (others => '0');
       core_busy_IE_lat       <= '0';
     elsif rising_edge(clk_i) then
 		  core_busy_IE_lat <= core_busy_IE;
@@ -382,6 +384,10 @@ begin
             if decoded_instruction_IE(ILL_bit_position) = '1' then
               ie_except_data                       <= ILLEGAL_INSN_EXCEPT_CODE;
               csr_wdata_en                         <= '1';
+            end if;
+
+            if decoded_instruction_IE(WFI_bit_position) = '1' then
+              wfi_count <= std_logic_vector(unsigned(wfi_count)+1); 
             end if;
 
             if RV32M = 1 then
