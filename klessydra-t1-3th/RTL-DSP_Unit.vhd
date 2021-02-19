@@ -28,7 +28,7 @@ use work.riscv_klessydra.all;
 -- DSP  pinout --------------------
 entity DSP_Unit is
   generic(
-    THREAD_POOL_SIZE      : integer;
+    THREAD_POOL_SIZE      : natural;
     accl_en               : natural;
     replicate_accl_en     : natural;
     multithreaded_accl_en : natural;
@@ -62,7 +62,7 @@ entity DSP_Unit is
     dsp_except_condition       : out std_logic_vector(ACCL_NUM-1 downto 0);
     -- ID_Stage Signals
     decoded_instruction_DSP    : in  std_logic_vector(DSP_UNIT_INSTR_SET_SIZE-1 downto 0);
-    harc_EXEC                  : in  integer range THREAD_POOL_SIZE-1 downto 0;
+    harc_EXEC                  : in  natural range THREAD_POOL_SIZE-1 downto 0;
     pc_IE                      : in  std_logic_vector(31 downto 0);
     RS1_Data_IE                : in  std_logic_vector(31 downto 0);
     RS2_Data_IE                : in  std_logic_vector(31 downto 0);
@@ -94,9 +94,9 @@ end entity;  ------------------------------------------
 
 architecture DSP of DSP_Unit is
 
-  subtype harc_range is integer range THREAD_POOL_SIZE - 1 downto 0;
-  subtype accl_range is integer range ACCL_NUM - 1 downto 0;
-  subtype fu_range   is integer range FU_NUM - 1 downto 0;
+  subtype harc_range is natural range THREAD_POOL_SIZE-1 downto 0;
+  subtype accl_range is integer range ACCL_NUM-1 downto 0;
+  subtype fu_range   is integer range FU_NUM-1 downto 0;
 
 
   signal nextstate_DSP : array_2d(accl_range)(1 downto 0);
@@ -430,8 +430,8 @@ begin
                 RS2_Data_IE_lat(h) <= RS2_Data_IE;
               end if;
               -- Decrement the vector elements that have already been operated on
-              if unsigned(MVSIZE(h)) >= SIMD_RD_BYTES_wire(h) then
-                MVSIZE_READ(h) <= std_logic_vector(unsigned(MVSIZE(h)) - SIMD_RD_BYTES_wire(h));  -- decrement by SIMD_BYTE Execution Capability
+              if unsigned(MVSIZE(harc_EXEC)) >= SIMD_RD_BYTES_wire(h) then
+                MVSIZE_READ(h) <= std_logic_vector(unsigned(MVSIZE(harc_EXEC)) - SIMD_RD_BYTES_wire(h));  -- decrement by SIMD_BYTE Execution Capability
               else
                 MVSIZE_READ(h) <= (others => '0');                                                     -- decrement the remaining bytes
               end if;
@@ -471,7 +471,7 @@ begin
                 end if;
               end if;
               -- Increment the read addresses
-              if to_integer(unsigned(MVSIZE_READ(h))) >= SIMD_RD_BYTES(h) and dsp_data_gnt_i(h) = '1' then -- Increment the addresses untill all the vector elements are operated fetched
+              if to_integer(unsigned(MVSIZE_READ(h))) >= SIMD_RD_BYTES_wire(h) and dsp_data_gnt_i(h) = '1' then -- Increment the addresses untill all the vector elements are operated fetched
                 if vec_read_rs1_DSP(h) = '1' then
                   RS1_Data_IE_lat(h) <= std_logic_vector(unsigned(RS1_Data_IE_lat(h)) + SIMD_RD_BYTES_wire(h));   -- source 1 address increment
                 end if;
@@ -481,7 +481,7 @@ begin
               end if;
               -- Decrement the vector elements that have already been operated on
               if dsp_data_gnt_i(h) = '1' then
-                if to_integer(unsigned(MVSIZE_READ(h))) >= SIMD_RD_BYTES(h) then
+                if to_integer(unsigned(MVSIZE_READ(h))) >= SIMD_RD_BYTES_wire(h) then
                   MVSIZE_READ(h) <= std_logic_vector(unsigned(MVSIZE_READ(h)) - SIMD_RD_BYTES_wire(h)); -- decrement by SIMD_BYTE Execution Capability
                 else
                   MVSIZE_READ(h) <= (others => '0');                                               -- decrement the remaining bytes
@@ -489,7 +489,7 @@ begin
               end if;
               dsp_sc_data_read_mask(h) <= (others => '0');
               if dsp_data_gnt_i_lat(h) = '1' then
-                if to_integer(unsigned(MVSIZE_READ_MASK(h))) >= SIMD_RD_BYTES(h) then
+                if to_integer(unsigned(MVSIZE_READ_MASK(h))) >= SIMD_RD_BYTES_wire(h) then
                   dsp_sc_data_read_mask(h) <= (others => '1');
                   MVSIZE_READ_MASK(h) <= std_logic_vector(unsigned(MVSIZE_READ_MASK(h)) - SIMD_RD_BYTES_wire(h)); -- decrement by SIMD_BYTE Execution Capability 
                 else
@@ -1331,7 +1331,7 @@ MAPPER_replicated : for h in fu_range generate
   begin
       dsp_sc_data_write_wire_int(h)  <= (others => '0');
       dsp_sc_data_write_wire(h)      <= dsp_sc_data_write_wire_int(h);
-      SIMD_RD_BYTES_wire(h)          <= SIMD_RD_BYTES(h);
+      SIMD_RD_BYTES_wire(h)          <= SIMD*(Data_Width/8);
 
       if dsp_instr_req(h) = '1' or busy_DSP_internal_lat(h) = '1' then
         case state_DSP(h) is
