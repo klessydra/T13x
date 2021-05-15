@@ -33,6 +33,8 @@ rm -rf $LIB_PATH
 vlib $LIB_PATH
 vmap $LIB_NAME $LIB_PATH
 vmap /opt/Xilinx_Libs/simprims_ver
+#vmap /opt/Xilinx_Libs/unisim_ver
+#vmap unisim /home/aes/Desktop/antonio/unisim
 
 echo "${Green}Compiling component: ${Brown} ${IP_NAME} ${NC}"
 echo "${Red}"
@@ -52,7 +54,9 @@ if ( ! $?ASIC_DEFINES) then
 endif
 
 # Source
-vlog -quiet -work ${LIB_PATH} +incdir+${IPS_PATH}/opt/Xilinx_Libs/simprims_ver ${IPS_PATH}/klessydra_netlists/*.v   || goto error
+vlog -quiet -work ${LIB_PATH} ${IPS_PATH}/klessydra_netlists/*.v   || goto error
+#vcom -quiet -work ${LIB_PATH} "+incdir+/opt/Xilinx_Libs/unisim" ${IPS_PATH}/klessydra-t1-3th/SPM_SIMD1_Replicated_accl.vhd || goto error
+#vcom -quiet -work ${LIB_PATH}  ${IPS_PATH}/klessydra-t1-3th/SPM_SIMD1_Replicated_accl.vhd || goto error
 
 
 echo "${Cyan}--> ${IP_NAME} compilation complete! ${NC}"

@@ -332,7 +332,7 @@ _fini:
   jal x0, ISR_TB_OVF_ASM
   jal x0, ISR_TB_CMP_ASM
 
-	
+
   .org 0x80
   jal x0, reset_handler
 
@@ -343,5 +343,5 @@ _fini:
   jal x0, ecall_insn_handler
   
   .org 0x94
-  jal x0, mtvec_routine	
+  jal x0, mtvec_routine 
 

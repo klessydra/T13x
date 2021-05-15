@@ -1,0 +1,79 @@
+1) delete the .include of the libraries
+2) delete the ".globl _start" line
+3) put the ".globl main" line
+4) change the "_start" as :
+    TO USE 3 THREAD
+    _start:           
+		  nop
+                  nop
+                  nop
+
+    TO ENABLE ONLY THREAD 0
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 0
+                  bne x5, x6, wfi
+
+    TO ENABLE ONLY THREAD 1
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 1
+                  bne x5, x6, wfi
+
+    TO ENABLE ONLY THREAD 2
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 2
+                  bne x5, x6, wfi
+
+    TO DISABLE THREAD 0
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 0
+                  beq x5, x6, wfi
+
+    TO DISABLE THREAD 1
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 1
+                  beq x5, x6, wfi
+
+    TO DISABLE THREAD 2
+    _start:           
+                  csrr x5, 0xf10
+                  li x6, 2
+                  beq x5, x6, wfi
+
+
+
+5) put the wfi label at the end of the code:
+     wfi:
+                  csrw 0x300, 0x8
+                  wfi
+
+
+7) find the "test_done" label and change it as:
+    test_done:        
+                  li sp, 0x0F000000
+                  mv s0, a0
+                  jal  uart_wait_tx_done;
+                  mv a0, s0
+                  jal  x1, exit            
+
+		  li gp, 1
+                  ecall
+7) delete from the klessydra "crt0.klessydra.S" these lines
+	  .org 0x80
+	  jal x0, reset_handler
+
+	  .org 0x84
+	  jal x0, illegal_insn_handler
+
+	  .org 0x88
+	  jal x0, ecall_insn_handler
+  
+	  .org 0x94
+	  jal x0, mtvec_routine	
+
+
+

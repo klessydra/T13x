@@ -15,7 +15,7 @@ void* kless_dot_product(void *result, void* src1, void* src2, int size)
 		"	kmemld %[SPMADDRB], %[srcB], %[sz];"
 		"	csrw 0xBF0, %[sz]; "
 		"	kdotp %[SPMADDRC], %[SPMADDRA], %[SPMADDRB];"
-		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];"
+		"	kmemstr %[result], %[SPMADDRC], %[sc_sz];" // if the parameter size was zero, then kmemstr will store nonsense value in th the memory
 		"END:"
 		:
 		:[SPMADDRA] "r" (SPMADDRA), [srcA] "r" (src1),
@@ -25,4 +25,3 @@ void* kless_dot_product(void *result, void* src1, void* src2, int size)
 	);
 	return result;
 }
-

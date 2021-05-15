@@ -76,7 +76,7 @@ macro(add_application NAME SOURCE_FILES)
 
   # link libraries
   if(${USE_KLESSYDRA_TEST})
-    if (${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST})
+    if (${USE_KLESSYDRA_T2_M} OR ${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST} OR ${USE_KLESSYDRA_OoO} OR ${USE_KLESSYDRA_S1})
       target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} kless_dsp_libs kless_libs bench ${MATH_FNS_LIB} string sys m)
     else()
       target_link_libraries(${NAME}.elf ${ARG_LIBS} ${ARDUINO_SEP} ${ARDUINO_CORE} ${BEEBS_LIB_NAME} kless_libs bench ${MATH_FNS_LIB} string sys m)

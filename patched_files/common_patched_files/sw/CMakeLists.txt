@@ -118,7 +118,7 @@ set(VSIM "vsim" CACHE FILEPATH "Path to the vsim executable")
 
  include_directories(libs/klessydra_lib/general_libs/inc)
  #include_directories(libs/klessydra_lib/vgg_libs/inc)
- if (${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST})
+ if (${USE_KLESSYDRA_T2_M} OR ${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST} OR ${USE_KLESSYDRA_OoO} OR ${USE_KLESSYDRA_S1})
    include_directories(libs/klessydra_lib/dsp_libs/inc) 
  endif()
    include_directories(libs/klessydra_lib/dsp_libs/inc) 
@@ -180,6 +180,21 @@ add_custom_target(vcompile.core.klessydra-t1-3th
   WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
   ${USES_TERMINAL})
 
+add_custom_target(vcompile.core.klessydra-t2-m
+  COMMAND tcsh -c "./vcompile/vcompile_klessydra-t2-m.csh" #${kless_configs}"
+  WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
+  ${USES_TERMINAL})
+
+add_custom_target(vcompile.core.klessydra-s1
+  COMMAND tcsh -c "./vcompile/vcompile_klessydra-s1.csh" #${kless_configs}"
+  WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
+  ${USES_TERMINAL})
+
+add_custom_target(vcompile.core.klessydra-OoO
+  COMMAND tcsh -c "./vcompile/vcompile_klessydra-OoO.csh" #${kless_configs}"
+  WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
+  ${USES_TERMINAL})
+
 add_custom_target(vcompile.core.klessydra-f0-3th
   COMMAND tcsh -c ./vcompile/vcompile_klessydra-f0-3th.csh
   WORKING_DIRECTORY ${PULP_MODELSIM_DIRECTORY}
@@ -200,7 +215,7 @@ add_custom_target(vcompile.core.netlist
 add_subdirectory(libs/klessydra_lib/general_libs)
 #add_subdirectory(libs/klessydra_lib/vgg_libs)
 
-if (${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST})
+if (${USE_KLESSYDRA_T2_M} OR ${USE_KLESSYDRA_T1_3TH} OR ${USE_KLESSYDRA_T13X_NETLIST} OR ${USE_KLESSYDRA_OoO} OR ${USE_KLESSYDRA_S1})
   add_subdirectory(libs/klessydra_lib/dsp_libs)
 endif()
   

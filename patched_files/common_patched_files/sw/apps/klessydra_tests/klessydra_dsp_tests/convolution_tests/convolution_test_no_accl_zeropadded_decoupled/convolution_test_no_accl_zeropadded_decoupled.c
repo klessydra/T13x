@@ -14,7 +14,7 @@ Test
 #define A_ORDER 32//Matrix size, don't do 2x2 case, for that i have another test
 #endif
 // ----------------------------------------------------------------------------------------------------
-#define B_ORDER 11
+#define B_ORDER 3
 #define EXPLICIT 1 // set to 0: uses the function with double inner loops; set to 1: use the explicit/rolled functions
 // ----------------------------------------------------------------------------------------------------
 #if B_ORDER == 3
@@ -338,7 +338,7 @@ int main(){
 					printf("N of loops:%d\n\n",loop_index);
 					for (int i=0; i<1; i++) {  // all the harts have the exact same performance, so the loop index is kept 1
 						printf(" Cycle Count = %d \n Instruction Count = %d \n Instruction wait = %d \n Load Count = %d \n Store Count = %d \n Unconditional Jump Count = %d \n Branch Count = %d \n Taken Count = %d \n \n", 
-								 final_perf0[i]/3, final_perf1[i]/3, final_perf2[i]/3, final_perf3[i]/3, final_perf4[i]/3, final_perf5[i]/3, final_perf6[i]/3, final_perf7[i]/3);
+								 final_perf0[i], final_perf1[i], final_perf2[i], final_perf3[i], final_perf4[i], final_perf5[i], final_perf6[i], final_perf7[i]);
 					}
 					printf("\n");
 				if( EXPLICIT ) printf("Explicit is On\n");

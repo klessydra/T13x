@@ -761,7 +761,7 @@ int main(){
 			__asm__("csrrw zero, mcycle, zero;"
 					"csrrw zero, 0x7A0, 0x00000001");
 			//------------------------------------------------------------------------------------------
-			
+			/*
 			#if EXPLICIT == 0
 				#if B_ORDER == 3
 				for (int l=0; l<loop_index; l++) convolution2D_Zeropadding_3(A_ORDER, mat_second_A[0],(int*)matB, (int*)output_compare1); 
@@ -797,7 +797,7 @@ int main(){
 				for (int l=0; l<loop_index; l++) conv2D_Zeropad_excplicit_11(A_ORDER, mat_second_A[0],(int*)matB, (int*)output_compare1); 
 				#endif
 			#endif
-			
+			*/
 			// DISABLE COUNTING AND SAVE MCYCLE -------------------------------------------------------
 			__asm__("csrrw zero, 0x7A0, 0x00000000;"
 					"csrrw %[perf_mem], mcycle, zero;"
@@ -818,10 +818,7 @@ int main(){
 					final_perf6[i]=*(ptr_perf6[i]);
 					final_perf7[i]=*(ptr_perf7[i]);
     			}
-					
-				#ifndef REPLICATION
-					printf("--------Test: SINGLE SPMU ZEROPADDED DECOUPLED[%dx%d]--------\n", A_ORDER,A_ORDER);
-				#endif			
+		
 				#ifdef REPLICATION
 					printf("--------Test: MULTIPL£ SPMU ZEROPADDED DECOUPLED[%dx%d]--------\n", A_ORDER,A_ORDER);
 				#endif			
@@ -840,7 +837,7 @@ int main(){
 				printf("\n");
 				for (int i=0; i<3; i++) {
 					printf(" Cycle Count = %d \n Instruction Count = %d \n Instruction wait = %d \n Load Count = %d \n Store Count = %d \n Unconditional Jump Count = %d \n Branch Count = %d \n Taken Count = %d \n \n", 
-							 final_perf0[i]/3, final_perf1[i]/3, final_perf2[i]/3, final_perf3[i]/3, final_perf4[i]/3, final_perf5[i]/3, final_perf6[i]/3, final_perf7[i]/3);
+							 final_perf0[i], final_perf1[i], final_perf2[i], final_perf3[i], final_perf4[i], final_perf5[i], final_perf6[i], final_perf7[i]);
 				}
 				printf("FM_ORDER= %d \t KM_ORDER= %d\n",A_ORDER,B_ORDER);
 				printf("Convolution with Multiplier (single thread) ZEROPADDED Speed is:\t%d Cycles\n", final_perf_mem[1]);

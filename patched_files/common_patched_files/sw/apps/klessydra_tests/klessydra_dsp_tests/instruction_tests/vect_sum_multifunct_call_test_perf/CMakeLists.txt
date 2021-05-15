@@ -1,0 +1,1 @@
+add_application(vect_sum_multifunct_call_32_test_perf vect_sum_multifunct_call_32_test_perf.c LABELS "klessydra_tests")

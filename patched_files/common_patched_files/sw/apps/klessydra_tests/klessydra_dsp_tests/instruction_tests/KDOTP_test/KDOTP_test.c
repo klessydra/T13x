@@ -85,7 +85,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 
 	// Test 8-bit dot-product result -----------------------------------------------------------
-	if (Klessydra_get_coreID()==1)
+	if (Klessydra_get_coreID()==0)
 	{
 		__asm__( "csrrw zero, 0x7A0, 0x00000001;");
 		for (int i=0; i<NumOfElements; i++)
@@ -140,7 +140,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 
 	// Test 16-bit dot-product result ----------------------------------------------------------
-	if (Klessydra_get_coreID()==1)
+	if (Klessydra_get_coreID()==0)
 	{
 		__asm__( "csrrw zero, 0x7A0, 0x00000001;");
 		for (int i=0; i<NumOfElements; i++)
@@ -196,7 +196,7 @@ int main()
 	//------------------------------------------------------------------------------------------
 	
 	// Test 32-bit dot-product result ----------------------------------------------------------
-	if (Klessydra_get_coreID()==1)
+	if (Klessydra_get_coreID()==0)
 	{
 		__asm__( "csrrw zero, 0x7A0, 0x00000001;");
 		for (int i=0; i<NumOfElements; i++)
@@ -225,7 +225,7 @@ int main()
 	
 	/************************************ 32-bit DOTP END *************************************/
 	
-	if (Klessydra_get_coreID()==1)
+	if (Klessydra_get_coreID()==0)
 	{		
 		printf("\nNumber of Elements: %d\n",NumOfElements);
 		for(int i=0;i<3;i++)
@@ -258,7 +258,7 @@ int main()
 	goto VECT_DOTP_32;
 	FAIL_VECT_DOTP_32: 
 	printf("\nFAILED KDOTP32 32-bit vector dot product\n");
-	if (Klessydra_get_coreID()==1)
+	if (Klessydra_get_coreID()==0)
 	{		
 		printf("\nNumber of Elements: %d\n\n",NumOfElements);
 	}

@@ -53,7 +53,6 @@ int main()
 	scal16_2 = rand() % 65536 +1;
 	scal32_2 = rand() % (0x80000000 - 0x1);
 
-	
 	int dsp_perf8  = 0;
 	int dsp_perf16 = 0;
 	int dsp_perf32 = 0;

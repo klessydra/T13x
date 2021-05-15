@@ -18,7 +18,10 @@ then
 	USE_KLESSYDRA=1 # Set this to one if you are using a klessydra core (uses the klessydra startup file)
 	USE_KLESSYDRA_T0_2TH=0 # if you are using klessydra-t0-2th (The three pipeline version of klessydra t0), set this to 1
 	USE_KLESSYDRA_T0_3TH=0 # if you are using klessydra-t0-3th (The four pipeline version of klessydra t0), set this to 1
-	USE_KLESSYDRA_T1_3TH=1 # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1
+	USE_KLESSYDRA_T1_3TH=1 # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1CV
+	USE_KLESSYDRA_T2_M=0   # if you are using klessydra-t2-m (A hart morphing version of klessydra T1), set this to 1CV
+	USE_KLESSYDRA_S1=0     # if you are using klessydra-s1 (Single hart version of klessydra t1), set this to 1CV
+	USE_KLESSYDRA_OoO=0    # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1CV
 	USE_KLESSYDRA_F0_3TH=0 # if you are using klessydra-f0-3th (The four pipeline version of klessydra f0), set this to 1
 	USE_KLESSYDRA_T13X_NETLIST=0 # if you are using klessydra-t1-3th (The four pipeline version of klessydra t1), set this to 1
 
@@ -39,17 +42,17 @@ then
 	KLESS_superscalar_exec_en=1		# Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction
 	KLESS_accl_en=1                 # Enable the generation of the special purpose accelerator
 	KLESS_replicate_accl_en=1       # Set to 1 to replicate the accelerator for every thread
-	KLESS_multithreaded_accl_en=1   # Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
+	KLESS_multithreaded_accl_en=0   # Set to 1 to let the replicated accelerator share the functional units (note: replicate_accl_en must be set to '1')
 	KLESS_SPM_NUM=4                 # The number of scratchpads available "Minimum allowed is two"
-	KLESS_Addr_Width=13             # This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
+	KLESS_Addr_Width=14             # This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
 	#   KLESS_SPM_STRT_ADDR          std_logic_vector(31 downto 0) := x"1000_0000";  -- This is starting address of the spms, it shouldn't overlap any sections in the memory map
-	KLESS_SIMD=2                    # Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
+	KLESS_SIMD=8                    # Changing the SIMD, would change the number of the functional units in the dsp, and the number of banks in the spms (can be power of 2 only e.g. 1,2,4,8)
 	KLESS_MCYCLE_EN=1               # Can be set to 1 or 0 only. Setting to zero will disable MCYCLE and MCYCLEH
 	KLESS_MINSTRET_EN=1             # Can be set to 1 or 0 only. Setting to zero will disable MINSTRET and MINSTRETH
 	KLESS_MHPMCOUNTER_EN=1          # Can be set to 1 or 0 only. Setting to zero will disable all performance counters except "MCYCLE/H" and "MINSTRET/H"
-	KLESS_count_all=1               # Perfomance counters count for all the harts instead of there own hart
+	KLESS_count_all=0               # Perfomance counters count for all the harts instead of there own hart
 	KLESS_debug_en=1                # Generates the debug unit
-	KLESS_tracer_en=0				# Generate the instruction tracer used only for debugging purposes
+	KLESS_tracer_en=1				# Generate the instruction tracer used only for debugging purposes
     #  -------------------------------------------------------------------------------------------------------------------------------------------------------
     #  --  ██████╗ ██╗███████╗ ██████╗██╗   ██╗     ██████╗ ██████╗ ██████╗ ███████╗███████╗    ██╗ ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ███████╗  --
     #  --  ██╔══██╗██║██╔════╝██╔════╝╚██╗ ██╔╝    ██╔════╝██╔═══██╗██╔══██╗██╔════╝██╔════╝   ██╔╝██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██╔════╝  --
@@ -75,9 +78,9 @@ then
     #	--  ╚══════╝ ╚══╝╚══╝     ╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝  --
     #	-----------------------------------------------------------------------------------
 
-	FM_Size=32       				 # Defines the size of the Feature Maps in the convolution tests (can only be multiples of 2, FMs > 32 are not tested)
+	FM_Size=4       				 # Defines the size of the Feature Maps in the convolution tests (can only be multiples of 2, FMs > 32 are not tested)
 	Filter_Size=3   				 # Defines the size of the Filters in the convolution tests (can only be 3,5,7,9,11)
-	VSIZE=8 		 				 # Defines the vector size used in the instruction verification klessydra T13 tests
+	VSIZE=307 		 				 # Defines the vector size used in the instruction verification klessydra T13 tests
 	TIME=$(( RANDOM % 2147483647))   # Defines the time used for random generation in different tests
 
 	file=test
@@ -224,6 +227,9 @@ cmake "$PULP_GIT_DIRECTORY"/sw/ \
     -DUSE_KLESSYDRA_T0_2TH="$USE_KLESSYDRA_T0_2TH" \
     -DUSE_KLESSYDRA_T0_3TH="$USE_KLESSYDRA_T0_3TH" \
     -DUSE_KLESSYDRA_T1_3TH="$USE_KLESSYDRA_T1_3TH" \
+    -DUSE_KLESSYDRA_T2_M="$USE_KLESSYDRA_T2_M" \
+    -DUSE_KLESSYDRA_S1="$USE_KLESSYDRA_S1" \
+    -DUSE_KLESSYDRA_OoO="$USE_KLESSYDRA_OoO" \
 	-DUSE_KLESSYDRA_F0_3TH="$USE_KLESSYDRA_F0_3TH" \
 	-DUSE_KLESSYDRA_T13X_NETLIST="$USE_KLESSYDRA_T13X_NETLIST" \
     -DUSE_ZERO_RISCY="$USE_ZERO_RISCY" \
