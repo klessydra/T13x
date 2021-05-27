@@ -1182,8 +1182,8 @@ begin
               write(row0, rd(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs1(instr_word_IE));
-              write(row0, string'(","));
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("rs1=0x"));
@@ -1198,7 +1198,7 @@ begin
               write(row0, string'("    lui x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, U_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("old_rd=0x"));
@@ -1211,7 +1211,7 @@ begin
               write(row0, string'("    auipc x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, U_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("old_rd=0x"));
@@ -1285,7 +1285,7 @@ begin
               write(row0, string'("    jal x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, UJ_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("next_pc="));
@@ -1297,8 +1297,8 @@ begin
               write(row0, rd(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs1(instr_word_IE));
-              write(row0, ',');
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("next_pc="));
@@ -1338,8 +1338,8 @@ begin
               write(row0, rs1(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs2(instr_word_IE));
-              write(row0, string'(","));
-              write(row0, to_integer(signed(B_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, B_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("rs1=0x"));
@@ -1601,7 +1601,8 @@ begin
                decoded_instruction_LS(LB_bit_position) = '1' or decoded_instruction_LS(LBU_bit_position) = '1' then
               write(row0, rd(instr_word_IE));
               write(row0, string'(","));
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, string'("(x"));
               write(row0, rs1(instr_word_IE));
               write(row0, string'(")"));
@@ -1633,7 +1634,8 @@ begin
               decoded_instruction_LS(SB_bit_position) = '1' then
              write(row0, rs2(instr_word_IE));
              write(row0, string'(","));
-             write(row0, to_integer(signed(S_immediate(instr_word_IE))));
+             write(row0, string'(",0x"));
+             hwrite(row0, S_imm(instr_word_IE));
              write(row0, string'("(x"));
              write(row0, rs1(instr_word_IE));
              write(row0, string'(")"));
