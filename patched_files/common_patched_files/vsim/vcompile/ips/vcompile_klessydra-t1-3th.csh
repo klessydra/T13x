@@ -48,7 +48,6 @@ endif
 echo "${Green}--> Compiling ${IP}... ${NC}"
 echo "${Green}Compiling component: ${Brown} klessydra-t1-3th ${NC}"
 echo "${Red}"
-vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra_parameters.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/PKG_RiscV_Klessydra.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-CSR_Unit.vhd || goto error
 vcom -2008 -quiet -suppress 2583 -work ${LIB_PATH}   ${IP_PATH}/RTL-Debug_Unit.vhd || goto error

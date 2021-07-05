@@ -91,7 +91,6 @@ add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/incremented_pc
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/mepc_incremented_pc
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/mepc_interrupt_pc
-add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/boot_pc
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/pc
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/served_except_condition
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/served_mret_condition
@@ -100,8 +99,38 @@ add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/FETCH/pc_ID
 add wave -group PC -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/pc_IE
 
-configure wave -namecolwidth  250
-configure wave -valuecolwidth 100
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Prg_Ctr/clk_i
+add wave -group RAW_Check -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RAW
+add wave -group RAW_Check -radix decimal     tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/RAW_wire
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/EXEC_instr_lat
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/harc_EXEC_lat
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/buf_wr_ptr_lat
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/buf_wr_ptr
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs1_chk_en
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs2_chk_en
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rd_read_only_chk_en
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/IE_instr
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/LSU_instr
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/DSP_instr
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/EXEC_instr
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs1_valid
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs2_valid
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rd_read_only_valid
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rd_valid
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs1_valid_buf
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rs2_valid_buf
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rd_read_only_valid_buf
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/rd_valid_buf
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/Instr_word_buf
+add wave -group RAW_Check -radix hexadecimal tb/top_i/core_region_i/CORE/RISCV_CORE/Pipe/pc_buf
+
+
+
+WaveRestoreCursors {0 ns}
+WaveRestoreZoom    {0 ns} {200 ns}
+configure wave -namecolwidth  200
+configure wave -valuecolwidth 200
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
+configure wave -gridperiod {10 ns}
 configure wave -timelineunits ns

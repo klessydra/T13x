@@ -32,6 +32,9 @@ module tb;
   parameter  USE_KLESSYDRA_T0_2TH = 0;
   parameter  USE_KLESSYDRA_T0_3TH = 0;
   parameter  USE_KLESSYDRA_T1_3TH = 0;
+  parameter  USE_KLESSYDRA_T2_M   = 0;
+  parameter  USE_KLESSYDRA_S1     = 0;
+  parameter  USE_KLESSYDRA_OOO    = 0;
   parameter  USE_KLESSYDRA_F0_3TH = 0;
   parameter	 USE_KLESSYDRA_T13X_NETLIST = 0;
   parameter  RISCY_RV32F    = 0;
@@ -149,6 +152,8 @@ module tb;
     .USE_KLESSYDRA_T0_2TH    ( USE_KLESSYDRA_T0_2TH ),
     .USE_KLESSYDRA_T0_3TH    ( USE_KLESSYDRA_T0_3TH ),
     .USE_KLESSYDRA_T1_3TH    ( USE_KLESSYDRA_T1_3TH ),
+    .USE_KLESSYDRA_S1        ( USE_KLESSYDRA_S1     ),
+    .USE_KLESSYDRA_OOO       ( USE_KLESSYDRA_OOO    ),
     .USE_KLESSYDRA_F0_3TH    ( USE_KLESSYDRA_F0_3TH ),
 	  .USE_KLESSYDRA_T13X_NETLIST ( USE_KLESSYDRA_T13X_NETLIST ),
     .RISCY_RV32F             ( RISCY_RV32F    ),
@@ -412,8 +417,6 @@ module tb;
         spi_master.send(0, {>>{8'h38}});
       end
     end
-
-
 
     // end of computation
     if (~gpio_out[8])

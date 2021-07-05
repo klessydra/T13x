@@ -1,0 +1,1 @@
+add_application(scalar_vect_mult_multifunct_call_test_perf scalar_vect_mult_multifunct_call_test_perf.c LABELS "klessydra_tests")

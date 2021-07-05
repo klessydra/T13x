@@ -29,6 +29,9 @@ module core_region
     parameter USE_KLESSYDRA_T0_2TH = 0,
     parameter USE_KLESSYDRA_T0_3TH = 0,
     parameter USE_KLESSYDRA_T1_3TH = 0,
+    parameter USE_KLESSYDRA_T2_M   = 0,
+    parameter USE_KLESSYDRA_S1     = 0,
+    parameter USE_KLESSYDRA_OOO    = 0,
     parameter USE_KLESSYDRA_F0_3TH = 0,
     parameter USE_KLESSYDRA_T13X_NETLIST = 0,
     parameter USE_ZERO_RISCY       = 0,
@@ -400,23 +403,23 @@ module core_region
   end else if (USE_KLESSYDRA_T1_3TH) begin: CORE
       klessydra_t1_3th_core
       #(
-   		.THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
-      .LUTRAM_RF               (KLESS_LUTRAM_RF),
-   		.RV32E                   (KLESS_RV32E),
-   		.RV32M                   (KLESS_RV32M),
-   		.accl_en                 (KLESS_accl_en),
-      .superscalar_exec_en     (KLESS_superscalar_exec_en),
-   		.replicate_accl_en       (KLESS_replicate_accl_en),
-   		.multithreaded_accl_en   (KLESS_multithreaded_accl_en),
-   		.SPM_NUM                 (KLESS_SPM_NUM),
-   		.Addr_Width              (KLESS_Addr_Width),
-   		.SIMD                    (KLESS_SIMD),
-   		.MCYCLE_EN               (KLESS_MCYCLE_EN),
-   		.MINSTRET_EN             (KLESS_MINSTRET_EN),
-   		.MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
-   		.count_all               (KLESS_count_all),
-   		.debug_en                (KLESS_debug_en),
-      .tracer_en               (KLESS_tracer_en)
+        .THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+        .LUTRAM_RF               (KLESS_LUTRAM_RF),
+        .RV32E                   (KLESS_RV32E),
+        .RV32M                   (KLESS_RV32M),
+        .accl_en                 (KLESS_accl_en),
+        .superscalar_exec_en     (KLESS_superscalar_exec_en),
+        .replicate_accl_en       (KLESS_replicate_accl_en),
+        .multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+        .SPM_NUM                 (KLESS_SPM_NUM),
+        .Addr_Width              (KLESS_Addr_Width),
+        .SIMD                    (KLESS_SIMD),
+        .MCYCLE_EN               (KLESS_MCYCLE_EN),
+        .MINSTRET_EN             (KLESS_MINSTRET_EN),
+        .MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+        .count_all               (KLESS_count_all),
+        .debug_en                (KLESS_debug_en),
+        .tracer_en               (KLESS_tracer_en)
       )
       RISCV_CORE
       (
@@ -467,6 +470,213 @@ module core_region
         .ext_perf_counters_i (               )
       );
 
+  end else if (USE_KLESSYDRA_T2_M) begin: CORE
+      klessydra_t2_m_core
+      #(
+        .THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+        .LUTRAM_RF               (KLESS_LUTRAM_RF),
+        .RV32E                   (KLESS_RV32E),
+        .RV32M                   (KLESS_RV32M),
+        .accl_en                 (KLESS_accl_en),
+        .superscalar_exec_en     (KLESS_superscalar_exec_en),
+        .replicate_accl_en       (KLESS_replicate_accl_en),
+        .multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+        .SPM_NUM                 (KLESS_SPM_NUM),
+        .Addr_Width              (KLESS_Addr_Width),
+        .SIMD                    (KLESS_SIMD),
+        .MCYCLE_EN               (KLESS_MCYCLE_EN),
+        .MINSTRET_EN             (KLESS_MINSTRET_EN),
+        .MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+        .count_all               (KLESS_count_all),
+        .debug_en                (KLESS_debug_en),
+        .tracer_en               (KLESS_tracer_en)
+      )
+      RISCV_CORE
+      (
+        .clk_i           ( clk               ),
+        .rst_ni          ( rst_n             ),
+
+        .clock_en_i      ( clock_gating_i    ),
+        .test_en_i       ( testmode_i        ),
+
+        .boot_addr_i     ( boot_addr_i       ),
+        .core_id_i       ( 4'h0              ),
+        .cluster_id_i    ( 6'h0              ),
+
+        .instr_addr_o    ( core_instr_addr   ),
+        .instr_req_o     ( core_instr_req    ),
+        .instr_rdata_i   ( core_instr_rdata  ),
+        .instr_gnt_i     ( core_instr_gnt    ),
+        .instr_rvalid_i  ( core_instr_rvalid ),
+
+        .data_addr_o     ( core_lsu_addr     ),
+        .data_wdata_o    ( core_lsu_wdata    ),
+        .data_we_o       ( core_lsu_we       ),
+        .data_req_o      ( core_lsu_req      ),
+        .data_be_o       ( core_lsu_be       ),
+        .data_rdata_i    ( core_lsu_rdata    ),
+        .data_gnt_i      ( core_lsu_gnt      ),
+        .data_rvalid_i   ( core_lsu_rvalid   ),
+        .data_err_i      ( 1'b0              ),
+
+        .irq_i           ( (|irq_i)          ),
+        .irq_id_i        ( irq_id            ),
+        .irq_ack_o       (                   ),
+        .irq_id_o        (                   ),
+
+        .debug_req_i     ( debug.req         ),
+        .debug_gnt_o     ( debug.gnt         ),
+        .debug_rvalid_o  ( debug.rvalid      ),
+        .debug_addr_i    ( debug.addr        ),
+        .debug_we_i      ( debug.we          ),
+        .debug_wdata_i   ( debug.wdata       ),
+        .debug_rdata_o   ( debug.rdata       ),
+        .debug_halted_o  (                   ),
+        .debug_halt_i    ( 1'b0              ),
+        .debug_resume_i  ( 1'b0              ),
+
+        .fetch_enable_i  ( fetch_enable_i    ),
+        .core_busy_o     ( core_busy_o       ),
+        .ext_perf_counters_i (               )
+      );
+  end else if (USE_KLESSYDRA_S1) begin: CORE
+      klessydra_s1_core
+      #(
+        .THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+        .LUTRAM_RF               (KLESS_LUTRAM_RF),
+        .RV32E                   (KLESS_RV32E),
+        .RV32M                   (KLESS_RV32M),
+        .accl_en                 (KLESS_accl_en),
+        .superscalar_exec_en     (KLESS_superscalar_exec_en),
+        .replicate_accl_en       (KLESS_replicate_accl_en),
+        .multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+        .SPM_NUM                 (KLESS_SPM_NUM),
+        .Addr_Width              (KLESS_Addr_Width),
+        .SIMD                    (KLESS_SIMD),
+        .MCYCLE_EN               (KLESS_MCYCLE_EN),
+        .MINSTRET_EN             (KLESS_MINSTRET_EN),
+        .MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+        .count_all               (KLESS_count_all),
+        .debug_en                (KLESS_debug_en),
+        .tracer_en               (KLESS_tracer_en)
+      )
+      RISCV_CORE
+      (
+        .clk_i           ( clk               ),
+        .rst_ni          ( rst_n             ),
+
+        .clock_en_i      ( clock_gating_i    ),
+        .test_en_i       ( testmode_i        ),
+
+        .boot_addr_i     ( boot_addr_i       ),
+        .core_id_i       ( 4'h0              ),
+        .cluster_id_i    ( 6'h0              ),
+
+        .instr_addr_o    ( core_instr_addr   ),
+        .instr_req_o     ( core_instr_req    ),
+        .instr_rdata_i   ( core_instr_rdata  ),
+        .instr_gnt_i     ( core_instr_gnt    ),
+        .instr_rvalid_i  ( core_instr_rvalid ),
+
+        .data_addr_o     ( core_lsu_addr     ),
+        .data_wdata_o    ( core_lsu_wdata    ),
+        .data_we_o       ( core_lsu_we       ),
+        .data_req_o      ( core_lsu_req      ),
+        .data_be_o       ( core_lsu_be       ),
+        .data_rdata_i    ( core_lsu_rdata    ),
+        .data_gnt_i      ( core_lsu_gnt      ),
+        .data_rvalid_i   ( core_lsu_rvalid   ),
+        .data_err_i      ( 1'b0              ),
+
+        .irq_i           ( (|irq_i)          ),
+        .irq_id_i        ( irq_id            ),
+        .irq_ack_o       (                   ),
+        .irq_id_o        (                   ),
+
+        .debug_req_i     ( debug.req         ),
+        .debug_gnt_o     ( debug.gnt         ),
+        .debug_rvalid_o  ( debug.rvalid      ),
+        .debug_addr_i    ( debug.addr        ),
+        .debug_we_i      ( debug.we          ),
+        .debug_wdata_i   ( debug.wdata       ),
+        .debug_rdata_o   ( debug.rdata       ),
+        .debug_halted_o  (                   ),
+        .debug_halt_i    ( 1'b0              ),
+        .debug_resume_i  ( 1'b0              ),
+
+        .fetch_enable_i  ( fetch_enable_i    ),
+        .core_busy_o     ( core_busy_o       ),
+        .ext_perf_counters_i (               )
+      );
+  end else if (USE_KLESSYDRA_OOO) begin: CORE
+      klessydra_OoO_core
+      #(
+      .THREAD_POOL_SIZE        (KLESS_THREAD_POOL_SIZE),
+      .LUTRAM_RF               (KLESS_LUTRAM_RF),
+      .RV32E                   (KLESS_RV32E),
+      .RV32M                   (KLESS_RV32M),
+      .accl_en                 (KLESS_accl_en),
+      .superscalar_exec_en     (KLESS_superscalar_exec_en),
+      .replicate_accl_en       (KLESS_replicate_accl_en),
+      .multithreaded_accl_en   (KLESS_multithreaded_accl_en),
+      .SPM_NUM                 (KLESS_SPM_NUM),
+      .Addr_Width              (KLESS_Addr_Width),
+      .SIMD                    (KLESS_SIMD),
+      .MCYCLE_EN               (KLESS_MCYCLE_EN),
+      .MINSTRET_EN             (KLESS_MINSTRET_EN),
+      .MHPMCOUNTER_EN          (KLESS_MHPMCOUNTER_EN),
+      .count_all               (KLESS_count_all),
+      .debug_en                (KLESS_debug_en),
+      .tracer_en               (KLESS_tracer_en)
+      )
+      RISCV_CORE
+      (
+        .clk_i           ( clk               ),
+        .rst_ni          ( rst_n             ),
+
+        .clock_en_i      ( clock_gating_i    ),
+        .test_en_i       ( testmode_i        ),
+
+        .boot_addr_i     ( boot_addr_i       ),
+        .core_id_i       ( 4'h0              ),
+        .cluster_id_i    ( 6'h0              ),
+
+        .instr_addr_o    ( core_instr_addr   ),
+        .instr_req_o     ( core_instr_req    ),
+        .instr_rdata_i   ( core_instr_rdata  ),
+        .instr_gnt_i     ( core_instr_gnt    ),
+        .instr_rvalid_i  ( core_instr_rvalid ),
+
+        .data_addr_o     ( core_lsu_addr     ),
+        .data_wdata_o    ( core_lsu_wdata    ),
+        .data_we_o       ( core_lsu_we       ),
+        .data_req_o      ( core_lsu_req      ),
+        .data_be_o       ( core_lsu_be       ),
+        .data_rdata_i    ( core_lsu_rdata    ),
+        .data_gnt_i      ( core_lsu_gnt      ),
+        .data_rvalid_i   ( core_lsu_rvalid   ),
+        .data_err_i      ( 1'b0              ),
+
+        .irq_i           ( (|irq_i)          ),
+        .irq_id_i        ( irq_id            ),
+        .irq_ack_o       (                   ),
+        .irq_id_o        (                   ),
+
+        .debug_req_i     ( debug.req         ),
+        .debug_gnt_o     ( debug.gnt         ),
+        .debug_rvalid_o  ( debug.rvalid      ),
+        .debug_addr_i    ( debug.addr        ),
+        .debug_we_i      ( debug.we          ),
+        .debug_wdata_i   ( debug.wdata       ),
+        .debug_rdata_o   ( debug.rdata       ),
+        .debug_halted_o  (                   ),
+        .debug_halt_i    ( 1'b0              ),
+        .debug_resume_i  ( 1'b0              ),
+
+        .fetch_enable_i  ( fetch_enable_i    ),
+        .core_busy_o     ( core_busy_o       ),
+        .ext_perf_counters_i (               )
+      );
 
   end else if (USE_KLESSYDRA_F0_3TH) begin: CORE
       klessydra_f0_3th_core
@@ -822,7 +1032,8 @@ if (USE_KLESSYDRA_T13X_NETLIST) begin : mem_gen_net
     .be_i         ( data_mem_be    ),
     .bypass_en_i  ( testmode_i     )
   );
-  end else begin : mem_gen
+end 
+else begin : mem_gen
   sp_ram_wrap
   #(
     .RAM_SIZE   ( DATA_RAM_SIZE  ),

@@ -47,6 +47,9 @@ if {$env(USE_KLESSYDRA_T13X_NETLIST) == 1} {
     -L klessydra-t0-2th_lib \
     -L klessydra-t0-3th_lib \
     -L klessydra-t1-3th_lib \
+    -L klessydra-t2-m_lib \
+    -L klessydra-s1_lib \
+    -L klessydra-OoO_lib \
     -L klessydra-f0-3th_lib \
     -L zero_riscy_lib \
     -L axi_slice_dc_lib \

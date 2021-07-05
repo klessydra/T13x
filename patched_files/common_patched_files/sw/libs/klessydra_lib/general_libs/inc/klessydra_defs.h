@@ -35,5 +35,5 @@
 #define k_mtvec		0x305
 
 // #define thread_stack_size 4096
-// #define thread_stack_size 16384
-#define thread_stack_size 65536
+// #define thread_stack_size 16384	
+#define thread_stack_size 131072
