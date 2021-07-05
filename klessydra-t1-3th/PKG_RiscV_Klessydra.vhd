@@ -560,6 +560,11 @@ package riscv_klessydra is
   function B_immediate(signal instr  : in std_logic_vector(31 downto 0)) return std_logic_vector;
   function U_immediate(signal instr  : in std_logic_vector(31 downto 0)) return std_logic_vector;
   function UJ_immediate(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector;
+  function I_imm(signal instr        : in std_logic_vector(31 downto 0)) return std_logic_vector;
+  function S_imm(signal instr        : in std_logic_vector(31 downto 0)) return std_logic_vector;
+  function B_imm(signal instr        : in std_logic_vector(31 downto 0)) return std_logic_vector;
+  function U_imm(signal instr        : in std_logic_vector(31 downto 0)) return std_logic_vector;
+  function UJ_imm(signal instr       : in std_logic_vector(31 downto 0)) return std_logic_vector;
   function shamt(signal instr        : in std_logic_vector(31 downto 0)) return std_logic_vector;
   function OPCODE(signal instr       : in std_logic_vector(31 downto 0)) return std_logic_vector;
   function FUNCT3(signal instr       : in std_logic_vector(31 downto 0)) return std_logic_vector;
@@ -621,6 +626,33 @@ package body riscv_klessydra is
   begin
     return std_logic_vector(resize(signed(instr(31) & instr(19 downto 12) & instr(20)
                                           & instr(30 downto 21) & '0'), 32));
+  end;
+
+  function I_imm(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is
+  begin
+    return std_logic_vector(signed(instr(31) & instr(30 downto 20)));
+  end;
+
+  function S_imm(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is
+  begin
+    return std_logic_vector(signed(instr(31 downto 25) & instr(11 downto 8) & instr(7)));
+  end;
+
+  function B_imm(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is
+  begin
+    return std_logic_vector(signed(instr(31) & instr(7) & instr(30 downto 25)
+                                          & instr(11 downto 8) & '0'));
+  end;
+
+  function U_imm(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is
+  begin
+    return instr(31 downto 12);
+  end;
+
+  function UJ_imm(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is
+  begin
+    return std_logic_vector(signed(instr(31) & instr(19 downto 12) & instr(20)
+                                          & instr(30 downto 21) & '0'));
   end;
 
   function shamt(signal instr : in std_logic_vector(31 downto 0)) return std_logic_vector is

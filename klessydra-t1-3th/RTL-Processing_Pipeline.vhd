@@ -276,6 +276,7 @@ architecture Pipe of Pipeline is
   signal RAW_wire                    : array_2d_int(buf_size-1 downto 0);
   signal RAW                         : array_2d_int(buf_size-1 downto 0);
   signal tracer_result               : std_logic_vector(31 downto 0);
+  signal tracer_mul_result           : std_logic_vector(63 downto 0);
 
   function rs1 (signal instr : in std_logic_vector(31 downto 0)) return integer is
   begin
@@ -1182,14 +1183,16 @@ begin
               write(row0, rd(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs1(instr_word_IE));
-              write(row0, string'(","));
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("rs1=0x"));
               hwrite(row0, RS1_Data_IE);
-              write(row0, string'("      old_rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --if accl_en = 1 then
+              --  write(row0, string'("      old_rd=0x"));
+              --  hwrite(row0, RD_Data_IE);
+              --end if;
               write(row0, string'("      new_rd=0x"));
               hwrite(row0, tracer_result);
             end if;
@@ -1198,11 +1201,13 @@ begin
               write(row0, string'("    lui x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, U_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
-              write(row0, string'("old_rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --if accl_en = 1 then
+              --  write(row0, string'("old_rd=0x"));
+              --  hwrite(row0, RD_Data_IE);
+              --end if;
               write(row0, string'("      new_rd=0x"));
               hwrite(row0, tracer_result);
             end if;
@@ -1211,11 +1216,13 @@ begin
               write(row0, string'("    auipc x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, U_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
-              write(row0, string'("old_rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --if accl_en = 1 then
+              --  write(row0, string'("old_rd=0x"));
+              --  hwrite(row0, RD_Data_IE);
+              --end if;
               write(row0, string'("      new_rd=0x"));
               hwrite(row0, tracer_result);
             end if;
@@ -1276,8 +1283,10 @@ begin
               hwrite(row0, RS1_Data_IE);
               write(row0, string'("      rs2=0x"));
               hwrite(row0, RS2_Data_IE);
-              write(row0, string'("      old_rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --if accl_en = 1 then
+              --  write(row0, string'("      old_rd=0x"));
+              --  hwrite(row0, RD_Data_IE);
+              --end if;
               write(row0, string'("      new_rd=0x"));
               hwrite(row0, tracer_result);            end if;
 
@@ -1285,7 +1294,7 @@ begin
               write(row0, string'("    jal x"));
               write(row0, rd(instr_word_IE));
               write(row0, string'(",0x"));
-              hwrite(row0, instr_word_IE(31 downto 12));
+              hwrite(row0, UJ_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("next_pc="));
@@ -1297,8 +1306,8 @@ begin
               write(row0, rd(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs1(instr_word_IE));
-              write(row0, ',');
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("next_pc="));
@@ -1338,8 +1347,8 @@ begin
               write(row0, rs1(instr_word_IE));
               write(row0, string'(",x"));
               write(row0, rs2(instr_word_IE));
-              write(row0, string'(","));
-              write(row0, to_integer(signed(B_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, B_imm(instr_word_IE));
               write(row0, ht);
               write(row0, ht);
               write(row0, string'("rs1=0x"));
@@ -1479,8 +1488,10 @@ begin
                 write(row0, ht);
                 write(row0, string'("rs1=0x"));
                 hwrite(row0, RS1_Data_IE);
-                write(row0, string'("      old_rd=0x"));
-                hwrite(row0, RD_Data_IE);
+                --if accl_en = 1 then
+                --  write(row0, string'("      old_rd=0x"));
+                --  hwrite(row0, RD_Data_IE);
+                --end if;
             end if;
 
             if decoded_instruction_IE(ILL_bit_position) = '1' then
@@ -1542,10 +1553,18 @@ begin
               hwrite(row0, RS1_Data_IE);
               write(row0, string'("      rs2=0x"));
               hwrite(row0, RS2_Data_IE);
-              write(row0, string'("      old_rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --if accl_en = 1 then
+              --  write(row0, string'("      old_rd=0x"));
+              --  hwrite(row0, RD_Data_IE);
+              --end if;
               write(row0, string'("      new_rd=0x"));
-              hwrite(row0, tracer_result);
+              if decoded_instruction_IE(MUL_bit_position) = '1' then
+                hwrite(row0, tracer_mul_result(31 downto 0));
+              elsif decoded_instruction_IE(MULH_bit_position)   = '1' or
+                    decoded_instruction_IE(MULHU_bit_position)  = '1' or
+                    decoded_instruction_IE(MULHSU_bit_position) = '1' then
+                hwrite(row0, tracer_mul_result(63 downto 32));
+              end if;
             end if;
 
 
@@ -1601,7 +1620,8 @@ begin
                decoded_instruction_LS(LB_bit_position) = '1' or decoded_instruction_LS(LBU_bit_position) = '1' then
               write(row0, rd(instr_word_IE));
               write(row0, string'(","));
-              write(row0, to_integer(signed(I_immediate(instr_word_IE))));
+              write(row0, string'(",0x"));
+              hwrite(row0, I_imm(instr_word_IE));
               write(row0, string'("(x"));
               write(row0, rs1(instr_word_IE));
               write(row0, string'(")"));
@@ -1610,8 +1630,8 @@ begin
               write(row0, ht);
               write(row0, string'("rs1=0x"));
               hwrite(row0, RS1_Data_IE);
-              write(row0, string'("      rd=0x"));
-              hwrite(row0, RD_Data_IE);
+              --write(row0, string'("      rd=0x"));
+              --hwrite(row0, RD_Data_IE);
               write(row0, string'("      addr=0x"));
               hwrite(row0, tracer_result);
             end if;
@@ -1633,7 +1653,8 @@ begin
               decoded_instruction_LS(SB_bit_position) = '1' then
              write(row0, rs2(instr_word_IE));
              write(row0, string'(","));
-             write(row0, to_integer(signed(S_immediate(instr_word_IE))));
+             write(row0, string'(",0x"));
+             hwrite(row0, S_imm(instr_word_IE));
              write(row0, string'("(x"));
              write(row0, rs1(instr_word_IE));
              write(row0, string'(")"));
@@ -1643,7 +1664,7 @@ begin
              write(row0, string'("rs1=0x"));
              hwrite(row0, RS1_Data_IE);
              write(row0, string'("      rs2=0x"));
-             hwrite(row0, RD_Data_IE);
+             hwrite(row0, RS2_Data_IE);
              write(row0, string'("      addr=0x"));
              hwrite(row0, tracer_result);
            end if;
@@ -1758,16 +1779,16 @@ begin
                  decoded_instruction_DSP(KRELU_bit_position)  = '1'  or
                  decoded_instruction_DSP(KBCAST_bit_position) = '1'  or
                  decoded_instruction_DSP(KVCP_bit_position)   = '1'  or
-                 FUNCT7(instr_word_ID_lat) = KBCAST then
-                write(row0, rd(instr_word_ID_lat));
+                 FUNCT7(instr_word_IE) = KBCAST then
+                write(row0, rd(instr_word_IE));
                 write(row0, string'(",x"));
-                write(row0, rs1(instr_word_ID_lat));
+                write(row0, rs1(instr_word_IE));
               else
-                write(row0, rd(instr_word_ID_lat));
+                write(row0, rd(instr_word_IE));
                 write(row0, string'(",x"));
-                write(row0, rs1(instr_word_ID_lat));
+                write(row0, rs1(instr_word_IE));
                 write(row0, string'(",x"));
-                write(row0, rs2(instr_word_ID_lat));
+                write(row0, rs2(instr_word_IE));
               end if;
               write(row0, string'("      SPM_rd("));
               write(row0, to_integer(unsigned(rd_to_sc)));
@@ -2109,6 +2130,19 @@ begin
             rs1_valid <= '1' when rs1(instr_word_IE) /= 0;
             rs2_valid <= '1' when rs2(instr_word_IE) /= 0;
             rd_valid  <= '1' when rd(instr_word_IE)  /= 0;
+          end if;
+
+          if decoded_instruction_IE(MUL_bit_position) = '1' or 
+             decoded_instruction_IE(MULH_bit_position) = '1' then
+            tracer_mul_result <= std_logic_vector(signed(RS1_Data_IE)*signed(RS2_Data_IE));
+          end if;
+
+          if decoded_instruction_IE(MULHU_bit_position) = '1' then
+            tracer_mul_result <= std_logic_vector(unsigned(RS1_Data_IE)*unsigned(RS2_Data_IE));
+          end if;
+
+          if decoded_instruction_IE(MULHSU_bit_position) = '1' then
+            tracer_mul_result <= x"FFFFFFFF_00000000";
           end if;
 
           if decoded_instruction_IE(DIV_bit_position)  = '1' or 
