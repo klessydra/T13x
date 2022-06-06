@@ -268,7 +268,7 @@ package riscv_klessydra is
   constant MESTATUS_addr      : std_logic_vector (11 downto 0) := x"7B8";
   constant MCPUID_addr        : std_logic_vector (11 downto 0) := x"F00";
   constant MIMPID_addr        : std_logic_vector (11 downto 0) := x"F01";
-  constant MHARTID_addr       : std_logic_vector (11 downto 0) := x"F10";
+  constant MHARTID_addr       : std_logic_vector (11 downto 0) := x"F14";
   constant BADADDR_addr       : std_logic_vector (11 downto 0) := x"343";
   constant MIRQ_addr          : std_logic_vector (11 downto 0) := x"FC0";
   --Performance Counters CSR addresses
