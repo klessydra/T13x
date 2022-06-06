@@ -1,2 +1,0 @@
-add_application(convolution_test_multi_spmu_zeropadded_decoupled convolution_test_multi_spmu_zeropadded_decoupled.c LABELS "klessydra_tests")
-

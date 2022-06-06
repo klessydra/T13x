@@ -1,6 +1,0 @@
-add_subdirectory(convolution_tests)
-add_subdirectory(instruction_tests)
-add_subdirectory(Kmeans)
-add_subdirectory(Matmul)
-add_subdirectory(Axpy)
-add_subdirectory(composite_test)

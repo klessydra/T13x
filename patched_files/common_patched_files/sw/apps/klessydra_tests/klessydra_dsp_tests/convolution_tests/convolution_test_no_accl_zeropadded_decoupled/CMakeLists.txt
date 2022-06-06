@@ -1,2 +1,0 @@
-add_application(convolution_test_no_accl_zeropadded_decoupled convolution_test_no_accl_zeropadded_decoupled.c LABELS "klessydra_tests")
-
