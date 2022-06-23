@@ -87,7 +87,7 @@ PROCEDURE:
 		
 		c) ./update-ips.py	
 
-5.	OPTIONAL: After the update scipt is done, then you will be able to test Klessydra-m. -Navigate to "sw" folder inside pulpino and execute the following commands
+5.	OPTIONAL: After the update scipt is done, then you will be able to test Klessydra-T1. -Navigate to "sw" folder inside pulpino and execute the following commands
 
 		a) e.g. mkdir build
 		
