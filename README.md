@@ -1,14 +1,12 @@
 <img src="/pics/Klessydra_Logo.png" width="400">
 
-# KLESSYDRA-T13 INTRELEAVED MULTITHREADED PROCESSOR
+# KLESSYDRA-T1 INTRELEAVED MULTITHREADED PROCESSOR
 
-Intro: The Klessydra processing core family is a set of processors featuring full compliance with RISC-V, and pin-to-pin compatible with the PULPino Riscy cores. Klessydra-T13 is a bare-metal 32-bit processor fully supporting the RV32IM from the RISC-V ISA, and one instruction from the Atomic "A" extension. 'T1' further extends the instruction set with a set of custom vector instructions.
+Intro: The Klessydra processing core family is a set of processors featuring full compliance with RISC-V, and pin-to-pin compatible with the PULPino Riscy cores. Klessydra-T1 is a bare-metal 32-bit processor fully supporting the RV32IM from the RISC-V ISA, and one instruction from the Atomic "A" extension. 'T1' further extends the instruction set with a set of custom vector instructions.
 
-Architecture: T13 as its T0x predecessor vesions is also an interleaved multithreaded processor (Aka, barrel processor). It interleaves three hardware threads (harts). Each hart has it's own registerfile, CSR-unit, and program counter, and they communicate with each other via software interrupts.
+Architecture: T1 as its T0 predecessor is also an interleaved multithreaded processor (Aka, barrel processor). It interleaves three hardware threads (harts). Each hart has it's own registerfile, CSR-unit, and program counter, and they communicate with each other via software interrupts.
 
-Fencing role of the harts: The harts in our IMT archtiecture play an essential fencing role to avoid pipeline stalls. One role is to fence between registerfile RD & WR accesses, thus never having data-dependency pipeline stalls. The other is to fence between the execution and fetch stage, thus avoiding the need to perform any pipeline flushing.
-
-The T13 extends further the T0x versions by supporting superscalar execution between the units in the execute stage, it supports some hart bypass logic to minimize the stalls in high latency instructions. It also introduces a custom mathematics coprocessor, to accelerate the executuon of the vector instructions.
+Fencing role of the harts: The harts in the IMT archtiectures of Klessydra play an essential fencing role to avoid pipeline stalls. One role is to fence between registerfile read and write accesses, by interleaving threads to sit between the read and write stages thus never having data-dependency related pipeline stalls. The other is to fence between the execution stage where branch instructions and jumps are handled and the fetch stage, thus avoiding the need to perform any pipeline flushing. Once the number of harts becomes less then the required baseline required to create a fence, in that case the data dependency checker and the branch-predictor turn on in order to avoid data and control hazards.
 
 <p align="center">
 <img src="/pics/Klessydra-T13x.png" width="600">
@@ -20,52 +18,49 @@ The coprocessor features a parametrizable set of Scratchpad memories 'SPMs' (par
 
 The coprocessor can be configured to run in three different modes:
 
-1) Shared Coprocessor: Where the coprocessor is shared by all the harts (SIMD Coprocessor).
-2) Fully Symmetrical Coprocessor: Where each hart has its dedicated MFU and SPMI. (SIMD+MIMD Coprocessor ver.1).
-3) Heterogeneous coprocessor: Where the harts share the functional units in the MFU, but each hart maintains it own dedicated SPMI (SIMD+MIMD coprocessor ver.2).
+
+1) Shared Coprocessor: Where the VCU and SPMI are shared by all the harts (SIMD Coprocessor).
+2) Fully Symmetrical Coprocessor: Where each hart has its dedicated VCU and SPMI. (MIMD Coprocessor ver.1).
+3) Heterogeneous coprocessor: Where the harts share the functional units in the VCU, but each hart maintains it own dedicated SPMI (MIMD coprocessor ver.2).
+
 
 Parameters:
 - N = Number of SPMs in the SPMI.
-- M = Number of SPMIs, as well as control logic for every hart.
-- D = Number of Functional Units per MFU, and banks per SPM (i.e. determines the SIMD width).
-- F = Number of Functional Units per hart (i.e. determines the MIMD width).
+- D = Number of Functional Units per VCU, and banks per SPM (i.e. determines the SIMD).
+- F = Number of SIMD Functional Units (i.e. determines the MIMD), when 1, it means the harts share the SIMD functional units.
+- M = Number of SPMIs, as well as VCU control logic for every hart, when 1, it means the harts share the same SPM space.
+
 
 <p align="center">
 <img src="/pics/Vector Coprocessor.png" width="500">
 </p> 
 
-# Merging T13x User Guide
+# Using Klessydra-T1
 
-This guide explains how one can download and install Pulpino, and it's 
-modified version of the riscv-gnu toolchain. It also demonstrates
-how to patch the offcial riscv-toolchain in order to add the klessydra custom
-vector extensions. And then it shows how you can easily merge the Klessydra-Core 
-with the Pulpino project.
+This guide explains how one can download Pulpino-Klessydra that has all the Klessydra Cores integrated inside of it, and build PULP's version of the riscv-gnu-toolchain. It also demonstrates how to patch the offcial riscv-gnu-toolchain in order to add the Klessydra custom vector extensions.
 
 ###########################################################################################
-- Prerequisites as indicated by the pulpino group
-	- ModelSim in reasonably recent version (we tested it with versions 10.2c)
-	- CMake >= 2.8.0, versions greater than 3.1.0 recommended due to support for ninja
-	- riscv-toolchain, there are two choices for getting the toolchain: 
 
-  		1) RECOMENDED OPTION: Use the custom version of the RISC-V toolchain from ETH. 
-  		The ETH versions supports all the ISA extensions that were incorporated 
-	  	into the RI5CY core as well as the reduced base instruction set for zero-riscy.
-	        " https://github.com/pulp-platform/ri5cy_gnu_toolchain.git "
+    Prerequisites as indicated by the PULP group
 
-		2) Or download the official RISC-V toolchain supported by Berkeley.
- 	       	" https://github.com/riscv/riscv-gnu-toolchain "
+        Mentor ModelSim
 
+        CMake >= 2.8.0, versions greater than 3.1.0 recommended due to support for ninja
 
-	  	Please make sure you are using the newlib version of the toolchain.
-	- python2 >= 2.6
-	
+        riscv-toolchain, there are two choices for getting the toolchain:
+
+            RECOMENDED OPTION: Use the custom version of the RISC-V toolchain from ETH. The ETH versions supports all the ISA extensions that were incorporated into the RI5CY core as well as the reduced base instruction set for zero-riscy. " https://github.com/pulp-platform/ri5cy_gnu_toolchain.git "
+
+            Or download the official RISC-V toolchain supported by Berkeley. " https://github.com/riscv/riscv-gnu-toolchain "
+
+        Please make sure you are using the newlib version of the toolchain.
+
+        python2 >= 2.6
+
 ###########################################################################################
-
-- IF you already have pulpino and their own version of the riscv-toolchain, then skip ahead to step.4
-
 
 PROCEDURE:
+
 1.	Install the following packeges:
 		
 		sudo apt-get install git cmake python-yaml tcsh autoconf automake autotools-dev curl libmpc-dev libmpfr-dev libgmp-dev gawk build-essential bison flex texinfo gperf libtool patchutils bc zlib1g-dev libexpat-dev
@@ -82,28 +77,17 @@ PROCEDURE:
 		
 	When the build is done, add the path **_<path_to_toolchain>/ri5cy_gnu_toolchain/install/bin_** to the environmental variables
 
-3.	Download the PULPino suite:
+3.	To run the klessydra tests, you have to download and patch the official riscv-gnu-toolchain, and then build it. Instructions for doing so are included in the README.md file inside the folder called "toolchain_files".
 
-		a) git clone https://github.com/pulp-platform/pulpino.git
+4.		Download PULPino-Klessydra:
+
+		a) git clone https://github.com/klessydra/pulpino-klessydra
 		
-		b) cd pulpino
+		b) cd pulpino-klessydra
 		
 		c) ./update-ips.py	
 
-
-4.	If you want to run the klessydra specific tests, you have to download and patch the official riscv-toolchain, and then build it. Instructions for doing so are included in the README.md file
-	inside the folder called "toolchain_files".
-
-5.	To merge the Klessydra core, and tests:
-
-		a) git clone https://github.com/klessydra/T13x.git
-		
-		b) cd T13x
-		
-		c) ./runMErge.sh <pulpino_path>
-
-6.	OPTIONAL: After merging is done, this is how you will be able to test Klessydra-t1-3th.
-		-Open a terminal and navigate to "sw" folder inside pulpino and execute the following commands
+5.	OPTIONAL: After the update scipt is done, then you will be able to test Klessydra-m. -Navigate to "sw" folder inside pulpino and execute the following commands
 
 		a) e.g. mkdir build
 		
@@ -117,22 +101,21 @@ PROCEDURE:
 		e) make vcompile
 
 		For running Klessydra tests; the variable "USE_KLESSYDRA_TEST" in the above shell file is set to '1' by default. You only need to build and run your test
-		f) (e.g.  make vect_sum_single_funct_call_all_test_perf.vsimc) FOR KLESSYDRA T1x ONLY!!!
-		General tests for all "Txx" versions of Klessydra are also available
-		g) (e.g.  make barrier_test.vsimc)
+		f) To run an accelerated test (e.g.  make KDOTP_test.vsimc)
+
+		g) To run a non-accelerated test (e.g.  make barrier_test.vsimc)
 		
-		h) You can run one of the PULPino native tests,  (e.g. make testALU.vsimc)
+		h) You can also run one of the PULPino native tests,  (e.g. make testALU.vsimc)
 			
 	IT"S DONE!!!!!!
 
 Supplimentary Information:
 
-7.	In order to run tests in Modelsim, go to the build folder and do the following:
-		make nameofthetest.vsim (or .vsimc to run a test without modelsim GUI)
+6.	In order to run tests under Modelsim gui mode, navigate again to the build folder and do the following: make nameofthetest.vsim (while .vsimc runs the test under Modelsim in background)
 
-8. Klessydra-T13 libraries are available, and their function is described in the software runtime manual fuond in the Docs folder
+7. Klessydra-T1 libraries are available, and their functions are described in the software runtime manual fuond in the Docs folder
 
-# T13x Extensions illustration
+# Klessydra-T1 Parameters
 
 The following illustrates briefly the parameters of the T13, and their usage settings.
 
@@ -144,7 +127,7 @@ Extensions of T13x core:
 The T13 can be configed in many ways in the from the "cmake_configure.klessydra-t1-3th.gcc.sh" found in the sw forlder:
 
 You will find the following generics that will be passed to the RTL. **_Read the comments next to the variables before modifying_**:
-1)  "THREAD_POOL_SIZE" sets the number of hardware threads. This should not be set less than 3, and the T13 perfroms best when it is equal to 3 and not greater.
+1)	"THREAD_POOL_SIZE" sets the number of hardware threads. This should not be set less than 3, and the T13 perfroms best when it is equal to 3 and not greater.
 2)	"LUTRAM_RF" this variable creates a LUTRAM based registerfile instead of a flip-flop based one, it is good for FPGA synthesis as LUTRAMs based regfiles are more efficient than FF based ones.
 3)	"RV32E" this enables the embedded extension of the RISCV ISA, and makes the regfile to be half its original size (16 regs only).
 4)	"RV32M" this enable the M-extension of the RISCV ISA. The mul instruction is a single cycle instructions, and the mulh/hu/hsu instructions need 3 cycles. divisions are slow, and can be up to 32 cycles, however fast single cycle divisions are availabe for special cases (div by 0, numerator < denominator, numerator is 0, and numerator equals the denominator).
