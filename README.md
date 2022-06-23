@@ -117,23 +117,23 @@ Supplimentary Information:
 
 # Klessydra-T1 Parameters
 
-The following illustrates briefly the parameters of the T13, and their usage settings.
+The following illustrates briefly the parameters of the T1, and their usage settings.
 
 - For more details about the Klessydra processing cores, please refer to the technincal manual in Docs
 - For more details about the Klessydra runtime libraries, please refer to the software runtime manual in Docs
 
-Extensions of T13x core:
+Extensions of T1 core:
 
-The T13 can be configed in many ways in the from the "cmake_configure.klessydra-t1-3th.gcc.sh" found in the sw forlder:
+The T1 can be configed in many ways in the from the "cmake_configure.klessydra-t1-3th.gcc.sh" found in the sw forlder:
 
 You will find the following generics that will be passed to the RTL. **_Read the comments next to the variables before modifying_**:
-1)	"THREAD_POOL_SIZE" sets the number of hardware threads. This should not be set less than 3, and the T13 perfroms best when it is equal to 3 and not greater.
+1)	"THREAD_POOL_SIZE" sets the number of hardware threads. This should not be set less than 3, and the T1 perfroms best when it is equal to 3 and not greater.
 2)	"LUTRAM_RF" this variable creates a LUTRAM based registerfile instead of a flip-flop based one, it is good for FPGA synthesis as LUTRAMs based regfiles are more efficient than FF based ones.
 3)	"RV32E" this enables the embedded extension of the RISCV ISA, and makes the regfile to be half its original size (16 regs only).
 4)	"RV32M" this enable the M-extension of the RISCV ISA. The mul instruction is a single cycle instructions, and the mulh/hu/hsu instructions need 3 cycles. divisions are slow, and can be up to 32 cycles, however fast single cycle divisions are availabe for special cases (div by 0, numerator < denominator, numerator is 0, and numerator equals the denominator).
 5)	"superscalar_exec_en=1"  Enables superscalar execution when set to 1, else the stall of the pipeline will depend on tha latency of the instruction executing. This more than doubles the speed of the core in many applications, however if in the exceptional case the RTL is not simulating correctly, disable this and see whether the RTL will work again.
-6)	"accl_en"  Enables the generation of the hardware accelerator of the T13.
-7)	"replicate_accl_en" Once set, it replicates the accelerator for every thread, this increases the parallelism of the T13 by allocating a dedicated accelerator for each hart in the T13.
+6)	"accl_en"  Enables the generation of the hardware accelerator of the T1.
+7)	"replicate_accl_en" Once set, it replicates the accelerator for every thread, this increases the parallelism of the T1 by allocating a dedicated accelerator for each hart in the T1.
 8)	"multithreaded_accl_en" Set this to 1 to let the replicated accelerator have shared functional units, but maintain dedicated SPM memories for each hardware thread (note: replicate_accl_en must be set to '1').
 9)	"SPM_NUM" The number of scratchpads available "Minimum allowed is 2". When the acclerator is replicated, each hardware thread will have scratchpads equal to SPM_NUM, so in a THREAD_POOL_SIZE of 3 we will have 3*SPM_NUM scratchpads in totals
 10)	Addr_Width" This address is for scratchpads. Setting this will make the size of the spm to be: "2^Addr_Width -1"
